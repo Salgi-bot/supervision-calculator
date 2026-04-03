@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>감리경력 환산 시스템 v1.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
   --ci: #00709F;
@@ -325,6 +326,111 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 16px 0; }
   line-height: 1.5;
 }
 .tooltip-wrap:hover .tooltip-txt { visibility: visible; opacity: 1; }
+
+/* ── PDF Upload Zone ── */
+.upload-zone {
+  border: 2.5px dashed var(--ci-border);
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--ci-light);
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--ci);
+  background: #d4ecf7;
+}
+.upload-zone .up-icon { font-size: 40px; margin-bottom: 10px; }
+.upload-zone .up-title { font-size: 16px; font-weight: 700; color: var(--ci); margin-bottom: 6px; }
+.upload-zone .up-sub { font-size: 13px; color: var(--gray4); line-height: 1.6; }
+.upload-zone input[type=file] { display: none; }
+
+/* ── PDF Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: 14px;
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-header {
+  background: var(--ci);
+  color: #fff;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.modal-header h2 { font-size: 16px; font-weight: 700; }
+.modal-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+.modal-body { flex: 1; overflow-y: auto; padding: 20px 22px; }
+.modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--gray2);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  background: var(--gray1);
+}
+
+/* PDF 파싱 결과 테이블 */
+.parse-result-table { font-size: 13px; }
+.parse-result-table th { font-size: 12px; }
+.parse-result-table td { padding: 6px 8px; }
+.parse-result-table input, .parse-result-table select { font-size: 12px; padding: 4px 6px; }
+.parse-status { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; }
+.parse-status.ok { background: #d4edda; color: #155724; }
+.parse-status.warn { background: #fff3cd; color: #856404; }
+.parse-status.err { background: #f8d7da; color: #721c24; }
+.raw-text-toggle { font-size: 12px; color: var(--ci); cursor: pointer; text-decoration: underline; }
+.raw-text-box {
+  display: none;
+  background: #f8f9fa;
+  border: 1px solid var(--gray2);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 11px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+.loading-overlay {
+  display: none;
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.85);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: 12px;
+}
+.loading-overlay.show { display: flex; }
+.spinner {
+  width: 40px; height: 40px;
+  border: 4px solid var(--ci-border);
+  border-top-color: var(--ci);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -347,8 +453,50 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 16px 0; }
   <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📖</span>고시 참조</button>
 </div>
 
+<!-- ── PDF MODAL ── -->
+<div class="modal-overlay" id="pdfModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>📄 경력증명서 PDF 파싱 결과</h2>
+      <button class="modal-close" onclick="closePdfModal()">✕</button>
+    </div>
+    <div class="modal-body" id="pdfModalBody">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closePdfModal()">취소</button>
+      <button class="btn btn-primary" id="importBtn" onclick="importParsed()">✅ 이 데이터로 가져오기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════ TAB 1: 기본정보 ══════════════════════════════════ -->
 <div class="tab-content active" id="tab0">
+
+  <!-- PDF 업로드 카드 -->
+  <div class="card" style="position:relative">
+    <div class="loading-overlay" id="pdfLoading">
+      <div class="spinner"></div>
+      <div style="font-size:15px;font-weight:700;color:var(--ci)">PDF 분석 중...</div>
+    </div>
+    <div class="card-title"><span class="icon">📄</span>경력증명서 불러오기 (PDF / 이미지)</div>
+    <div class="upload-zone" id="uploadZone"
+         onclick="document.getElementById('pdfFileInput').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div class="up-icon">📂</div>
+      <div class="up-title">PDF 파일을 클릭하거나 여기에 끌어다 놓으세요</div>
+      <div class="up-sub">
+        한국건설기술인협회 발급 경력증명서 PDF<br>
+        경력 내역이 자동으로 입력됩니다<br>
+        <span style="color:var(--gray3);font-size:12px">JPG·PNG 이미지도 가능 (OCR, 정확도 낮을 수 있음)</span>
+      </div>
+      <input type="file" id="pdfFileInput" accept=".pdf,.jpg,.jpeg,.png"
+             onchange="handleFileSelect(this.files[0])">
+    </div>
+    <div class="warn-note mt-10" style="margin-bottom:0">
+      ⚠ HWPX 파일은 한글(HWP) → 다른 이름으로 저장 → PDF로 변환 후 불러오세요.
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title"><span class="icon">👤</span>감리원 기본정보</div>
     <div class="form-grid">
@@ -1435,6 +1583,390 @@ function showStatus(msg) {
   const el = document.getElementById('statusMsg');
   el.textContent = '✓ ' + msg;
   setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+// ══════════════════════════════════════════════════════
+//  PDF IMPORT
+// ══════════════════════════════════════════════════════
+
+// Drag & Drop
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.add('dragover');
+}
+function onDragLeave(e) {
+  document.getElementById('uploadZone').classList.remove('dragover');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileSelect(file);
+}
+
+async function handleFileSelect(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('pdfLoading').classList.add('show');
+  try {
+    if (ext === 'pdf') {
+      await parsePDF(file);
+    } else if (['jpg','jpeg','png'].includes(ext)) {
+      await parseImage(file);
+    } else {
+      alert('PDF 또는 이미지(JPG/PNG) 파일만 지원합니다.');
+    }
+  } catch(e) {
+    alert('파일 읽기 오류: ' + e.message);
+  } finally {
+    document.getElementById('pdfLoading').classList.remove('show');
+    document.getElementById('pdfFileInput').value = '';
+  }
+}
+
+// ── PDF.js 텍스트 추출 ──
+async function parsePDF(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  // 각 페이지의 텍스트 아이템을 위치 정보와 함께 수집
+  let allItems = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    tc.items.forEach(item => {
+      allItems.push({ str: item.str, x: item.transform[4], y: item.transform[5], page: p });
+    });
+  }
+
+  const rawText = allItems.map(i => i.str).join(' ');
+  const parsed = parseKCEAText(allItems, rawText);
+  showPdfModal(parsed, rawText);
+}
+
+// ── 이미지: Canvas → 텍스트 추출 (간단 안내) ──
+async function parseImage(file) {
+  // 이미지는 텍스트 추출이 어려우므로 미리보기만 표시하고 수동 입력 유도
+  const url = URL.createObjectURL(file);
+  const body = document.getElementById('pdfModalBody');
+  body.innerHTML = `
+    <div class="parse-status warn">⚠ 이미지 파일은 자동 파싱이 제한됩니다. 아래 이미지를 보며 직접 입력하거나, PDF로 변환 후 다시 시도해주세요.</div>
+    <img src="${url}" style="max-width:100%;border:1px solid var(--gray2);border-radius:8px">
+  `;
+  document.getElementById('importBtn').style.display = 'none';
+  document.getElementById('pdfModal').classList.add('open');
+}
+
+// ══ 협회 경력증명서 파서 ══
+function parseKCEAText(items, rawText) {
+  const result = { info: {}, careers: [], warnings: [] };
+
+  // ── 1. 기본정보 추출 ──
+  // 성명
+  let m = rawText.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
+  if (m) result.info.name = m[1];
+  // 생년월일
+  m = rawText.match(/생\s*년\s*월\s*일\s*[:：]?\s*([\d]{4}[.\-\/][\d]{2}[.\-\/][\d]{2})/);
+  if (m) result.info.birthdate = m[1].replace(/[-\/]/g, '.');
+  // 등록번호
+  m = rawText.match(/등\s*록\s*번\s*호\s*[:：]?\s*([\d\-]{8,15})/);
+  if (m) result.info.regNo = m[1];
+  // 발급일
+  m = rawText.match(/발\s*급\s*일\s*[:：]?\s*([\d]{4}[.\-][\d]{2}[.\-][\d]{2})/);
+  if (m) result.info.issueDate = m[1].replace(/-/g, '.');
+
+  // 분야 (토목/건축/설비/전기/통신)
+  const fieldMap = { '토목': '토목', '건축': '건축', '기계': '설비', '설비': '설비', '전기': '전기', '통신': '통신', '조경': '기타' };
+  for (const [k, v] of Object.entries(fieldMap)) {
+    if (new RegExp(k + '\\s*(분야|기술인|기사|산업기사)').test(rawText)) {
+      result.info.field = v; break;
+    }
+  }
+
+  // 등급
+  const gradeM = rawText.match(/(특급|고급|중급|초급)/);
+  if (gradeM) result.info.grade = gradeM[1];
+
+  // 자격증
+  const certM = rawText.match(/(토목|건축|설비|전기|조경|측량|도시계획|환경)\s*(기사|산업기사|기술사)\s*[\(（]?([\d]{4}[.\-][\d]{1,2}[.\-][\d]{1,2})/);
+  if (certM) result.info.cert = certM[0].replace(/\s+/g, ' ').trim();
+
+  // ── 2. 경력 행 추출 ──
+  // 날짜 패턴으로 경력 행 탐색
+  // 협회 경력증명서 형식: 현장명 발주처 공종 직무분야 직무내용 시작일 종료일 인정일수 등급
+  const dateReg = /(\d{4}[.\-]\d{2}[.\-]\d{2})/g;
+  const dates = [...rawText.matchAll(dateReg)].map(d => ({ val: d[1].replace(/-/g, '.'), idx: d.index }));
+
+  // 날짜 쌍 (시작일~종료일) 찾기
+  for (let i = 0; i < dates.length - 1; i++) {
+    const d1 = dates[i], d2 = dates[i+1];
+    // 두 날짜가 가깝고 d2 >= d1인 경우
+    if (d2.idx - d1.idx > 200) continue;
+    if (d1.val > d2.val) continue;
+
+    // 날짜 사이의 텍스트 = 공백
+    const between = rawText.substring(d1.idx + 10, d2.idx).trim();
+    if (between.length > 30) continue; // 너무 많으면 쌍이 아님
+
+    // 날짜 이후 인정일수 추출
+    const afterD2 = rawText.substring(d2.idx + 10, d2.idx + 60);
+    const daysM = afterD2.match(/\s+(\d{1,5})\s/);
+    const days = daysM ? parseInt(daysM[1]) : 0;
+
+    // 날짜 이전 텍스트에서 현장명 추출 (역방향으로 최대 200자)
+    const before = rawText.substring(Math.max(0, d1.idx - 300), d1.idx);
+    const siteName = extractSiteName(before);
+
+    // 직무내용 분류
+    const context = rawText.substring(Math.max(0, d1.idx - 300), d2.idx + 60);
+    const workType = inferWorkType(context);
+    const conType = inferConType(context, workType);
+    const resident = /비상주/.test(context) ? '비상주' : '상주';
+    const rowGrade = inferGrade(context);
+
+    if (days > 0 && days < 30000 && siteName) {
+      result.careers.push({
+        site: siteName,
+        startDate: d1.val,
+        endDate: d2.val,
+        days,
+        workType,
+        conType,
+        resident,
+        grade: rowGrade,
+      });
+      i++; // 다음 쌍으로 skip
+    }
+  }
+
+  // 중복 제거 (같은 시작일+종료일)
+  const seen = new Set();
+  result.careers = result.careers.filter(c => {
+    const key = c.startDate + c.endDate + c.days;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  if (result.careers.length === 0) result.warnings.push('경력 행을 자동으로 찾지 못했습니다. 텍스트를 확인하고 수동으로 입력해주세요.');
+  if (!result.info.name) result.warnings.push('성명을 찾지 못했습니다.');
+
+  return result;
+}
+
+function extractSiteName(text) {
+  // 마지막 줄바꿈 이후 텍스트에서 현장명 추출
+  const lines = text.split(/\s{2,}|\n/).filter(l => l.trim().length > 1);
+  // 한글이 포함된 마지막 의미있는 토큰
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const s = lines[i].trim();
+    if (/[가-힣]/.test(s) && s.length >= 2 && s.length <= 60) {
+      // 불필요 키워드 제거
+      if (/성명|생년월일|등록번호|발급일|직무|공종|분야|등급|자격/.test(s)) continue;
+      return s;
+    }
+  }
+  return '';
+}
+
+function inferWorkType(ctx) {
+  if (/감독권한대행/.test(ctx)) return '감독권한대행CM';
+  if (/시공단계\s*건설사업관리|시공단계CM/.test(ctx)) return '시공단계CM';
+  if (/건설사업관리/.test(ctx)) return '감독권한대행CM';
+  if (/책임감리/.test(ctx)) return '책임감리';
+  if (/주택법|공동주택.*감리|감리.*공동주택/.test(ctx)) return '감리(주택법)';
+  if (/감리/.test(ctx)) return '감리(주택법)';
+  if (/설계/.test(ctx)) return '설계';
+  if (/시공/.test(ctx)) return '시공';
+  return '기타';
+}
+
+function inferConType(ctx, workType) {
+  if (/공동주택|아파트|주택|APT/i.test(ctx)) return '주택건설공사';
+  if (/도로|교량|터널|하천|항만|댐|토목/i.test(ctx)) return '토목공사';
+  if (/설비|기계|전기|소방/i.test(ctx)) return '설비공사';
+  if (/건축|오피스|상업|업무|학교|병원/i.test(ctx)) return '비주택건축공사';
+  // workType 기반 추론
+  if (workType === '감리(주택법)') return '주택건설공사';
+  if (workType === '감독권한대행CM' || workType === '시공단계CM') return '토목공사';
+  return '주택건설공사';
+}
+
+function inferGrade(ctx) {
+  const m = ctx.match(/(특급|고급|중급|초급)/);
+  return m ? m[1] : '특급';
+}
+
+// ── 모달 표시 ──
+let parsedData = null;
+
+function showPdfModal(parsed, rawText) {
+  parsedData = parsed;
+  const body = document.getElementById('pdfModalBody');
+
+  let statusHtml = '';
+  if (parsed.warnings.length) {
+    statusHtml = parsed.warnings.map(w => `<div class="parse-status warn">⚠ ${w}</div>`).join('');
+  } else {
+    statusHtml = `<div class="parse-status ok">✅ ${parsed.careers.length}건의 경력이 파싱되었습니다. 내용을 확인 후 [가져오기]를 클릭하세요.</div>`;
+  }
+
+  // 기본정보 미리보기
+  const info = parsed.info;
+  let infoHtml = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px">
+      ${infoField('성명', 'pi_name', info.name || '')}
+      ${infoField('생년월일', 'pi_birth', info.birthdate || '')}
+      ${infoField('등록번호', 'pi_regNo', info.regNo || '')}
+      ${infoField('발급일', 'pi_issue', info.issueDate || '')}
+      ${infoSelect('분야', 'pi_field', ['토목','건축','설비','전기','통신'], info.field || '토목')}
+      ${infoSelect('등급', 'pi_grade', ['특급','고급','중급','초급'], info.grade || '특급')}
+    </div>
+  `;
+
+  // 경력 테이블
+  let careersHtml = '';
+  if (parsed.careers.length) {
+    careersHtml = `
+      <div style="font-size:14px;font-weight:700;color:var(--ci);margin-bottom:8px">경력 내역 (${parsed.careers.length}건) — 수정 후 가져오기</div>
+      <div class="tbl-wrap">
+        <table class="parse-result-table" id="parseTable">
+          <thead><tr>
+            <th>No</th><th>현장명</th><th>공사종류</th><th>업무분야</th><th>상주</th>
+            <th>시작일</th><th>종료일</th><th>인정일수</th><th>삭제</th>
+          </tr></thead>
+          <tbody>
+            ${parsed.careers.map((c,i) => careerParseRow(c, i)).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn btn-outline btn-sm" onclick="addParseRow()">＋ 행 추가</button>
+      </div>
+    `;
+  }
+
+  // 원문 텍스트
+  const rawHtml = `
+    <div style="margin-top:14px">
+      <span class="raw-text-toggle" onclick="toggleRaw()">▶ 원문 텍스트 보기/숨기기</span>
+      <div class="raw-text-box" id="rawTextBox">${escHtml(rawText.substring(0, 3000))}${rawText.length > 3000 ? '\n...(이하 생략)' : ''}</div>
+    </div>
+  `;
+
+  body.innerHTML = statusHtml + infoHtml + careersHtml + rawHtml;
+  document.getElementById('importBtn').style.display = '';
+  document.getElementById('pdfModal').classList.add('open');
+}
+
+function infoField(label, id, val) {
+  return `<div>
+    <div style="font-size:12px;font-weight:600;color:var(--gray4);margin-bottom:4px">${label}</div>
+    <input id="${id}" type="text" value="${escHtml(val)}" style="width:100%;padding:7px 10px;border:1px solid var(--gray3);border-radius:6px;font-size:14px;font-family:var(--font)">
+  </div>`;
+}
+function infoSelect(label, id, opts, val) {
+  return `<div>
+    <div style="font-size:12px;font-weight:600;color:var(--gray4);margin-bottom:4px">${label}</div>
+    <select id="${id}" style="width:100%;padding:7px 10px;border:1px solid var(--gray3);border-radius:6px;font-size:14px;font-family:var(--font)">
+      ${opts.map(o=>`<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
+function careerParseRow(c, i) {
+  const conOpts = CON_TYPES.map(t=>`<option value="${t}" ${t===c.conType?'selected':''}>${t}</option>`).join('');
+  const workOpts = WORK_TYPES.map(t=>`<option value="${t}" ${t===c.workType?'selected':''}>${t}</option>`).join('');
+  return `<tr id="prow_${i}">
+    <td style="color:var(--gray4)">${i+1}</td>
+    <td><input type="text" value="${escHtml(c.site)}" style="min-width:140px"></td>
+    <td><select>${conOpts}</select></td>
+    <td><select>${workOpts}</select></td>
+    <td><select><option ${c.resident==='상주'?'selected':''}>상주</option><option ${c.resident==='비상주'?'selected':''}>비상주</option></select></td>
+    <td><input type="text" value="${c.startDate}" style="width:105px"></td>
+    <td><input type="text" value="${c.endDate}" style="width:105px"></td>
+    <td><input type="number" value="${c.days}" style="width:75px"></td>
+    <td><button class="btn-icon" onclick="this.closest('tr').remove()">🗑</button></td>
+  </tr>`;
+}
+
+function addParseRow() {
+  const tbody = document.querySelector('#parseTable tbody');
+  const i = tbody.rows.length;
+  const tr = document.createElement('tr');
+  tr.id = 'prow_new_' + i;
+  const c = { site:'', conType:'주택건설공사', workType:'감리(주택법)', resident:'상주', startDate:'', endDate:'', days:0 };
+  tr.innerHTML = careerParseRow(c, i).replace(`id="prow_${i}"`, '');
+  tbody.appendChild(tr);
+}
+
+function toggleRaw() {
+  const el = document.getElementById('rawTextBox');
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 가져오기 실행 ──
+function importParsed() {
+  const info = {
+    name:      (document.getElementById('pi_name')?.value || '').trim(),
+    birthdate: (document.getElementById('pi_birth')?.value || '').trim(),
+    regNo:     (document.getElementById('pi_regNo')?.value || '').trim(),
+    issueDate: (document.getElementById('pi_issue')?.value || '').trim(),
+    field:     document.getElementById('pi_field')?.value || '토목',
+    grade:     document.getElementById('pi_grade')?.value || '특급',
+  };
+
+  // 기본정보 입력
+  if (info.name) document.getElementById('name').value = info.name;
+  if (info.birthdate) document.getElementById('birthdate').value = info.birthdate;
+  if (info.regNo) document.getElementById('regNo').value = info.regNo;
+  if (info.issueDate) document.getElementById('issueDate').value = info.issueDate;
+  if (info.field) document.getElementById('field').value = info.field;
+  if (info.grade) {
+    document.getElementById('grade').value = info.grade;
+    document.getElementById('appliedGrade').value = info.grade;
+  }
+
+  // 경력 행 읽기
+  const tbody = document.querySelector('#parseTable tbody');
+  if (!tbody) { closePdfModal(); return; }
+
+  const newRows = [];
+  Array.from(tbody.rows).forEach((tr, i) => {
+    const inputs = tr.querySelectorAll('input');
+    const selects = tr.querySelectorAll('select');
+    const site      = inputs[0]?.value?.trim() || '';
+    const startDate = inputs[1]?.value?.trim() || '';
+    const endDate   = inputs[2]?.value?.trim() || '';
+    const days      = parseInt(inputs[3]?.value) || 0;
+    const conType   = selects[0]?.value || '주택건설공사';
+    const workType  = selects[1]?.value || '감리(주택법)';
+    const resident  = selects[2]?.value || '상주';
+    if (days > 0) {
+      newRows.push({ id: Date.now() + i, site, conType, workType, resident, startDate, endDate, days, rate: 1, convDays: 0 });
+    }
+  });
+
+  if (newRows.length) {
+    rows = newRows;
+    renderCareerTable();
+    showStatus(`PDF에서 ${newRows.length}건 경력 가져오기 완료`);
+    closePdfModal();
+    switchTab(1); // 경력 탭으로 이동
+  } else {
+    alert('가져올 경력 데이터가 없습니다.');
+  }
+}
+
+function closePdfModal() {
+  document.getElementById('pdfModal').classList.remove('open');
+  parsedData = null;
 }
 
 // ══════════════════════════════════════════════════════
