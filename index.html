@@ -1758,77 +1758,140 @@ async function parseImage(file) {
 // ══ 경력증명서 파서 ══
 function parseKCEAText(items, rawText) {
   const result = { info: {}, careers: [], warnings: [] };
+  const fieldMap = { '토목':'토목', '건축':'건축', '기계':'설비', '설비':'설비', '전기':'전기', '통신':'통신' };
 
   // 0. 텍스트 정규화
   const isCharSpaced = /\d \d \d \d \. \d \d \. \d \d/.test(rawText);
   const text = isCharSpaced ? rawText.replace(/(\S) (?=\S)/g, '$1') : rawText;
 
-  // 1. 기본정보
-  let m = text.match(/성명\s*[\(（]?한글[\)）]?\s*[:：]?\s*([가-힣]{2,5})/);
-  if (!m) m = text.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
-  if (m) result.info.name = m[1];
+  // ── 1. 기본정보 (items 우선 → rawText 폴백) ──
 
-  m = text.match(/생년월일\s+(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
-  if (m) {
-    result.info.birthdate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
-  } else {
-    m = text.match(/생\s*년\s*월\s*일\s*[:：]?\s*(\d{2,4})[.\-\/](\d{2})[.\-\/](\d{2})/);
-    if (m) {
-      let yr = m[1]; if (yr.length === 2) yr = (parseInt(yr) >= 50 ? '19' : '20') + yr;
-      result.info.birthdate = `${yr}.${m[2]}.${m[3]}`;
+  // 성명: items에서 "성명(한글)" 또는 "성명 :" 다음 한글 이름
+  for (let i = 0; i < items.length && !result.info.name; i++) {
+    if (/성명.*한글/.test(items[i].str)) {
+      for (let j = i + 1; j < Math.min(i + 15, items.length); j++) {
+        if (/^[가-힣]{2,5}$/.test(items[j].str.trim())) { result.info.name = items[j].str.trim(); break; }
+      }
+    }
+    const nm = items[i].str.match(/성명\s*:\s*([가-힣]{2,5})/);
+    if (nm && !result.info.name) result.info.name = nm[1];
+  }
+  if (!result.info.name) {
+    let m = text.match(/성명\s*[\(（]?한글[\)）]?\s*[:：]?\s*([가-힣]{2,5})/);
+    if (!m) m = text.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
+    if (m) result.info.name = m[1];
+  }
+
+  // 생년월일: items에서 개별 문자 수집 (57.02.07 → 1957.02.07)
+  for (let i = 0; i < items.length && !result.info.birthdate; i++) {
+    if (!/생년월일/.test(items[i].str)) continue;
+    let chars = '';
+    for (let j = i + 1; j < Math.min(i + 25, items.length); j++) {
+      const s = items[j].str.trim();
+      if (/^\d{4}\.\d{2}\.\d{2}$/.test(s)) { result.info.birthdate = s; break; }
+      if (/^\d{2}\.\d{2}\.\d{2}$/.test(s)) {
+        let yr = s.substring(0, 2);
+        yr = (parseInt(yr) >= 30 ? '19' : '20') + yr;
+        result.info.birthdate = yr + '.' + s.substring(3); break;
+      }
+      if (/^[\d.]$/.test(s)) chars += s;
+      else if (chars.length >= 6) break;
+    }
+    if (!result.info.birthdate && chars.length >= 6) {
+      const dm = chars.match(/(\d{2,4})\.(\d{2})\.(\d{2})/);
+      if (dm) {
+        let yr = dm[1];
+        if (yr.length === 2) yr = (parseInt(yr) >= 30 ? '19' : '20') + yr;
+        result.info.birthdate = `${yr}.${dm[2]}.${dm[3]}`;
+      }
+    }
+  }
+  if (!result.info.birthdate) {
+    let m = text.match(/생년월일\s+(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (m) result.info.birthdate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
+    else {
+      m = text.match(/생\s*년\s*월\s*일\s*[:：]?\s*(\d{2,4})[.\-\/](\d{2})[.\-\/](\d{2})/);
+      if (m) {
+        let yr = m[1]; if (yr.length === 2) yr = (parseInt(yr) >= 50 ? '19' : '20') + yr;
+        result.info.birthdate = `${yr}.${m[2]}.${m[3]}`;
+      }
     }
   }
 
-  m = text.match(/(?:등록|관리)\s*번\s*호\s*[:：]?\s*([\d\w\-]{6,20})/);
-  if (m) result.info.regNo = m[1];
-
-  m = text.match(/발\s*급\s*일\s*[:：]?\s*(\d{4})[.\-](\d{2})[.\-](\d{2})/);
-  if (m) result.info.issueDate = `${m[1]}.${m[2]}.${m[3]}`;
-  else {
-    m = text.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
-    if (m) result.info.issueDate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
+  // 등록번호: items에서 관리번호 다음 숫자 수집
+  for (let i = 0; i < items.length && !result.info.regNo; i++) {
+    if (/관리번호/.test(items[i].str)) {
+      for (let j = i + 1; j < Math.min(i + 5, items.length); j++) {
+        const s = items[j].str.trim().replace(/\s+/g, '');
+        if (/^\d{6,}$/.test(s)) { result.info.regNo = s; break; }
+      }
+    }
+  }
+  if (!result.info.regNo) {
+    let m = text.match(/(?:등록|관리)\s*번\s*호\s*[:：]?\s*([\d\w\-]{6,20})/);
+    if (m) result.info.regNo = m[1];
   }
 
-  const fieldMap = { '토목':'토목', '건축':'건축', '기계':'설비', '설비':'설비', '전기':'전기', '통신':'통신' };
+  // 발급일
+  for (let i = 0; i < items.length && !result.info.issueDate; i++) {
+    const dm = items[i].str.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (dm && items[i].page === 1) {
+      result.info.issueDate = `${dm[1]}.${String(dm[2]).padStart(2,'0')}.${String(dm[3]).padStart(2,'0')}`;
+    }
+  }
+  if (!result.info.issueDate) {
+    let m = text.match(/발\s*급\s*일\s*[:：]?\s*(\d{4})[.\-](\d{2})[.\-](\d{2})/);
+    if (m) result.info.issueDate = `${m[1]}.${m[2]}.${m[3]}`;
+  }
+
+  // 분야·등급·자격증
   for (const [k,v] of Object.entries(fieldMap)) {
     if (new RegExp(k+'\\s*(분야|기술인|기사|산업기사)').test(text)) { result.info.field = v; break; }
   }
-
   const gradeM = text.match(/(특급|고급|중급|초급)/);
   if (gradeM) result.info.grade = gradeM[1];
-
   const certM = text.match(/(토목|건축|설비|전기|조경|측량)\s*(기사|산업기사|기술사)\s*[\(（]?(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})/);
   if (certM) result.info.cert = certM[0].replace(/\s+/g,' ').trim();
 
-  // 2. 경력 행 추출
-  // 방법 1: 시작일 ~ 종료일 ... (인정일 일)
-  const dateRangeReg = /(\d{4}\.\d{2}\.\d{2})\s*~\s*(\d{4}\.\d{2}\.\d{2})/g;
-  const dateRanges = [...text.matchAll(dateRangeReg)];
+  // ── 2. 경력 추출 (좌표 기반 — KCEA 서식) ──
+  if (items.length > 0) {
+    result.careers = extractCareersFromItems(items);
+  }
 
-  for (const dm of dateRanges) {
-    const startDate = dm[1], endDate = dm[2];
-    const afterText = text.substring(dm.index + dm[0].length, dm.index + dm[0].length + 500);
-    const daysM = afterText.match(/\((\d+)\s*일\)/);
-    if (!daysM) continue;
-    const days = parseInt(daysM[1]);
-    if (days <= 0 || days >= 30000) continue;
-
-    const detailText = afterText.substring(0, daysM.index).trim();
-    const fieldKw = /^(건축|토목|설비|전기|통신|조경|기계)$/;
-    const segments = detailText.split(/\s{2,}/).filter(s => s.trim().length > 0 && s.trim() !== '.');
-    let siteNameParts = [];
-    for (const seg of segments) {
-      if (fieldKw.test(seg.trim())) break;
-      siteNameParts.push(seg.trim());
-    }
-    const siteName = siteNameParts.join(' ') || segments[0] || '';
-    const context = detailText;
-    if (siteName) {
-      result.careers.push({
-        site: siteName, startDate, endDate, days,
-        workType: inferWorkType(context), conType: inferConType(context, inferWorkType(context)),
-        resident: /비상주/.test(context) ? '비상주' : '상주',
-      });
+  // ── 3. 경력 폴백 (rawText 기반) ──
+  // 방법 1: date~date (days)
+  if (result.careers.length === 0) {
+    const dateRangeReg = /(\d{4}\.\d{2}\.\d{2})\s*~\s*(\d{4}\.\d{2}\.\d{2})/g;
+    const dateRanges = [...text.matchAll(dateRangeReg)];
+    for (const dm of dateRanges) {
+      const startDate = dm[1], endDate = dm[2];
+      const afterText = text.substring(dm.index + dm[0].length, dm.index + dm[0].length + 500);
+      const daysM = afterText.match(/\(([\d,]+)\s*일\)/);
+      if (!daysM) continue;
+      const days = parseInt(daysM[1].replace(/,/g, ''));
+      if (days <= 0 || days >= 30000) continue;
+      const detailText = afterText.substring(0, daysM.index).trim();
+      const fieldKw = /^(건축|토목|설비|전기|통신|조경|기계)$/;
+      const segments = detailText.split(/\s{2,}/).filter(s => s.trim().length > 0 && s.trim() !== '.');
+      let siteNameParts = [];
+      for (const seg of segments) {
+        if (fieldKw.test(seg.trim())) break;
+        siteNameParts.push(seg.trim());
+      }
+      let siteName = siteNameParts.join(' ') || segments[0] || '';
+      if (!siteName) {
+        const afterDays = afterText.substring(daysM.index + daysM[0].length).trim();
+        const parts = afterDays.split(/\s{2,}/).filter(s => s.trim().length > 1 && /[가-힣]/.test(s));
+        if (parts.length > 0) siteName = parts[0].trim();
+      }
+      const context = detailText;
+      if (siteName) {
+        result.careers.push({
+          site: siteName, startDate, endDate, days,
+          workType: inferWorkType(context), conType: inferConType(context, inferWorkType(context)),
+          resident: /비상주/.test(context) ? '비상주' : '상주',
+        });
+      }
     }
   }
 
@@ -1840,7 +1903,6 @@ function parseKCEAText(items, rawText) {
     const allDatesArr = [...careerText.matchAll(dateRegAll)];
     const tildes = [...careerText.matchAll(/~/g)];
     const usedStarts = new Set();
-
     for (const tilde of tildes) {
       const beforeDates = allDatesArr.filter(d => d.index < tilde.index && tilde.index - d.index < 300 && !usedStarts.has(d.index));
       const startM = beforeDates[beforeDates.length - 1];
@@ -1850,12 +1912,11 @@ function parseKCEAText(items, rawText) {
       if (!endM) continue;
       const startDate = startM[1], endDate = endM[1];
       if (startDate > endDate) continue;
-
       const afterEnd = careerText.substring(endM.index + 10, endM.index + 500);
-      let daysM = afterEnd.match(/\(\s*(\d{1,4})\s*일\s*\)/);
-      if (!daysM) daysM = afterEnd.match(/\(\s*(\d{1,4})\s*일/);
+      let daysM = afterEnd.match(/\(\s*([\d,]{1,6})\s*일\s*\)/);
+      if (!daysM) daysM = afterEnd.match(/\(\s*([\d,]{1,6})\s*일/);
       let days;
-      if (daysM) { days = parseInt(daysM[1]); }
+      if (daysM) { days = parseInt(daysM[1].replace(/,/g, '')); }
       else {
         const [y1,m1,d1] = startDate.split('.').map(Number);
         const [y2,m2,d2] = endDate.split('.').map(Number);
@@ -1863,7 +1924,6 @@ function parseKCEAText(items, rawText) {
       }
       if (days <= 0 || days >= 30000) continue;
       usedStarts.add(startM.index);
-
       const beforeStart = careerText.substring(Math.max(0, startM.index - 300), startM.index).trim();
       const beforeLines = beforeStart.split('\n').filter(l => l.trim().length > 0);
       let siteName = '';
@@ -1871,18 +1931,16 @@ function parseKCEAText(items, rawText) {
         const line = beforeLines[li].trim();
         if (/^(Page|페이지|참여기간|인정일|발주자|공사종류|전문분야|직위|비고|적용|시설물|책임정도|담당업무|직무분야|사업명|기술경력|성명|문서|210mm|본\s*증명)/.test(line)) continue;
         if (/^\d{4}\.\d{2}\.\d{2}/.test(line)) continue;
-        if (/^\([\d\s]*[일%]/.test(line)) continue;
+        if (/^\([\d\s,]*[일%]/.test(line)) continue;
         if (/^[~\-=_.\s]*$/.test(line)) continue;
         if (line.length < 2) continue;
         const seg = line.split(/\s{3,}/)[0].trim();
         if (seg.length >= 2 && /[가-힣]/.test(seg)) { siteName = seg; break; }
       }
-
       const betweenText = careerText.substring(startM.index + 10, tilde.index).trim();
       const daysIdx = daysM ? daysM.index : 100;
       const afterEndDetail = careerText.substring(endM.index + 10, endM.index + 10 + Math.min(daysIdx, 200)).trim();
       const context = betweenText + ' ' + afterEndDetail;
-
       if (siteName && siteName.length >= 2) {
         result.careers.push({
           site: siteName, startDate, endDate, days,
@@ -1903,8 +1961,8 @@ function parseKCEAText(items, rawText) {
       const between = text.substring(d1.idx + 10, d2.idx).trim();
       if (between.length > 30) continue;
       const afterD2 = text.substring(d2.idx + 10, d2.idx + 60);
-      const daysMF = afterD2.match(/\s+(\d{1,5})\s/);
-      const days = daysMF ? parseInt(daysMF[1]) : 0;
+      const daysMF = afterD2.match(/\s+([\d,]{1,6})\s/);
+      const days = daysMF ? parseInt(daysMF[1].replace(/,/g, '')) : 0;
       const before = text.substring(Math.max(0, d1.idx - 300), d1.idx);
       const siteName = extractSiteName(before);
       const context = text.substring(Math.max(0, d1.idx - 300), d2.idx + 60);
@@ -1919,7 +1977,21 @@ function parseKCEAText(items, rawText) {
     }
   }
 
-  // 중복 제거
+  // ── 4. 분야 보정: 경력 페이지 직무분야 컬럼(x≈378) 활용 ──
+  if (!result.info.field && items.length > 0) {
+    const fc = {};
+    items.forEach(it => {
+      if (it.x >= 360 && it.x < 420) {
+        for (const [k,v] of Object.entries(fieldMap)) {
+          if (it.str.trim() === k) fc[v] = (fc[v] || 0) + 1;
+        }
+      }
+    });
+    const top = Object.entries(fc).sort((a,b) => b[1] - a[1])[0];
+    if (top) result.info.field = top[0];
+  }
+
+  // ── 5. 정리 ──
   const seen = new Set();
   result.careers = result.careers.filter(c => {
     const key = c.startDate + c.endDate + c.days;
@@ -1930,6 +2002,112 @@ function parseKCEAText(items, rawText) {
   if (result.careers.length === 0) result.warnings.push('경력 행을 자동으로 찾지 못했습니다.');
   if (!result.info.name) result.warnings.push('성명을 찾지 못했습니다.');
   return result;
+}
+
+// ══ 좌표 기반 경력 추출 (KCEA 서식 전용) ══
+function extractCareersFromItems(items) {
+  const careers = [];
+  const pages = {};
+  items.forEach(i => { if (!pages[i.page]) pages[i.page] = []; pages[i.page].push(i); });
+  const headerExclude = /^(발주자|공사종류|공사\(|전문분야|적용|사업명|참여기간|참여\d|인정일|참여일|시설물|책임정도|직무분야|담당업무|비고|본\s*증명|문서|어링|성명|건설기술|경력증명|Page|페이지|\(인정일\))/;
+  const dateRe = /^\d{4}\.\d{2}\.\d{2}$/;
+
+  for (const pageItems of Object.values(pages)) {
+    // 경력 페이지 판별: "참여기간" 또는 "참여"(OCR 오인식 대응) + 좌측 날짜 존재
+    const isCareerPage = pageItems.some(i => /참여기간/.test(i.str)) ||
+      (pageItems.some(i => /^참여/.test(i.str) && i.y > 700) &&
+       pageItems.some(i => dateRe.test(i.str.trim()) && i.x < 70));
+    if (!isCareerPage) continue;
+
+    // 틸데 마커: ~, ～, · (KIRA OCR은 ·로 표기)
+    const tildes = pageItems.filter(i =>
+      /^[~～·]$/.test(i.str.trim()) && i.x >= 35 && i.x <= 70
+    );
+
+    for (const tilde of tildes) {
+      // 시작일: 틸데 위(y 큰 쪽), x<70, 20 이내
+      const startItem = pageItems
+        .filter(i => dateRe.test(i.str.trim()) && i.x < 70 && i.y > tilde.y && i.y - tilde.y < 20)
+        .sort((a,b) => a.y - b.y)[0];
+      // 종료일: 틸데 아래(y 작은 쪽), x<70, 20 이내
+      const endItem = pageItems
+        .filter(i => dateRe.test(i.str.trim()) && i.x < 70 && i.y < tilde.y && tilde.y - i.y < 20)
+        .sort((a,b) => b.y - a.y)[0];
+
+      if (!startItem || !endItem) continue;
+      if (startItem.str > endItem.str) continue;
+
+      // 인정일수: 종료일 아래 — "(NNN일)" 또는 "(NNN" + "일)" 분리 대응
+      let days = 0;
+      const daysFullItem = pageItems
+        .filter(i => /^\([\d,]+\s*일\)$/.test(i.str.trim()) && i.y < endItem.y && endItem.y - i.y < 30)
+        .sort((a,b) => b.y - a.y)[0];
+      if (daysFullItem) {
+        days = parseInt(daysFullItem.str.replace(/[^0-9]/g, ''));
+      } else {
+        // KIRA: "(869" + "일)" 분리된 경우
+        const daysPart = pageItems
+          .filter(i => /^\([\d,]+$/.test(i.str.trim()) && i.y < endItem.y && endItem.y - i.y < 30)
+          .sort((a,b) => b.y - a.y)[0];
+        if (daysPart) {
+          const nearIl = pageItems.some(j => /^일\)?$/.test(j.str.trim()) && Math.abs(j.y - daysPart.y) < 5);
+          if (nearIl) days = parseInt(daysPart.str.replace(/[^0-9]/g, ''));
+        }
+      }
+      if (days <= 0) {
+        const [y1,m1,d1] = startItem.str.split('.').map(Number);
+        const [y2,m2,d2] = endItem.str.split('.').map(Number);
+        days = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1;
+      }
+      if (days <= 0 || days >= 30000) continue;
+
+      // 사업명: 시작일 y ~ y+20 범위, x 70~350
+      const siteItems = pageItems.filter(i =>
+        i.x >= 70 && i.x < 350 &&
+        i.y >= startItem.y - 3 && i.y - startItem.y < 20 &&
+        /[가-힣a-zA-Z0-9]/.test(i.str) && i.str.trim().length >= 2 &&
+        !headerExclude.test(i.str.trim()) &&
+        !/^[.…·:;|!lLItT\-_,'"]+$/.test(i.str.trim())
+      );
+      const siteName = siteItems.length > 0 ? siteItems[0].str.trim() : '';
+
+      // 담당업무 (x≥430, 사업명 행 y)
+      const siteY = siteItems.length > 0 ? siteItems[0].y : startItem.y + 11;
+      const dutyItems = pageItems.filter(i => i.x >= 430 && Math.abs(i.y - siteY) < 5);
+
+      // 공사종류/발주자 (틸데 y 부근, x 70~400)
+      const midItems = pageItems.filter(i =>
+        i.x >= 70 && i.x < 400 && Math.abs(i.y - tilde.y) < 5 &&
+        !headerExclude.test(i.str.trim()) && !/^[.…·:;|!lLItT\-_,'"]+$/.test(i.str.trim())
+      );
+
+      // 책임정도 (종료일~인정일 사이 y, x≥370)
+      const respItems = pageItems.filter(i =>
+        i.x >= 370 && i.y < tilde.y && tilde.y - i.y < 30 &&
+        !/^[.…·:;|!lLItT\-_,'"]+$/.test(i.str.trim())
+      );
+
+      const context = [...dutyItems, ...midItems, ...respItems, ...siteItems]
+        .map(i => i.str.trim()).filter(s => s.length >= 2).join(' ');
+
+      careers.push({
+        site: siteName || '(미확인)',
+        startDate: startItem.str,
+        endDate: endItem.str,
+        days,
+        workType: inferWorkType(context),
+        conType: inferConType(context, inferWorkType(context)),
+        resident: /비상주/.test(context) ? '비상주' : '상주',
+      });
+    }
+  }
+
+  const seen = new Set();
+  return careers.filter(c => {
+    const key = c.startDate + c.endDate;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 }
 
 function extractSiteName(text) {
