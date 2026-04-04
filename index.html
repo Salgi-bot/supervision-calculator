@@ -851,14 +851,17 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 5: 별지2호 ══════════ -->
 <div class="tab-content" id="tab5">
-  <div class="card">
+  <div class="card no-print">
     <div class="card-title"><span class="icon">📊</span>별지 제2호 — 자기평가서</div>
-    <div class="a4-placeholder">
-      <div style="font-size:40px;margin-bottom:16px">📊</div>
-      <div style="font-size:16px;font-weight:700;color:var(--ci);margin-bottom:8px">Stage 3에서 구현 예정</div>
-      <div>감리원별 배점 결과가 자기평가서 A4 양식으로 자동 생성됩니다</div>
+    <div class="info-note">감리원별 경력·등급 배점이 A4 자기평가서로 자동 생성됩니다. 감리원을 선택하세요.</div>
+    <div class="person-selector" id="personSelectorB2" style="margin:12px 0"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="renderByeolji2()">미리보기 갱신</button>
+      <button class="btn" onclick="renderByeolji2All()">전원 일괄 생성</button>
+      <button class="btn" onclick="printByeolji(2)">인쇄 / PDF 저장</button>
     </div>
   </div>
+  <div id="byeolji2Preview"></div>
 </div>
 
 <!-- ══════════ TAB 6: 별지3호+부표 ══════════ -->
@@ -1078,7 +1081,7 @@ function switchTab(idx) {
   if (idx === 2) { renderPersonSelector('personSelector'); loadPersonToForm(currentPersonId); renderCareerTable(); }
   if (idx === 3) { renderPersonSelector('personSelectorScore'); calcScore(); }
   if (idx === 4) renderByeolji1();
-  if (idx === 5) renderByeolji2();
+  if (idx === 5) { renderPersonSelector('personSelectorB2'); renderByeolji2(); }
   if (idx === 6) renderByeolji3();
 }
 
@@ -1180,6 +1183,9 @@ function selectPerson(roleId, fromContainer) {
   if (fromContainer === 'personSelectorScore') {
     renderPersonSelector('personSelectorScore');
     loadScoreForPerson(roleId);
+  } else if (fromContainer === 'personSelectorB2') {
+    renderPersonSelector('personSelectorB2');
+    renderByeolji2();
   } else {
     renderPersonSelector('personSelector');
     loadPersonToForm(roleId);
@@ -2141,7 +2147,169 @@ function renderByeolji1() {
     </div>`;
 }
 
-function renderByeolji2() { /* Stage 3 */ }
+function calcPersonScore(roleId) {
+  const p = personnel[roleId];
+  const role = ROLES.find(r => r.id === roleId);
+  const grade = p.info.appliedGrade || p.info.grade || '특급';
+  const placement = p.info.placement || role.placement;
+  const careers = p.careers || [];
+  const totalConv = careers.reduce((s,c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
+  const convYears = totalConv / 365;
+
+  let gradeScore = 0, expScore = 0, maxGrade = 0, maxExp = 0;
+  if (placement === '분야별') {
+    maxGrade = 2; maxExp = 7;
+    const gMap = { '특급': 2.0, '고급': 1.8, '중급': 1.6, '초급': 1.4 };
+    gradeScore = gMap[grade] || 0;
+    if (convYears >= 10) expScore = 7.0;
+    else if (convYears >= 8) expScore = 6.3;
+    else if (convYears >= 6) expScore = 5.6;
+    else expScore = 4.9;
+  } else {
+    maxGrade = 6; maxExp = 18;
+    gradeScore = grade === '특급' ? 6.0 : 0;
+    if (convYears >= 12) expScore = 18.0;
+    else if (convYears >= 10) expScore = 16.5;
+    else if (convYears >= 8) expScore = 15.0;
+    else expScore = 13.5;
+  }
+  return { grade, placement, totalConv, convYears, gradeScore, expScore, maxGrade, maxExp, total: gradeScore + expScore, maxScore: maxGrade + maxExp };
+}
+
+function buildByeolji2Html(roleId) {
+  const p = personnel[roleId];
+  const role = ROLES.find(r => r.id === roleId);
+  const info = p.info;
+  const sc = calcPersonScore(roleId);
+  const pj = getProjectData();
+  const co = getCompanyData();
+  const careers = p.careers || [];
+
+  let careerRows = '';
+  let totalDays = 0, totalConv = 0;
+  careers.forEach((c, i) => {
+    const rate = getRate(c.conType, c.workType, c.resident);
+    const conv = Math.round((c.days||0) * rate);
+    totalDays += (c.days||0);
+    totalConv += conv;
+    careerRows += `<tr>
+      <td style="text-align:center">${i+1}</td>
+      <td style="text-align:left;font-size:8.5pt">${escHtml(c.site || '-')}</td>
+      <td style="text-align:center;font-size:8.5pt">${escHtml(c.conType)}</td>
+      <td style="text-align:center;font-size:8.5pt">${escHtml(c.workType)}</td>
+      <td style="text-align:center">${escHtml(c.resident)}</td>
+      <td style="text-align:center;font-size:8pt">${escHtml(c.startDate)}~${escHtml(c.endDate)}</td>
+      <td style="text-align:right">${(c.days||0).toLocaleString()}</td>
+      <td style="text-align:center">${(rate*100).toFixed(0)}%</td>
+      <td style="text-align:right;font-weight:600">${conv.toLocaleString()}</td>
+    </tr>`;
+  });
+  if (!careers.length) {
+    careerRows = '<tr><td colspan="9" style="text-align:center;color:#999;padding:12px">경력 데이터 없음</td></tr>';
+  }
+
+  const today = new Date();
+  const y = today.getFullYear(), mo = String(today.getMonth()+1).padStart(2,' '), d = String(today.getDate()).padStart(2,' ');
+
+  return `
+    <div class="a4-preview" style="margin-bottom:20px">
+      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제2호서식 (제8조 관련)</div>
+      <h2 style="text-align:center;font-size:18pt;letter-spacing:8px;margin:20px 0 30px;font-weight:800">자 기 평 가 서</h2>
+
+      <div style="font-weight:700;font-size:11pt;margin-bottom:8px">1. 인적사항</div>
+      <table style="margin-bottom:16px">
+        <colgroup><col style="width:18%"><col style="width:32%"><col style="width:18%"><col style="width:32%"></colgroup>
+        <tr><th>성 명</th><td>${escHtml(info.name)}</td><th>생년월일</th><td>${escHtml(info.birthdate)}</td></tr>
+        <tr><th>배치구분</th><td>${escHtml(role.label)}</td><th>분 야</th><td>${escHtml(info.field)}</td></tr>
+        <tr><th>등 급</th><td>${escHtml(sc.grade)}</td><th>등록번호</th><td>${escHtml(info.regNo)}</td></tr>
+        <tr><th>자격증</th><td colspan="3">${escHtml(info.cert)}</td></tr>
+      </table>
+
+      <div style="font-weight:700;font-size:11pt;margin-bottom:8px">2. 배점 결과</div>
+      <table style="margin-bottom:16px">
+        <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
+        <thead><tr><th>평가항목</th><th>배점</th><th>자기평가</th><th>비 고</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center;font-weight:600">가. 등급</td>
+            <td style="text-align:center">${sc.maxGrade}점</td>
+            <td style="text-align:center;font-weight:700;color:#00709F">${sc.gradeScore.toFixed(1)}점</td>
+            <td style="text-align:center;font-size:9pt">${escHtml(sc.grade)} (${sc.placement})</td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-weight:600">나. 경력</td>
+            <td style="text-align:center">${sc.maxExp}점</td>
+            <td style="text-align:center;font-weight:700;color:#00709F">${sc.expScore.toFixed(1)}점</td>
+            <td style="text-align:center;font-size:9pt">환산 ${sc.convYears.toFixed(2)}년 (${sc.totalConv.toLocaleString()}일)</td>
+          </tr>
+          <tr style="background:#e8f4fb;font-weight:700">
+            <td style="text-align:center">합 계</td>
+            <td style="text-align:center">${sc.maxScore}점</td>
+            <td style="text-align:center;color:#00709F;font-size:12pt">${sc.total.toFixed(1)}점</td>
+            <td style="text-align:center">${sc.total >= sc.maxScore ? '만점' : '만점까지 '+(sc.maxScore - sc.total).toFixed(1)+'점 부족'}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="font-weight:700;font-size:11pt;margin-bottom:8px">3. 경력사항 (환산경력 산출내역)</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:5%">No</th>
+            <th style="width:20%">공사(현장)명</th>
+            <th style="width:12%">공사종류</th>
+            <th style="width:12%">업무구분</th>
+            <th style="width:8%">상주</th>
+            <th style="width:16%">근무기간</th>
+            <th style="width:8%">일수</th>
+            <th style="width:8%">비율</th>
+            <th style="width:9%">환산일</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${careerRows}
+          <tr style="background:#f0f0f0;font-weight:700">
+            <td colspan="6" style="text-align:center">합 계</td>
+            <td style="text-align:right">${totalDays.toLocaleString()}</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:right">${totalConv.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="text-align:center;font-size:10.5pt;line-height:1.9;margin:40px 0 16px">
+        위 내용이 사실과 다름없음을 확인하며, 「주택건설공사 감리자지정기준」 제8조에 따라<br>
+        자기평가서를 제출합니다.
+      </div>
+
+      <div style="text-align:center;font-size:11pt;margin:20px 0 40px">
+        ${y}년 &ensp;${mo}월 &ensp;${d}일
+      </div>
+
+      <div style="text-align:right;font-size:11pt;line-height:2.0;padding-right:20px">
+        <div>평가자 : ${escHtml(info.name)}&emsp;&emsp;(인)</div>
+      </div>
+
+      <div style="text-align:center;font-size:12pt;margin-top:40px;font-weight:700">
+        ${escHtml(pj.client || '발주처명')} 귀중
+      </div>
+    </div>`;
+}
+
+function renderByeolji2() {
+  syncPersonInfo();
+  document.getElementById('byeolji2Preview').innerHTML = buildByeolji2Html(currentPersonId);
+}
+
+function renderByeolji2All() {
+  syncPersonInfo();
+  let html = '';
+  ROLES.forEach(r => {
+    if (personnel[r.id].info.name) html += buildByeolji2Html(r.id);
+  });
+  if (!html) html = '<div class="a4-placeholder"><div style="font-size:16px;color:var(--gray4)">감리원 정보를 입력한 후 생성하세요.</div></div>';
+  document.getElementById('byeolji2Preview').innerHTML = html;
+}
 function renderByeolji3() { /* Stage 4 */ }
 
 function printByeolji(num) {
