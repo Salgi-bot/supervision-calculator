@@ -329,7 +329,7 @@ td input:focus, td select:focus { outline: none; border-color: var(--ci); }
   background: var(--ci-light);
   margin-bottom: 12px;
 }
-.person-upload-zone:hover { border-color: var(--ci); background: #d4ecf7; }
+.person-upload-zone:hover, .person-upload-zone.dragover { border-color: var(--ci); background: #d4ecf7; }
 .person-upload-zone .up-icon { font-size: 28px; margin-bottom: 4px; }
 .person-upload-zone .up-title { font-size: 13px; font-weight: 700; color: var(--ci); }
 .person-upload-zone .up-sub { font-size: 11px; color: var(--gray4); margin-top: 2px; }
@@ -506,7 +506,8 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   .tab-content { display: none !important; padding: 0 !important; }
   .tab-content.print-target { display: block !important; }
   body { background: #fff; }
-  .a4-preview { border: none; box-shadow: none; padding: 0; }
+  .a4-preview { border: none; box-shadow: none; padding: 0; min-height: auto; page-break-after: always; }
+  .a4-preview:last-child { page-break-after: auto; }
   .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
   @page { margin: 1.5cm; size: A4; }
 }
@@ -555,10 +556,12 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <div class="card">
     <div class="card-title"><span class="icon">📋</span>공고문 자동 입력</div>
     <div class="info-note">공고문 PDF를 업로드하면 공사정보가 자동으로 채워집니다. (이미지 PDF도 OCR 지원)</div>
-    <div class="person-upload-zone" onclick="document.getElementById('announceFileInput').click()" style="margin-top:10px">
+    <div class="person-upload-zone" onclick="document.getElementById('announceFileInput').click()" style="margin-top:10px"
+         ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
+         ondrop="event.preventDefault();this.classList.remove('dragover');handleAnnounceDrop(event)">
       <div class="up-icon">📋</div>
       <div class="up-title">공고문 PDF 업로드</div>
-      <div class="up-sub">클릭하여 파일 선택 — 공사명, 위치, 세대수, 면적, 기간, 발주처 자동 추출</div>
+      <div class="up-sub">드래그 또는 클릭 — 공사명, 위치, 세대수, 면적, 기간, 발주처 자동 추출</div>
       <input type="file" id="announceFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
              onchange="handleAnnouncementFile(this.files[0])">
     </div>
@@ -676,6 +679,21 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 <!-- ══════════ TAB 2: 경력 상세 ══════════ -->
 <div class="tab-content" id="tab2">
   <div class="person-selector" id="personSelector"></div>
+
+  <div class="person-upload-zone no-print" id="tab2UploadZone" style="margin-bottom:14px;padding:12px 10px"
+       onclick="document.getElementById('tab2FileInput').click()"
+       ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
+       ondrop="event.preventDefault();this.classList.remove('dragover');handleTab2Drop(event)">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:22px">📄</span>
+      <div>
+        <div class="up-title">경력증명서 PDF 업로드 (드래그 또는 클릭)</div>
+        <div class="up-sub">현재 선택된 감리원에 적용됩니다</div>
+      </div>
+    </div>
+    <input type="file" id="tab2FileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+           onchange="handlePersonFileSelect(currentPersonId,this.files[0]);this.value=''">
+  </div>
 
   <div class="card" style="position:relative">
     <div class="loading-overlay" id="pdfLoading">
@@ -1128,10 +1146,12 @@ function renderPersonCards() {
         <span class="person-status ${hasData ? 'filled' : 'empty'}">${hasData ? (p.info.name || '입력됨') : '미입력'}</span>
       </div>
       <div class="person-card-body">
-        <div class="person-upload-zone" onclick="triggerPersonUpload('${role.id}')">
+        <div class="person-upload-zone" onclick="triggerPersonUpload('${role.id}')"
+             ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
+             ondrop="event.preventDefault();this.classList.remove('dragover');handlePersonFileDrop('${role.id}',event)">
           <div class="up-icon">📄</div>
           <div class="up-title">경력증명서 PDF 업로드</div>
-          <div class="up-sub">클릭하여 파일 선택 (이미지 PDF도 OCR 지원)</div>
+          <div class="up-sub">드래그 또는 클릭하여 파일 선택 (이미지 PDF도 OCR 지원)</div>
           <input type="file" id="fileInput_${role.id}" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
                  onchange="handlePersonFileSelect('${role.id}', this.files[0])">
         </div>
@@ -1657,9 +1677,20 @@ function escHtml(s) {
 // ══════════════════════════════════════════════════════
 //  PDF IMPORT
 // ══════════════════════════════════════════════════════
-function onDragOver(e) { e.preventDefault(); }
-function onDragLeave(e) {}
-function onDrop(e) { e.preventDefault(); }
+function handlePersonFileDrop(roleId, event) {
+  const file = event.dataTransfer.files[0];
+  if (file) handlePersonFileSelect(roleId, file);
+}
+
+function handleAnnounceDrop(event) {
+  const file = event.dataTransfer.files[0];
+  if (file) handleAnnouncementFile(file);
+}
+
+function handleTab2Drop(event) {
+  const file = event.dataTransfer.files[0];
+  if (file) handlePersonFileSelect(currentPersonId, file);
+}
 
 async function parsePDF(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -2068,7 +2099,13 @@ function importParsed() {
     renderCareerTable();
     closePdfModal();
     showStatus(`${role.label}: ${info.name || ''} — ${newRows.length}건 경력 가져오기 완료`);
-    switchTab(2);
+    // 현재 탭이 감리원 관리(tab1)면 유지하여 연속 입력 가능, 아니면 경력 상세로 이동
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab && activeTab.id === 'tab1') {
+      renderPersonCards();
+    } else {
+      switchTab(2);
+    }
   } else {
     alert('가져올 경력 데이터가 없습니다.');
   }
