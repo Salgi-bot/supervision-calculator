@@ -6,6 +6,7 @@
 <title>감리경력 환산 시스템 v1.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root {
   --ci: #00709F;
@@ -1642,9 +1643,53 @@ async function parsePDF(file) {
     });
   }
 
+  const nonEmpty = allItems.filter(i => i.str.trim().length > 0);
+  if (nonEmpty.length === 0) {
+    // 이미지 기반 PDF → OCR 시도
+    await parsePDFWithOCR(pdf);
+    return;
+  }
+
   const rawText = allItems.map(i => i.str).join(' ');
   const parsed = parseKCEAText(allItems, rawText);
   showPdfModal(parsed, rawText);
+}
+
+// ── 이미지 PDF OCR 추출 ──
+async function parsePDFWithOCR(pdf) {
+  const body = document.getElementById('pdfModalBody');
+  const total = pdf.numPages;
+  body.innerHTML = `<div class="parse-status warn">⏳ 이미지 PDF입니다. OCR 텍스트 추출 중... (0/${total})</div>`;
+  document.getElementById('importBtn').style.display = 'none';
+  document.getElementById('pdfModal').classList.add('open');
+
+  let worker;
+  try {
+    worker = await Tesseract.createWorker('kor+eng');
+  } catch(e) {
+    worker = await Tesseract.createWorker('kor');
+  }
+
+  let allText = '';
+  for (let p = 1; p <= total; p++) {
+    body.querySelector('.parse-status').textContent =
+      `⏳ OCR 추출 중... (${p}/${total} 페이지)`;
+
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const { data: { text } } = await worker.recognize(canvas);
+    allText += text + '\n';
+  }
+  await worker.terminate();
+
+  const parsed = parseKCEAText([], allText);
+  showPdfModal(parsed, allText);
 }
 
 // ── 이미지: Canvas → 텍스트 추출 (간단 안내) ──
@@ -1677,13 +1722,16 @@ function parseKCEAText(items, rawText) {
   if (!m) m = text.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
   if (m) result.info.name = m[1];
 
-  // 생년월일 — "YYYY년 MM월 DD일" 또는 "YYYY.MM.DD"
+  // 생년월일 — "YYYY년 MM월 DD일", "YYYY.MM.DD", "YY.MM.DD"
   m = text.match(/생년월일\s+(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
   if (m) {
     result.info.birthdate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
   } else {
-    m = text.match(/생\s*년\s*월\s*일\s*[:：]?\s*(\d{4})[.\-\/](\d{2})[.\-\/](\d{2})/);
-    if (m) result.info.birthdate = `${m[1]}.${m[2]}.${m[3]}`;
+    m = text.match(/생\s*년\s*월\s*일\s*[:：]?\s*(\d{2,4})[.\-\/](\d{2})[.\-\/](\d{2})/);
+    if (m) {
+      let yr = m[1]; if (yr.length === 2) yr = (parseInt(yr) >= 50 ? '19' : '20') + yr;
+      result.info.birthdate = `${yr}.${m[2]}.${m[3]}`;
+    }
   }
 
   // 등록번호 / 관리번호
@@ -1755,7 +1803,83 @@ function parseKCEAText(items, rawText) {
     }
   }
 
-  // 방법 2: 기존 날짜 쌍 로직 (방법 1에서 결과 없을 때)
+  // 방법 1.5: ~ 주변 날짜 탐색 (OCR 텍스트 — 날짜와 ~ 사이에 사업명 삽입)
+  if (result.careers.length === 0) {
+    // "기술경력" 이후 텍스트만 대상 (근무처/교육 섹션의 ~ 제외)
+    const careerStart = text.indexOf('기술경력');
+    const careerText = careerStart >= 0 ? text.substring(careerStart) : text;
+    const careerOffset = careerStart >= 0 ? careerStart : 0;
+
+    const dateRegAll = /(\d{4}\.\d{2}\.\d{2})/g;
+    const allDatesArr = [...careerText.matchAll(dateRegAll)];
+    const tildes = [...careerText.matchAll(/~/g)];
+    const usedStarts = new Set();
+
+    for (const tilde of tildes) {
+      const beforeDates = allDatesArr.filter(d => d.index < tilde.index && tilde.index - d.index < 300 && !usedStarts.has(d.index));
+      const startM = beforeDates[beforeDates.length - 1];
+      if (!startM) continue;
+
+      const afterDates = allDatesArr.filter(d => d.index > tilde.index && d.index - tilde.index < 300);
+      const endM = afterDates[0];
+      if (!endM) continue;
+
+      const startDate = startM[1], endDate = endM[1];
+      if (startDate > endDate) continue;
+
+      // 인정일수: 표준 → OCR 변형 → 날짜 계산 fallback
+      const afterEnd = careerText.substring(endM.index + 10, endM.index + 500);
+      let daysM = afterEnd.match(/\(\s*(\d{1,4})\s*일\s*\)/);
+      if (!daysM) daysM = afterEnd.match(/\(\s*(\d{1,4})\s*일/);
+      let days;
+      if (daysM) {
+        days = parseInt(daysM[1]);
+      } else {
+        const [y1,m1,d1] = startDate.split('.').map(Number);
+        const [y2,m2,d2] = endDate.split('.').map(Number);
+        days = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000);
+      }
+      if (days <= 0 || days >= 30000) continue;
+
+      usedStarts.add(startM.index);
+
+      // 사업명: 시작일 이전 텍스트에서 추출 (KCEA 형식: 사업명 → 시작일 → ~ → 종료일)
+      const beforeStart = careerText.substring(Math.max(0, startM.index - 300), startM.index).trim();
+      const beforeLines = beforeStart.split('\n').filter(l => l.trim().length > 0);
+      let siteName = '';
+      for (let li = beforeLines.length - 1; li >= 0; li--) {
+        const line = beforeLines[li].trim();
+        if (/^(Page|페이지|참여기간|인정일|발주자|공사종류|전문분야|직위|비고|적용|시설물|책임정도|담당업무|직무분야|사업명|기술경력|성명|문서|210mm|본\s*증명)/.test(line)) continue;
+        if (/^\d{4}\.\d{2}\.\d{2}/.test(line)) continue;
+        if (/^\([\d\s]*[일%]/.test(line)) continue;
+        if (/^[~\-=_.\s]*$/.test(line)) continue;
+        if (line.length < 2) continue;
+        // 사업명 후보 (첫 번째 의미 있는 세그먼트)
+        const seg = line.split(/\s{3,}/)[0].trim();
+        if (seg.length >= 2 && /[가-힣]/.test(seg)) { siteName = seg; break; }
+      }
+      // 보조: 시작일~틸드 사이 또는 종료일 이후에서 추가 정보
+      const betweenText = careerText.substring(startM.index + 10, tilde.index).trim();
+      const daysIdx = daysM ? daysM.index : 100;
+      const afterEndDetail = careerText.substring(endM.index + 10, endM.index + 10 + Math.min(daysIdx, 200)).trim();
+      const fullDetail = betweenText + ' ' + afterEndDetail;
+
+      const context = fullDetail;
+      const workType = inferWorkType(context);
+      const conType = inferConType(context, workType);
+      const resident = /비상주/.test(context) ? '비상주' : '상주';
+      const rowGrade = inferGrade(context);
+
+      if (siteName && siteName.length >= 2) {
+        result.careers.push({
+          site: siteName, startDate, endDate, days,
+          workType, conType, resident, grade: rowGrade,
+        });
+      }
+    }
+  }
+
+  // 방법 2: 기존 날짜 쌍 로직 (방법 1, 1.5에서 결과 없을 때)
   if (result.careers.length === 0) {
     const dateReg = /(\d{4}[.\-]\d{2}[.\-]\d{2})/g;
     const dates = [...text.matchAll(dateReg)].map(d => ({ val: d[1].replace(/-/g, '.'), idx: d.index }));
