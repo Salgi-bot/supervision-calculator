@@ -1664,85 +1664,134 @@ async function parseImage(file) {
 function parseKCEAText(items, rawText) {
   const result = { info: {}, careers: [], warnings: [] };
 
+  // ── 0. 텍스트 정규화 ──
+  // 관공서/협회 PDF는 글자 사이 공백 삽입 (예: "성 명" → "성명")
+  const isCharSpaced = /\d \d \d \d \. \d \d \. \d \d/.test(rawText);
+  const text = isCharSpaced
+    ? rawText.replace(/(\S) (?=\S)/g, '$1')
+    : rawText;
+
   // ── 1. 기본정보 추출 ──
   // 성명
-  let m = rawText.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
+  let m = text.match(/성명\s*[\(（]?한글[\)）]?\s*[:：]?\s*([가-힣]{2,5})/);
+  if (!m) m = text.match(/성\s*명\s*[:：]?\s*([가-힣]{2,5})/);
   if (m) result.info.name = m[1];
-  // 생년월일
-  m = rawText.match(/생\s*년\s*월\s*일\s*[:：]?\s*([\d]{4}[.\-\/][\d]{2}[.\-\/][\d]{2})/);
-  if (m) result.info.birthdate = m[1].replace(/[-\/]/g, '.');
-  // 등록번호
-  m = rawText.match(/등\s*록\s*번\s*호\s*[:：]?\s*([\d\-]{8,15})/);
+
+  // 생년월일 — "YYYY년 MM월 DD일" 또는 "YYYY.MM.DD"
+  m = text.match(/생년월일\s+(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if (m) {
+    result.info.birthdate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
+  } else {
+    m = text.match(/생\s*년\s*월\s*일\s*[:：]?\s*(\d{4})[.\-\/](\d{2})[.\-\/](\d{2})/);
+    if (m) result.info.birthdate = `${m[1]}.${m[2]}.${m[3]}`;
+  }
+
+  // 등록번호 / 관리번호
+  m = text.match(/(?:등록|관리)\s*번\s*호\s*[:：]?\s*([\d\w\-]{6,20})/);
   if (m) result.info.regNo = m[1];
+
   // 발급일
-  m = rawText.match(/발\s*급\s*일\s*[:：]?\s*([\d]{4}[.\-][\d]{2}[.\-][\d]{2})/);
-  if (m) result.info.issueDate = m[1].replace(/-/g, '.');
+  m = text.match(/발\s*급\s*일\s*[:：]?\s*(\d{4})[.\-](\d{2})[.\-](\d{2})/);
+  if (m) {
+    result.info.issueDate = `${m[1]}.${m[2]}.${m[3]}`;
+  } else {
+    m = text.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (m) result.info.issueDate = `${m[1]}.${String(m[2]).padStart(2,'0')}.${String(m[3]).padStart(2,'0')}`;
+  }
 
   // 분야 (토목/건축/설비/전기/통신)
   const fieldMap = { '토목': '토목', '건축': '건축', '기계': '설비', '설비': '설비', '전기': '전기', '통신': '통신', '조경': '기타' };
   for (const [k, v] of Object.entries(fieldMap)) {
-    if (new RegExp(k + '\\s*(분야|기술인|기사|산업기사)').test(rawText)) {
+    if (new RegExp(k + '\\s*(분야|기술인|기사|산업기사)').test(text)) {
       result.info.field = v; break;
     }
   }
 
   // 등급
-  const gradeM = rawText.match(/(특급|고급|중급|초급)/);
+  const gradeM = text.match(/(특급|고급|중급|초급)/);
   if (gradeM) result.info.grade = gradeM[1];
 
   // 자격증
-  const certM = rawText.match(/(토목|건축|설비|전기|조경|측량|도시계획|환경)\s*(기사|산업기사|기술사)\s*[\(（]?([\d]{4}[.\-][\d]{1,2}[.\-][\d]{1,2})/);
+  const certM = text.match(/(토목|건축|설비|전기|조경|측량|도시계획|환경)\s*(기사|산업기사|기술사)\s*[\(（]?(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})/);
   if (certM) result.info.cert = certM[0].replace(/\s+/g, ' ').trim();
 
   // ── 2. 경력 행 추출 ──
-  // 날짜 패턴으로 경력 행 탐색
-  // 협회 경력증명서 형식: 현장명 발주처 공종 직무분야 직무내용 시작일 종료일 인정일수 등급
-  const dateReg = /(\d{4}[.\-]\d{2}[.\-]\d{2})/g;
-  const dates = [...rawText.matchAll(dateReg)].map(d => ({ val: d[1].replace(/-/g, '.'), idx: d.index }));
+  // 방법 1: "시작일 ~ 종료일 ... (인정일수 일)" 패턴 (대한건축사협회 등)
+  const dateRangeReg = /(\d{4}\.\d{2}\.\d{2})\s*~\s*(\d{4}\.\d{2}\.\d{2})/g;
+  const dateRanges = [...text.matchAll(dateRangeReg)];
 
-  // 날짜 쌍 (시작일~종료일) 찾기
-  for (let i = 0; i < dates.length - 1; i++) {
-    const d1 = dates[i], d2 = dates[i+1];
-    // 두 날짜가 가깝고 d2 >= d1인 경우
-    if (d2.idx - d1.idx > 200) continue;
-    if (d1.val > d2.val) continue;
+  for (const dm of dateRanges) {
+    const startDate = dm[1];
+    const endDate = dm[2];
+    const afterText = text.substring(dm.index + dm[0].length, dm.index + dm[0].length + 500);
 
-    // 날짜 사이의 텍스트 = 공백
-    const between = rawText.substring(d1.idx + 10, d2.idx).trim();
-    if (between.length > 30) continue; // 너무 많으면 쌍이 아님
+    const daysM = afterText.match(/\((\d+)\s*일\)/);
+    if (!daysM) continue;
 
-    // 날짜 이후 인정일수 추출
-    const afterD2 = rawText.substring(d2.idx + 10, d2.idx + 60);
-    const daysM = afterD2.match(/\s+(\d{1,5})\s/);
-    const days = daysM ? parseInt(daysM[1]) : 0;
+    const days = parseInt(daysM[1]);
+    if (days <= 0 || days >= 30000) continue;
 
-    // 날짜 이전 텍스트에서 현장명 추출 (역방향으로 최대 200자)
-    const before = rawText.substring(Math.max(0, d1.idx - 300), d1.idx);
-    const siteName = extractSiteName(before);
+    const detailText = afterText.substring(0, daysM.index).trim();
+    const fieldKw = /^(건축|토목|설비|전기|통신|조경|기계)$/;
+    const segments = detailText.split(/\s{2,}/).filter(s => s.trim().length > 0 && s.trim() !== '.');
+    let siteNameParts = [];
+    for (const seg of segments) {
+      if (fieldKw.test(seg.trim())) break;
+      siteNameParts.push(seg.trim());
+    }
+    const siteName = siteNameParts.join(' ') || segments[0] || '';
 
-    // 직무내용 분류
-    const context = rawText.substring(Math.max(0, d1.idx - 300), d2.idx + 60);
+    const context = detailText;
     const workType = inferWorkType(context);
     const conType = inferConType(context, workType);
     const resident = /비상주/.test(context) ? '비상주' : '상주';
     const rowGrade = inferGrade(context);
 
-    if (days > 0 && days < 30000 && siteName) {
+    if (siteName) {
       result.careers.push({
-        site: siteName,
-        startDate: d1.val,
-        endDate: d2.val,
-        days,
-        workType,
-        conType,
-        resident,
-        grade: rowGrade,
+        site: siteName, startDate, endDate, days,
+        workType, conType, resident, grade: rowGrade,
       });
-      i++; // 다음 쌍으로 skip
     }
   }
 
-  // 중복 제거 (같은 시작일+종료일)
+  // 방법 2: 기존 날짜 쌍 로직 (방법 1에서 결과 없을 때)
+  if (result.careers.length === 0) {
+    const dateReg = /(\d{4}[.\-]\d{2}[.\-]\d{2})/g;
+    const dates = [...text.matchAll(dateReg)].map(d => ({ val: d[1].replace(/-/g, '.'), idx: d.index }));
+
+    for (let i = 0; i < dates.length - 1; i++) {
+      const d1 = dates[i], d2 = dates[i+1];
+      if (d2.idx - d1.idx > 200) continue;
+      if (d1.val > d2.val) continue;
+
+      const between = text.substring(d1.idx + 10, d2.idx).trim();
+      if (between.length > 30) continue;
+
+      const afterD2 = text.substring(d2.idx + 10, d2.idx + 60);
+      const daysMF = afterD2.match(/\s+(\d{1,5})\s/);
+      const days = daysMF ? parseInt(daysMF[1]) : 0;
+
+      const before = text.substring(Math.max(0, d1.idx - 300), d1.idx);
+      const siteName = extractSiteName(before);
+
+      const context = text.substring(Math.max(0, d1.idx - 300), d2.idx + 60);
+      const workType = inferWorkType(context);
+      const conType = inferConType(context, workType);
+      const resident = /비상주/.test(context) ? '비상주' : '상주';
+      const rowGrade = inferGrade(context);
+
+      if (days > 0 && days < 30000 && siteName) {
+        result.careers.push({
+          site: siteName, startDate: d1.val, endDate: d2.val,
+          days, workType, conType, resident, grade: rowGrade,
+        });
+        i++;
+      }
+    }
+  }
+
+  // 중복 제거 (같은 시작일+종료일+인정일수)
   const seen = new Set();
   result.careers = result.careers.filter(c => {
     const key = c.startDate + c.endDate + c.days;
