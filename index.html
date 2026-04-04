@@ -838,14 +838,15 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 4: 별지1호 ══════════ -->
 <div class="tab-content" id="tab4">
-  <div class="card">
+  <div class="card no-print">
     <div class="card-title"><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</div>
-    <div class="a4-placeholder">
-      <div style="font-size:40px;margin-bottom:16px">📝</div>
-      <div style="font-size:16px;font-weight:700;color:var(--ci);margin-bottom:8px">Stage 2에서 구현 예정</div>
-      <div>프로젝트 정보 + 감리원 배치 현황이 A4 양식으로 자동 생성됩니다</div>
+    <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-primary" onclick="renderByeolji1()">미리보기 갱신</button>
+      <button class="btn" onclick="printByeolji(1)">인쇄 / PDF 저장</button>
     </div>
   </div>
+  <div id="byeolji1Preview"></div>
 </div>
 
 <!-- ══════════ TAB 5: 별지2호 ══════════ -->
@@ -1076,6 +1077,9 @@ function switchTab(idx) {
   if (idx === 1) renderPersonCards();
   if (idx === 2) { renderPersonSelector('personSelector'); loadPersonToForm(currentPersonId); renderCareerTable(); }
   if (idx === 3) { renderPersonSelector('personSelectorScore'); calcScore(); }
+  if (idx === 4) renderByeolji1();
+  if (idx === 5) renderByeolji2();
+  if (idx === 6) renderByeolji3();
 }
 
 // ══════════════════════════════════════════════════════
@@ -2043,6 +2047,111 @@ function importParsed() {
 function closePdfModal() {
   document.getElementById('pdfModal').classList.remove('open');
   parsedData = null;
+}
+
+// ══════════════════════════════════════════════════════
+//  별지 FORMS (A4 출력용)
+// ══════════════════════════════════════════════════════
+
+function renderByeolji1() {
+  syncPersonInfo();
+  const pj = getProjectData();
+  const co = getCompanyData();
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, ' ');
+  const d = String(today.getDate()).padStart(2, ' ');
+
+  let personnelRows = '';
+  ROLES.forEach(r => {
+    const p = personnel[r.id].info;
+    personnelRows += `<tr>
+      <td style="text-align:center;font-weight:600;font-size:9.5pt;padding:7px 4px">${r.label}</td>
+      <td style="text-align:center">${escHtml(p.name)}</td>
+      <td style="text-align:center">${escHtml(p.birthdate)}</td>
+      <td style="text-align:center">${escHtml(p.appliedGrade || p.grade)}</td>
+      <td style="text-align:center">${escHtml(p.regNo)}</td>
+      <td style="text-align:center;font-size:8.5pt">${escHtml(p.cert)}</td>
+      <td style="text-align:center">${r.id === 'nonres' ? '비상주' : '상주'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('byeolji1Preview').innerHTML = `
+    <div class="a4-preview" id="byeolji1Doc">
+      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제1호서식 (제8조 관련)</div>
+      <h2 style="text-align:center;font-size:20pt;letter-spacing:10px;margin:30px 0 50px;font-weight:800">감리자 지정 신청서</h2>
+
+      <table style="margin-bottom:24px">
+        <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+        <tbody>
+          <tr>
+            <th style="text-align:center;letter-spacing:6px">현 장 명</th>
+            <td style="padding-left:12px">${escHtml(pj.name)}</td>
+          </tr>
+          <tr>
+            <th style="text-align:center;letter-spacing:6px">위&emsp;&emsp;치</th>
+            <td style="padding-left:12px">${escHtml(pj.location)}</td>
+          </tr>
+          <tr>
+            <th style="text-align:center;letter-spacing:2px">공 사 규 모</th>
+            <td style="padding-left:12px">${pj.units ? pj.units + '세대' : ''}${pj.area ? ' (연면적 ' + escHtml(pj.area) + 'm&sup2;)' : ''}${pj.stories ? ', ' + escHtml(pj.stories) : ''}</td>
+          </tr>
+          <tr>
+            <th style="text-align:center;letter-spacing:2px">공 사 기 간</th>
+            <td style="padding-left:12px">${escHtml(pj.startDate)} ~ ${escHtml(pj.endDate)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="font-weight:700;font-size:11pt;margin-bottom:8px">감리원 배치 계획</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:24%">구&emsp;분</th>
+            <th style="width:11%">성&emsp;명</th>
+            <th style="width:13%">생년월일</th>
+            <th style="width:10%">등&emsp;급</th>
+            <th style="width:14%">등록번호</th>
+            <th style="width:17%">자 격 증</th>
+            <th style="width:11%">상주구분</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${personnelRows}
+        </tbody>
+      </table>
+
+      <div style="text-align:center;font-size:10.5pt;line-height:1.9;margin:50px 0 20px">
+        「주택법」 제43조제6항 및 「주택건설공사 감리자지정기준」 제8조에 따라<br>
+        위와 같이 감리자 지정을 신청합니다.
+      </div>
+
+      <div style="text-align:center;font-size:11pt;margin:30px 0 50px">
+        ${y}년 &ensp;${m}월 &ensp;${d}일
+      </div>
+
+      <div style="text-align:right;font-size:11pt;line-height:2.2;padding-right:20px">
+        <div>신청회사 : ${escHtml(co.name)}</div>
+        <div>대표이사 : ${escHtml(co.ceo)}&emsp;&emsp;(인)</div>
+      </div>
+
+      <div style="text-align:center;font-size:13pt;margin-top:60px;font-weight:700">
+        ${escHtml(pj.client || '발주처명')} 귀중
+      </div>
+    </div>`;
+}
+
+function renderByeolji2() { /* Stage 3 */ }
+function renderByeolji3() { /* Stage 4 */ }
+
+function printByeolji(num) {
+  const tabIdx = num + 3;
+  const tab = document.getElementById('tab' + tabIdx);
+  if (!tab) return;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
+  tab.classList.add('print-target');
+  window.print();
+  setTimeout(() => tab.classList.remove('print-target'), 500);
 }
 
 // ══════════════════════════════════════════════════════
