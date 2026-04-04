@@ -440,7 +440,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 .parse-status { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; }
 .parse-status.ok { background: #d4edda; color: #155724; }
 .parse-status.warn { background: #fff3cd; color: #856404; }
-.parse-status.err { background: #f8d7da; color: #721c24; }
+.parse-status.err, .parse-status.fail { background: #f8d7da; color: #721c24; }
 .raw-text-toggle { font-size: 11px; color: var(--ci); cursor: pointer; text-decoration: underline; }
 .raw-text-box {
   display: none;
@@ -552,6 +552,19 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 0: 프로젝트 정보 ══════════ -->
 <div class="tab-content active" id="tab0">
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span>공고문 자동 입력</div>
+    <div class="info-note">공고문 PDF를 업로드하면 공사정보가 자동으로 채워집니다. (이미지 PDF도 OCR 지원)</div>
+    <div class="person-upload-zone" onclick="document.getElementById('announceFileInput').click()" style="margin-top:10px">
+      <div class="up-icon">📋</div>
+      <div class="up-title">공고문 PDF 업로드</div>
+      <div class="up-sub">클릭하여 파일 선택 — 공사명, 위치, 세대수, 면적, 기간, 발주처 자동 추출</div>
+      <input type="file" id="announceFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+             onchange="handleAnnouncementFile(this.files[0])">
+    </div>
+    <div id="announceStatus" style="margin-top:8px"></div>
+  </div>
+
   <div class="card">
     <div class="card-title"><span class="icon">🏗</span>공사 개요</div>
     <div class="form-grid">
@@ -2064,6 +2077,263 @@ function importParsed() {
 function closePdfModal() {
   document.getElementById('pdfModal').classList.remove('open');
   parsedData = null;
+}
+
+// ══════════════════════════════════════════════════════
+//  공고문 파싱 (ANNOUNCEMENT PARSER)
+// ══════════════════════════════════════════════════════
+
+async function handleAnnouncementFile(file) {
+  if (!file) return;
+  const statusEl = document.getElementById('announceStatus');
+  statusEl.innerHTML = '<div class="parse-status warn">⏳ 공고문 분석 중...</div>';
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    let text = '';
+    if (ext === 'pdf') {
+      text = await extractAnnouncementPDF(file);
+    } else if (['jpg','jpeg','png'].includes(ext)) {
+      text = await extractAnnouncementImage(file);
+    } else {
+      statusEl.innerHTML = '<div class="parse-status fail">지원하지 않는 파일 형식입니다.</div>';
+      return;
+    }
+    const parsed = parseAnnouncementText(text);
+    showAnnouncementResult(parsed, text);
+  } catch (err) {
+    statusEl.innerHTML = `<div class="parse-status fail">파싱 오류: ${escHtml(err.message)}</div>`;
+  }
+  document.getElementById('announceFileInput').value = '';
+}
+
+async function extractAnnouncementPDF(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let allText = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const pageText = tc.items.map(i => i.str).join(' ');
+    allText += pageText + '\n';
+  }
+  // 텍스트 추출 실패 시 OCR
+  const nonEmpty = allText.replace(/\s/g, '');
+  if (nonEmpty.length < 20) {
+    const statusEl = document.getElementById('announceStatus');
+    statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중...</div>';
+    let worker;
+    try { worker = await Tesseract.createWorker('kor+eng'); }
+    catch { worker = await Tesseract.createWorker('kor'); }
+    allText = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      const { data: { text } } = await worker.recognize(canvas);
+      allText += text + '\n';
+    }
+    await worker.terminate();
+  }
+  return allText;
+}
+
+async function extractAnnouncementImage(file) {
+  const statusEl = document.getElementById('announceStatus');
+  statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 OCR 추출 중...</div>';
+  let worker;
+  try { worker = await Tesseract.createWorker('kor+eng'); }
+  catch { worker = await Tesseract.createWorker('kor'); }
+  const url = URL.createObjectURL(file);
+  const { data: { text } } = await worker.recognize(url);
+  URL.revokeObjectURL(url);
+  await worker.terminate();
+  return text;
+}
+
+function parseAnnouncementText(rawText) {
+  // 문자 간격 정규화 (관공서 PDF 특유의 문자-공백-문자 패턴)
+  let text = rawText;
+  if (/\d \d \d \d/.test(text)) {
+    text = text.replace(/(\S) (?=\S)/g, '$1');
+  }
+  // 줄바꿈 정리
+  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const joined = lines.join(' ');
+
+  const result = { name: '', location: '', units: '', area: '', stories: '', startDate: '', endDate: '', client: '', bidAmount: '' };
+
+  // 공사명 / 현장명 / 사업명
+  const namePatterns = [
+    /(?:공\s*사\s*명|현\s*장\s*명|사\s*업\s*명|건\s*설\s*공\s*사|용\s*역\s*명)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /(?:공\s*사\s*명|현\s*장\s*명|사\s*업\s*명)\s*(.+?)(?:소재지|위치|공사기간|세대|면적)/,
+  ];
+  for (const pat of namePatterns) {
+    const m = joined.match(pat);
+    if (m) { result.name = m[1].trim().replace(/\s{2,}/g, ' '); break; }
+  }
+
+  // 소재지 / 위치
+  const locPatterns = [
+    /(?:소\s*재\s*지|위\s*치|공\s*사\s*위\s*치|사\s*업\s*위\s*치)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /(?:소\s*재\s*지|위\s*치)\s*(.+?)(?:세대|면적|공사기간|규모)/,
+  ];
+  for (const pat of locPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.location = m[1].trim().replace(/\s{2,}/g, ' '); break; }
+  }
+
+  // 세대수
+  const unitPatterns = [
+    /(\d[\d,]*)\s*세\s*대/,
+    /세\s*대\s*수\s*[:：]?\s*(\d[\d,]*)/,
+    /총\s*(\d[\d,]*)\s*세\s*대/,
+  ];
+  for (const pat of unitPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.units = m[1].replace(/,/g, ''); break; }
+  }
+
+  // 연면적
+  const areaPatterns = [
+    /연\s*면\s*적\s*[:：]?\s*([\d,\.]+)\s*(?:m²|㎡|m2|엠)/,
+    /([\d,\.]+)\s*(?:m²|㎡)\s*(?:연면적)?/,
+    /면\s*적\s*[:：]?\s*([\d,\.]+)/,
+  ];
+  for (const pat of areaPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.area = m[1].replace(/,/g, ''); break; }
+  }
+
+  // 층수
+  const storyPatterns = [
+    /(지\s*하\s*\d+\s*층\s*[\/~,]\s*지\s*상\s*\d+\s*층)/,
+    /(\d+층\s*[\/~]\s*\d+층)/,
+    /층\s*수\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+  ];
+  for (const pat of storyPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.stories = m[1].trim().replace(/\s+/g, ''); break; }
+  }
+
+  // 공사기간 / 용역기간
+  const datePattern = /(\d{4})\s*[\.\/\-년]\s*(\d{1,2})\s*[\.\/\-월]\s*(\d{1,2})\s*일?/g;
+  const dates = [];
+  let dm;
+  while ((dm = datePattern.exec(joined)) !== null) {
+    dates.push(`${dm[1]}.${dm[2].padStart(2,'0')}.${dm[3].padStart(2,'0')}`);
+  }
+  // 기간 패턴 (시작~종료)
+  const periodMatch = joined.match(/(?:공\s*사\s*기\s*간|용\s*역\s*기\s*간|감\s*리\s*기\s*간|사\s*업\s*기\s*간)\s*[:：]?\s*(\d{4})\s*[\.\/\-년]\s*(\d{1,2})\s*[\.\/\-월]\s*(\d{1,2})\s*일?\s*[~∼\-부터]\s*(\d{4})\s*[\.\/\-년]\s*(\d{1,2})\s*[\.\/\-월]\s*(\d{1,2})/);
+  if (periodMatch) {
+    result.startDate = `${periodMatch[1]}.${periodMatch[2].padStart(2,'0')}.${periodMatch[3].padStart(2,'0')}`;
+    result.endDate = `${periodMatch[4]}.${periodMatch[5].padStart(2,'0')}.${periodMatch[6].padStart(2,'0')}`;
+  } else if (dates.length >= 2) {
+    result.startDate = dates[0];
+    result.endDate = dates[dates.length - 1];
+  }
+
+  // 발주처 / 사업주체 / 건축주
+  const clientPatterns = [
+    /(?:발\s*주\s*처|발\s*주\s*자|사\s*업\s*주\s*체|건\s*축\s*주|시\s*행\s*자)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /(?:발\s*주\s*처|사\s*업\s*주\s*체)\s*(.+?)(?:공사|감리|소재|위치)/,
+  ];
+  for (const pat of clientPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.client = m[1].trim().replace(/\s{2,}/g, ' '); break; }
+  }
+
+  // 감리용역 예정금액
+  const amountPatterns = [
+    /(?:예\s*정\s*금\s*액|용\s*역\s*금\s*액|감\s*리\s*비|예\s*정\s*가\s*격)\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원|천원|만원)/,
+    /([\d,]+)\s*원\s*(?:정|이내)/,
+  ];
+  for (const pat of amountPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.bidAmount = m[1]; break; }
+  }
+
+  return result;
+}
+
+function showAnnouncementResult(parsed, rawText) {
+  const statusEl = document.getElementById('announceStatus');
+  const fields = [
+    { key: 'name', label: '공사명', target: 'pj_name' },
+    { key: 'location', label: '소재지', target: 'pj_location' },
+    { key: 'units', label: '세대수', target: 'pj_units' },
+    { key: 'area', label: '연면적', target: 'pj_area' },
+    { key: 'stories', label: '층수', target: 'pj_stories' },
+    { key: 'startDate', label: '시작일', target: 'pj_startDate' },
+    { key: 'endDate', label: '종료일', target: 'pj_endDate' },
+    { key: 'client', label: '발주처', target: 'pj_client' },
+    { key: 'bidAmount', label: '예정금액', target: 'bidAmount' },
+  ];
+
+  const foundCount = fields.filter(f => parsed[f.key]).length;
+
+  let html = `<div class="card" style="margin-top:12px;border:2px solid var(--ci)">
+    <div class="card-title"><span class="icon">✅</span>공고문 파싱 결과 (${foundCount}개 항목 추출)</div>
+    <table class="ref-table" style="font-size:13px">
+      <thead><tr><th style="width:18%">항목</th><th style="width:42%">추출값</th><th style="width:15%">적용</th><th style="width:25%">비고</th></tr></thead>
+      <tbody>`;
+  fields.forEach(f => {
+    const val = parsed[f.key] || '';
+    const current = document.getElementById(f.target)?.value || '';
+    const conflict = current && val && current !== val;
+    html += `<tr>
+      <td class="fw-bold">${f.label}</td>
+      <td style="text-align:left">${escHtml(val) || '<span style="color:#999">미추출</span>'}</td>
+      <td style="text-align:center"><input type="checkbox" class="announce-check" data-key="${f.key}" data-target="${f.target}" ${val ? 'checked' : 'disabled'}></td>
+      <td style="font-size:11px;color:${conflict ? 'var(--orange)' : 'var(--gray4)'}">${conflict ? '기존: '+escHtml(current) : (val ? '' : '패턴 미매칭')}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" onclick="applyAnnouncement()">선택 항목 적용</button>
+      <button class="btn btn-outline" onclick="toggleAnnouncementRaw()">원문 보기/숨기기</button>
+    </div>
+    <div id="announceRawText" style="display:none;margin-top:10px;padding:10px;background:#f5f5f5;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(rawText)}</div>
+  </div>`;
+
+  statusEl.innerHTML = html;
+  // 파싱 결과를 임시 저장
+  window._announceParsed = parsed;
+}
+
+function applyAnnouncement() {
+  const parsed = window._announceParsed;
+  if (!parsed) return;
+  const checks = document.querySelectorAll('.announce-check:checked');
+  let applied = 0;
+  checks.forEach(chk => {
+    const key = chk.dataset.key;
+    const target = chk.dataset.target;
+    const val = parsed[key];
+    if (val && target) {
+      const el = document.getElementById(target);
+      if (el) { el.value = val; applied++; }
+    }
+  });
+  // 세대수 → 공사규모 자동 설정
+  if (parsed.units && document.querySelector('.announce-check[data-key="units"]:checked')) {
+    const u = parseInt(parsed.units);
+    const sel = document.getElementById('pj_sizeClass');
+    if (u >= 1000) sel.value = '1000이상';
+    else if (u >= 500) sel.value = '500이상';
+    else if (u >= 300) sel.value = '300이상';
+    else sel.value = '300미만';
+  }
+  document.getElementById('announceStatus').innerHTML = `<div class="parse-status ok">✅ ${applied}개 항목 적용 완료</div>`;
+  window._announceParsed = null;
+  showStatus(`공고문에서 ${applied}개 항목 자동 입력 완료`);
+}
+
+function toggleAnnouncementRaw() {
+  const el = document.getElementById('announceRawText');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 // ══════════════════════════════════════════════════════
