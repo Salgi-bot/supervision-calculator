@@ -634,6 +634,10 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
         <input type="text" id="pj_clientCeo" placeholder="예) 박정환">
       </div>
       <div class="form-group">
+        <label>허가권자 (공고 주최, 귀하 란)</label>
+        <input type="text" id="pj_authority" placeholder="예) 전주시장">
+      </div>
+      <div class="form-group">
         <label>담당자</label>
         <input type="text" id="pj_clientContact" placeholder="예) 홍길동 부장">
       </div>
@@ -1580,6 +1584,7 @@ function getProjectData() {
     startDate: pf('pj_startDate'), endDate: pf('pj_endDate'),
     client: pf('pj_client'), clientCeo: pf('pj_clientCeo'),
     clientContact: pf('pj_clientContact'), clientPhone: pf('pj_clientPhone'),
+    authority: pf('pj_authority'),
     designerName: pf('pj_designerName'), designerCompany: pf('pj_designerCompany'),
     designerAddress: pf('pj_designerAddress'),
   };
@@ -2743,7 +2748,7 @@ function renderByeolji1() {
       </div>
 
       <div style="font-size:14pt;font-weight:800;margin:24px 0 0 0">
-        ${escHtml(pj.client || '')} 귀하
+        ${escHtml(pj.authority || '')} 귀하
       </div>
 
       <div style="background:#f0f0f0;border:1px solid #aaa;padding:10px 14px;margin-top:16px;font-size:8pt;line-height:1.7">
