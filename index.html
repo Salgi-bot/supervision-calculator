@@ -2743,7 +2743,7 @@ function renderByeolji1() {
       </div>
 
       <div style="font-size:14pt;font-weight:800;margin:24px 0 0 0">
-        ${escHtml(pj.client ? pj.client.replace(/㈜|주식회사|\(주\)/g,'').trim() + '시' : '전주시')} 귀하
+        ${escHtml(pj.client || '')} 귀하
       </div>
 
       <div style="background:#f0f0f0;border:1px solid #aaa;padding:10px 14px;margin-top:16px;font-size:8pt;line-height:1.7">
