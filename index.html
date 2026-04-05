@@ -490,6 +490,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   line-height: 1.6;
 }
 .a4-preview h2 { text-align: center; font-size: 18pt; margin-bottom: 20px; color: #000; }
+.a4-preview, .a4-preview * { color: #000 !important; }
 .a4-preview table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
 .a4-preview th, .a4-preview td { border: 1px solid #333; padding: 6px 8px; font-size: 10pt; }
 .a4-preview th { background: #f0f0f0; font-weight: 700; text-align: center; }
@@ -670,19 +671,19 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       </div>
       <div class="form-group">
         <label>대표이사</label>
-        <input type="text" id="co_ceo" placeholder="예) 홍길동">
+        <input type="text" id="co_ceo" value="노영섭">
       </div>
       <div class="form-group">
-        <label>사업자등록번호</label>
-        <input type="text" id="co_regNo" placeholder="예) 123-45-67890">
+        <label>등록번호</label>
+        <input type="text" id="co_regNo" value="제 대전-2-1호">
       </div>
       <div class="form-group" style="grid-column: span 2">
         <label>소재지</label>
-        <input type="text" id="co_address" placeholder="예) 서울특별시 강남구 ○○로 123">
+        <input type="text" id="co_address" value="대전광역시 서구 월드컵대로 484번안길 10, 3층(월평동)">
       </div>
       <div class="form-group">
         <label>대표전화</label>
-        <input type="text" id="co_phone" placeholder="예) 02-1234-5678">
+        <input type="text" id="co_phone" value="042-489-0434">
       </div>
       <div class="form-group">
         <label>FAX</label>
@@ -690,7 +691,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       </div>
       <div class="form-group">
         <label>용역참여지분율 (%)</label>
-        <input type="text" id="co_shareRatio" placeholder="예) 100">
+        <input type="text" id="co_shareRatio" value="100">
       </div>
     </div>
   </div>
@@ -2640,13 +2641,14 @@ function renderByeolji1() {
   let personnelRows = '';
   ROLES.forEach(r => {
     const p = personnel[r.id].info;
+    const dash = r.isNew;
     personnelRows += `<tr>
       <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">${r.rowLabel || r.label}</td>
       ${td(p.field || r.field)}
-      ${td(p.name)}
-      ${td(p.birthdate)}
+      ${td(dash ? '-' : p.name)}
+      ${td(dash ? '-' : p.birthdate)}
       ${td(p.appliedGrade || p.grade)}
-      ${td(p.regNo)}
+      ${td(dash ? '-' : p.regNo)}
       ${td(p.company || co.name)}
     </tr>`;
   });
