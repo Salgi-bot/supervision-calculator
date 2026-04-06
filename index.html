@@ -555,12 +555,13 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <button class="tab-btn" onclick="switchTab(1)"><span class="tab-icon">📝</span>별지1호</button>
   <button class="tab-btn" onclick="switchTab(2)"><span class="tab-icon">📊</span>별지2호</button>
   <button class="tab-btn" onclick="switchTab(3)"><span class="tab-icon">📜</span>서약서</button>
-  <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📅</span>배치계획표</button>
-  <button class="tab-btn" onclick="switchTab(5)"><span class="tab-icon">🖋</span>사용인감계</button>
-  <button class="tab-btn" onclick="switchTab(6)"><span class="tab-icon">📋</span>위임장</button>
-  <button class="tab-btn" onclick="switchTab(7)"><span class="tab-icon">📈</span>수행실적</button>
-  <button class="tab-btn" onclick="switchTab(8)"><span class="tab-icon">👤</span>감리원경력</button>
-  <button class="tab-btn" onclick="switchTab(9)"><span class="tab-icon">📖</span>고시참조</button>
+  <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📑</span>입찰서</button>
+  <button class="tab-btn" onclick="switchTab(5)"><span class="tab-icon">📅</span>배치계획표</button>
+  <button class="tab-btn" onclick="switchTab(6)"><span class="tab-icon">🖋</span>사용인감계</button>
+  <button class="tab-btn" onclick="switchTab(7)"><span class="tab-icon">📋</span>위임장</button>
+  <button class="tab-btn" onclick="switchTab(8)"><span class="tab-icon">📈</span>수행실적</button>
+  <button class="tab-btn" onclick="switchTab(9)"><span class="tab-icon">👤</span>감리원경력</button>
+  <button class="tab-btn" onclick="switchTab(10)"><span class="tab-icon">📖</span>고시참조</button>
 </div>
 
 <!-- ── PDF MODAL ── -->
@@ -770,6 +771,28 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       <div class="form-group">
         <label>용역참여지분율 (%)</label>
         <input type="text" id="co_shareRatio" value="100">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span>위임장 · 재직증명서 정보</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>수임자 성명</label>
+        <input type="text" id="dl_name" placeholder="예) 김홍정" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group">
+        <label>수임자 직위</label>
+        <input type="text" id="dl_position" placeholder="예) 부사장" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group">
+        <label>수임자 주민등록번호</label>
+        <input type="text" id="dl_idNo" placeholder="예) 700101-1******" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group">
+        <label>위임 사항</label>
+        <input type="text" id="dl_scope" value="주택건설공사 감리자지정 입찰에 관한 일체의 권한" onchange="triggerAutoSave()">
       </div>
     </div>
   </div>
@@ -1010,45 +1033,27 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 <!-- ══════════ TAB 5: 별지2호 ══════════ -->
 <div class="tab-content" id="tab5">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📊</span>별지 제2호 — 자기평가서</div>
+    <div class="card-title"><span class="icon">📊</span>별지 제2호 — 자기평가서 (총괄표)</div>
     <div class="info-note">
-      <strong>I. 총괄표</strong>: 감리자(회사)+감리원 합산 100점 자기평가서 자동 생성<br>
-      <strong>II. 감리원 경력환산서</strong>: 감리원별 경력 세부 내역
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0">
-      <button class="btn btn-primary" onclick="renderByeolji2Cover()">I. 총괄표 생성</button>
-      <button class="btn" onclick="renderByeolji2()">II. 경력환산서 (선택 감리원)</button>
-      <button class="btn" onclick="renderByeolji2All()">II. 경력환산서 (전원)</button>
+      감리자(회사) + 감리원 합산 100점 자기평가서가 자동 생성됩니다.
     </div>
     <div style="margin:6px 0">
       <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
     </div>
-    <div class="person-selector" id="personSelectorB2" style="margin:8px 0 0"></div>
   </div>
   <div id="byeolji2Preview"></div>
 </div>
 
-<!-- ══════════ TAB 6: 별지3호+부표 ══════════ -->
+<!-- ══════════ TAB 6: 부표 배치계획표 ══════════ -->
 <div class="tab-content" id="tab6">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📑</span>별지 제3호 — 입찰서 + 부표 배치계획표</div>
-    <div class="info-note">입찰서와 감리원 배치계획표가 A4 양식으로 자동 생성됩니다.</div>
-    <div class="form-grid" style="margin:12px 0">
-      <div class="form-group">
-        <label>감리용역 예정금액 (원)</label>
-        <input type="text" id="bidAmount" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this)">
-      </div>
-      <div class="form-group">
-        <label>입찰금액 (원)</label>
-        <input type="text" id="bidPrice" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this)">
-      </div>
-    </div>
+    <div class="card-title"><span class="icon">📅</span>부표 — 감리원 배치계획표</div>
+    <div class="info-note">감리원 배치계획표가 A4 양식으로 자동 생성됩니다.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="renderByeolji3()">미리보기 갱신</button>
-      <button class="btn" onclick="printByeolji(3)">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="printTab('tab6')">인쇄 / PDF 저장</button>
     </div>
   </div>
-  <div id="byeolji3Preview"></div>
+  <div id="deployTablePreview"></div>
 </div>
 
 <!-- ══════════ TAB 7: 고시 참조 ══════════ -->
@@ -1186,8 +1191,27 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <div id="byeolchum1Preview"></div>
 </div>
 
-<!-- ══════════ TAB 9: (예비 — 배치계획표 리팩터링용) ══════════ -->
-<div class="tab-content" id="tab9"></div>
+<!-- ══════════ TAB 9: 별지3호 입찰서 ══════════ -->
+<div class="tab-content" id="tab9">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">📑</span>별지 제3호 — 입찰서</div>
+    <div class="info-note">입찰서가 A4 양식으로 자동 생성됩니다.</div>
+    <div class="form-grid" style="margin:12px 0">
+      <div class="form-group">
+        <label>감리용역 예정금액 (원)</label>
+        <input type="text" id="bidAmount" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this)">
+      </div>
+      <div class="form-group">
+        <label>입찰금액 (원)</label>
+        <input type="text" id="bidPrice" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this)">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="printTab('tab9')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="inputSheetPreview"></div>
+</div>
 
 <!-- ══════════ TAB 10: 사용인감계 ══════════ -->
 <div class="tab-content" id="tab10">
@@ -1206,12 +1230,12 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 <div class="tab-content" id="tab11">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📋</span>위임장 · 재직증명서</div>
-    <div class="info-note">이미지 파일을 업로드하면 A4 크기로 출력됩니다.</div>
+    <div class="info-note">데이터 입력 탭의 위임장 정보를 기반으로 양식이 자동 생성됩니다. 추가 서류는 이미지로 업로드하세요.</div>
     <div class="person-upload-zone" onclick="document.getElementById('docImageInput').click()" style="margin-top:10px"
          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
          ondrop="event.preventDefault();this.classList.remove('dragover');handleDocImageDrop(event)">
       <div class="up-icon">📋</div>
-      <div class="up-title">위임장 / 재직증명서 이미지 업로드</div>
+      <div class="up-title">추가 서류 이미지 업로드</div>
       <div class="up-sub">드래그 또는 클릭 — JPG, PNG, PDF 지원 (여러 파일 가능)</div>
       <input type="file" id="docImageInput" accept=".jpg,.jpeg,.png,.pdf" multiple style="display:none"
              onchange="handleDocImages(this.files)">
@@ -1221,6 +1245,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       <button class="btn" onclick="printTab('tab11')">인쇄 / PDF 저장</button>
     </div>
   </div>
+  <div id="delegationPreview"></div>
   <div id="docImagePreview"></div>
 </div>
 
@@ -1228,7 +1253,15 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 <div class="tab-content" id="tab12">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📈</span>별첨2 — 감리업무 수행실적</div>
-    <div class="info-note">회사의 감리업무 수행실적을 입력하세요. 행 추가 후 데이터를 입력하면 자동 계산됩니다.</div>
+    <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
+    <div class="person-upload-zone" onclick="document.getElementById('perfPdfInput').click()" style="margin:10px 0"
+         ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
+         ondrop="event.preventDefault();this.classList.remove('dragover');handlePerfPdfDrop(event)">
+      <div class="up-icon">📄</div>
+      <div class="up-title">수행실적 PDF 업로드</div>
+      <div class="up-sub">드래그 또는 클릭 — PDF 파일에서 용역명·기간·금액 자동 추출</div>
+      <input type="file" id="perfPdfInput" accept=".pdf" style="display:none" onchange="handlePerfPdf(this.files[0])">
+    </div>
     <div style="overflow-x:auto;margin:12px 0;">
       <table id="perfTable" style="font-size:12px;border-collapse:collapse;width:100%;min-width:900px;">
         <thead>
@@ -1368,6 +1401,7 @@ function doAutoSave() {
     personnel: personnel,
     nonEvalList: nonEvalList,
     nonEvalCounter: nonEvalCounter,
+    delegation: { name: document.getElementById('dl_name')?.value||'', position: document.getElementById('dl_position')?.value||'', idNo: document.getElementById('dl_idNo')?.value||'', scope: document.getElementById('dl_scope')?.value||'' },
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     savedAt: new Date().toISOString(),
@@ -1403,6 +1437,12 @@ function loadAutoSave() {
       nonEvalList = data.nonEvalList;
       nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
       nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+    }
+    if (data.delegation) {
+      ['name','position','idNo','scope'].forEach(k => {
+        const el = document.getElementById('dl_' + k);
+        if (el && data.delegation[k]) el.value = data.delegation[k];
+      });
     }
     if (data.perfRecords && data.perfRecords.length) {
       perfRecords = data.perfRecords;
@@ -1528,12 +1568,13 @@ function switchTab(visualIdx) {
     ['tab4'],                      // 1: 별지1호
     ['tab5'],                      // 2: 별지2호
     ['tab8'],                      // 3: 별첨1 서약서
-    ['tab6'],                      // 4: 배치계획표 (기존 tab6 재활용)
-    ['tab10'],                     // 5: 사용인감계
-    ['tab11'],                     // 6: 위임장·재직증명서
-    ['tab12'],                     // 7: 별첨2 수행실적
-    ['tab13'],                     // 8: 별첨3 감리원경력
-    ['tab7'],                      // 9: 고시참조
+    ['tab9'],                      // 4: 입찰서 (별지3호)
+    ['tab6'],                      // 5: 배치계획표 (부표)
+    ['tab10'],                     // 6: 사용인감계
+    ['tab11'],                     // 7: 위임장·재직증명서
+    ['tab12'],                     // 8: 별첨2 수행실적
+    ['tab13'],                     // 9: 별첨3 감리원경력
+    ['tab7'],                      // 10: 고시참조
   ];
   const activeIds = tabMap[visualIdx] || ['tab0'];
   document.querySelectorAll('.tab-content').forEach(el => {
@@ -1553,8 +1594,13 @@ function switchTab(visualIdx) {
     calcScore();
   }
   if (visualIdx === 1) renderByeolji1();
-  if (visualIdx === 2) { syncPersonInfo(); renderPersonSelector('personSelectorB2'); renderByeolji2(); }
-  if (visualIdx === 4) renderByeolji3();
+  if (visualIdx === 2) { syncPersonInfo(); renderByeolji2Cover(); }
+  if (visualIdx === 3) renderByeolchum1();
+  if (visualIdx === 4) renderInputSheet();
+  if (visualIdx === 5) renderDeployTable();
+  if (visualIdx === 6) renderSayongIngam();
+  if (visualIdx === 7) renderDelegation();
+  if (visualIdx === 9) renderByeolchum3();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1615,6 +1661,7 @@ function triggerPersonUpload(roleId) {
 
 async function handlePersonFileSelect(roleId, file) {
   if (!file) return;
+  syncPersonInfo();
   currentPersonId = roleId;
   const role = findRole(roleId);
   document.getElementById('pdfLoadingMsg').textContent = `${role.label} PDF 분석 중...`;
@@ -1634,6 +1681,7 @@ async function handlePersonFileSelect(roleId, file) {
 }
 
 function viewPersonDetail(roleId) {
+  syncPersonInfo();
   currentPersonId = roleId;
   loadPersonToForm(roleId);
   renderCareerTable();
@@ -1666,6 +1714,7 @@ function renderPersonSelector(containerId) {
 }
 
 function selectPerson(roleId, fromContainer) {
+  syncPersonInfo();
   currentPersonId = roleId;
   if (fromContainer === 'personSelectorScore') {
     renderPersonSelector('personSelectorScore');
@@ -3618,31 +3667,57 @@ function formatBidAmount(el) {
   el.value = v ? Number(v).toLocaleString() : '';
 }
 
-function renderByeolji3() {
+function renderInputSheet() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
   const today = new Date();
   const y = today.getFullYear(), mo = String(today.getMonth()+1).padStart(2,' '), d = String(today.getDate()).padStart(2,' ');
-
   const bidAmount = document.getElementById('bidAmount').value || '';
   const bidPrice = document.getElementById('bidPrice').value || '';
-
-  // 별지3호 입찰서
   const allR = getAllRoles();
   const staffCount = allR.filter(r => personnel[r.id].info.name).length;
   const residentCount = allR.filter(r => r.placement !== '비상주' && personnel[r.id].info.name).length;
   const nonresCount = allR.filter(r => r.placement === '비상주' && personnel[r.id].info.name).length;
 
-  // 부표 배치계획표
+  document.getElementById('inputSheetPreview').innerHTML = `
+    <div class="a4-preview">
+      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제3호서식 (제8조 관련)</div>
+      <h2 style="text-align:center;font-size:20pt;letter-spacing:10px;margin:30px 0 50px;font-weight:800">입&ensp;찰&ensp;서</h2>
+      <table style="margin-bottom:24px">
+        <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+        <tbody>
+          <tr><th style="text-align:center;letter-spacing:6px">현 장 명</th><td style="padding-left:12px">${escHtml(pj.name)}</td></tr>
+          <tr><th style="text-align:center;letter-spacing:2px">감리용역 예정금액</th><td style="padding-left:12px">${bidAmount ? '금 ' + bidAmount + ' 원정' : ''}</td></tr>
+          <tr><th style="text-align:center;letter-spacing:4px">입 찰 금 액</th><td style="padding-left:12px;font-weight:700">${bidPrice ? '금 ' + bidPrice + ' 원정' : ''}</td></tr>
+          <tr><th style="text-align:center;letter-spacing:2px">감리원 배치인원</th><td style="padding-left:12px">상주 ${residentCount}명, 비상주 ${nonresCount}명 (총 ${staffCount}명)</td></tr>
+        </tbody>
+      </table>
+      <div style="text-align:center;font-size:10.5pt;line-height:1.9;margin:50px 0 20px">
+        「주택법」 제43조제6항 및 「주택건설공사 감리자지정기준」 제8조에 따라<br>위와 같이 입찰합니다.
+      </div>
+      <div style="text-align:center;font-size:11pt;margin:30px 0 50px">${y}년 &ensp;${mo}월 &ensp;${d}일</div>
+      <div style="text-align:right;font-size:11pt;line-height:2.2;padding-right:20px">
+        <div>입찰자(회사명) : ${escHtml(co.name)}</div>
+        <div>대 표 이 사 : ${escHtml(co.ceo)}&emsp;&emsp;(인)</div>
+        <div>소 재 지 : ${escHtml(co.address)}</div>
+        <div>전 화 번 호 : ${escHtml(co.phone)}</div>
+      </div>
+      <div style="text-align:center;font-size:13pt;margin-top:60px;font-weight:700">${escHtml(pj.client || '발주처명')} 귀중</div>
+    </div>`;
+}
+
+function renderDeployTable() {
+  syncPersonInfo();
+  const pj = getProjectData();
+  const co = getCompanyData();
+  const allR = getAllRoles();
   let deployRows = '';
   let grandGrade = 0, grandExp = 0, grandTotal = 0;
   allR.forEach(r => {
     const p = personnel[r.id];
     const sc = calcPersonScore(r.id);
-    grandGrade += sc.gradeScore;
-    grandExp += sc.expScore;
-    grandTotal += sc.total;
+    grandGrade += sc.gradeScore; grandExp += sc.expScore; grandTotal += sc.total;
     deployRows += `<tr>
       <td style="text-align:center;font-weight:600;font-size:9pt">${r.label}</td>
       <td style="text-align:center">${escHtml(p.info.name)}</td>
@@ -3657,76 +3732,20 @@ function renderByeolji3() {
     </tr>`;
   });
 
-  document.getElementById('byeolji3Preview').innerHTML = `
-    <div class="a4-preview" style="margin-bottom:24px">
-      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제3호서식 (제8조 관련)</div>
-      <h2 style="text-align:center;font-size:20pt;letter-spacing:10px;margin:30px 0 50px;font-weight:800">입&ensp;찰&ensp;서</h2>
-
-      <table style="margin-bottom:24px">
-        <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
-        <tbody>
-          <tr>
-            <th style="text-align:center;letter-spacing:6px">현 장 명</th>
-            <td style="padding-left:12px">${escHtml(pj.name)}</td>
-          </tr>
-          <tr>
-            <th style="text-align:center;letter-spacing:2px">감리용역 예정금액</th>
-            <td style="padding-left:12px">${bidAmount ? '금 ' + bidAmount + ' 원정' : ''}</td>
-          </tr>
-          <tr>
-            <th style="text-align:center;letter-spacing:4px">입 찰 금 액</th>
-            <td style="padding-left:12px;font-weight:700">${bidPrice ? '금 ' + bidPrice + ' 원정' : ''}</td>
-          </tr>
-          <tr>
-            <th style="text-align:center;letter-spacing:2px">감리원 배치인원</th>
-            <td style="padding-left:12px">상주 ${residentCount}명, 비상주 ${nonresCount}명 (총 ${staffCount}명)</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div style="text-align:center;font-size:10.5pt;line-height:1.9;margin:50px 0 20px">
-        「주택법」 제43조제6항 및 「주택건설공사 감리자지정기준」 제8조에 따라<br>
-        위와 같이 입찰합니다.
-      </div>
-
-      <div style="text-align:center;font-size:11pt;margin:30px 0 50px">
-        ${y}년 &ensp;${mo}월 &ensp;${d}일
-      </div>
-
-      <div style="text-align:right;font-size:11pt;line-height:2.2;padding-right:20px">
-        <div>입찰자(회사명) : ${escHtml(co.name)}</div>
-        <div>대 표 이 사 : ${escHtml(co.ceo)}&emsp;&emsp;(인)</div>
-        <div>소 재 지 : ${escHtml(co.address)}</div>
-        <div>전 화 번 호 : ${escHtml(co.phone)}</div>
-      </div>
-
-      <div style="text-align:center;font-size:13pt;margin-top:60px;font-weight:700">
-        ${escHtml(pj.client || '발주처명')} 귀중
-      </div>
-    </div>
-
+  document.getElementById('deployTablePreview').innerHTML = `
     <div class="a4-preview">
       <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">부표 (제8조 관련)</div>
       <h2 style="text-align:center;font-size:18pt;letter-spacing:8px;margin:20px 0 10px;font-weight:800">감리원 배치계획표</h2>
       <div style="text-align:center;font-size:10pt;color:#666;margin-bottom:24px">현장명 : ${escHtml(pj.name)}</div>
-
       <table>
         <thead>
           <tr>
-            <th style="width:18%" rowspan="2">구 분</th>
-            <th style="width:9%" rowspan="2">성명</th>
-            <th style="width:7%" rowspan="2">분야</th>
-            <th style="width:7%" rowspan="2">등급</th>
-            <th style="width:11%" rowspan="2">등록번호</th>
-            <th style="width:8%" rowspan="2">상주</th>
-            <th style="width:10%" rowspan="2">환산경력</th>
-            <th colspan="3" style="width:30%">배 점</th>
+            <th style="width:18%" rowspan="2">구 분</th><th style="width:9%" rowspan="2">성명</th>
+            <th style="width:7%" rowspan="2">분야</th><th style="width:7%" rowspan="2">등급</th>
+            <th style="width:11%" rowspan="2">등록번호</th><th style="width:8%" rowspan="2">상주</th>
+            <th style="width:10%" rowspan="2">환산경력</th><th colspan="3" style="width:30%">배 점</th>
           </tr>
-          <tr>
-            <th>등급</th>
-            <th>경력</th>
-            <th>합계</th>
-          </tr>
+          <tr><th>등급</th><th>경력</th><th>합계</th></tr>
         </thead>
         <tbody>
           ${deployRows}
@@ -3738,19 +3757,18 @@ function renderByeolji3() {
           </tr>
         </tbody>
       </table>
-
       <div style="margin-top:24px;font-size:9.5pt;color:#555;line-height:1.7">
         <div>* 등급 배점: 총괄감리원 6점 만점, 분야별감리원 2점 만점</div>
         <div>* 경력 배점: 총괄감리원 18점 만점, 분야별감리원 7점 만점</div>
         <div>* 환산경력: 「주택건설공사 감리자지정기준」 부표 나.(2) 환산비율 적용</div>
       </div>
-
       <div style="text-align:right;font-size:11pt;line-height:2.2;margin-top:40px;padding-right:20px">
         <div>${escHtml(co.name)}</div>
         <div>대표이사 : ${escHtml(co.ceo)}&emsp;&emsp;(인)</div>
       </div>
     </div>`;
 }
+function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
 
 function printByeolji(num) {
   const tabIdx = num + 3;
@@ -3879,6 +3897,42 @@ function renderDocImagePreview() {
   ).join('');
 }
 
+function renderDelegation() {
+  const co = getCompanyData();
+  const pj = getProjectData();
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,' ')}월 ${String(today.getDate()).padStart(2,' ')}일`;
+  const dlName = document.getElementById('dl_name')?.value || '';
+  const dlPosition = document.getElementById('dl_position')?.value || '';
+  const dlIdNo = document.getElementById('dl_idNo')?.value || '';
+  const dlScope = document.getElementById('dl_scope')?.value || '';
+  document.getElementById('delegationPreview').innerHTML = `
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:14px;line-height:2.2;color:#000;">
+      <h2 style="text-align:center;font-size:26px;letter-spacing:12px;margin:40px 0 50px;font-weight:800">위&ensp;임&ensp;장</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:30px;">
+        <tr><td style="width:25%;padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">수임자 성명</td>
+            <td style="padding:10px 14px;border:1px solid #999">${escHtml(dlName)}</td>
+            <td style="width:25%;padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">주민등록번호</td>
+            <td style="padding:10px 14px;border:1px solid #999">${escHtml(dlIdNo)}</td></tr>
+        <tr><td style="padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">직 위</td>
+            <td colspan="3" style="padding:10px 14px;border:1px solid #999">${escHtml(dlPosition)}</td></tr>
+        <tr><td style="padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">위임 사항</td>
+            <td colspan="3" style="padding:10px 14px;border:1px solid #999">${escHtml(dlScope)}</td></tr>
+      </table>
+      <div style="text-indent:2em;text-align:justify;margin:30px 0 20px;">
+        상기인에게 「${escHtml(pj.name || '주택건설공사')}」 감리자 지정 입찰에 관한 일체의 권한을 위임합니다.
+      </div>
+      <div style="text-align:center;font-size:15px;margin:50px 0 60px;">${dateStr}</div>
+      <div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:6px;">위임자 (대표이사)</div>
+      <div style="text-align:right;margin-right:40px;line-height:2.4;">
+        <div>상&emsp;&emsp;호 : ${escHtml(co.name||'')}</div>
+        <div>주&emsp;&emsp;소 : ${escHtml(co.address||'')}</div>
+        <div>대 표 이 사 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+      </div>
+    </div>`;
+  renderDocImagePreview();
+}
+
 // ══════════════════════════════════════════════════════
 //  별첨2 수행실적
 // ══════════════════════════════════════════════════════
@@ -3934,6 +3988,45 @@ function calcPerfRecord(r) {
     periodRate, typeRate, isHousing, amount: r.amount, converted, name: r.name,
     startDate: r.startDate, endDate: r.endDate, type: r.type };
 }
+function handlePerfPdfDrop(e) { if(e.dataTransfer&&e.dataTransfer.files) handlePerfPdf(e.dataTransfer.files[0]); }
+async function handlePerfPdf(file) {
+  if (!file) return;
+  try {
+    showStatus('수행실적 PDF 분석 중...');
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+    let allText = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      allText += tc.items.map(i=>i.str).join(' ') + '\n';
+    }
+    const lines = allText.split('\n').map(l=>l.trim()).filter(Boolean);
+    let found = 0;
+    const dateRe = /(20\d{2})[.\-\/\s]*(0?\d|1[0-2])[.\-\/\s]*(0?\d|[12]\d|3[01])/g;
+    const amountRe = /([\d,]+(?:\.\d+)?)\s*(?:억|백만)/;
+    lines.forEach(line => {
+      const dates = [...line.matchAll(dateRe)];
+      if (dates.length >= 2) {
+        const sd = `${dates[0][1]}.${dates[0][2].padStart(2,'0')}.${dates[0][3].padStart(2,'0')}`;
+        const ed = `${dates[1][1]}.${dates[1][2].padStart(2,'0')}.${dates[1][3].padStart(2,'0')}`;
+        const am = line.match(amountRe);
+        const amount = am ? parseFloat(am[1].replace(/,/g,'')) : 0;
+        const nameMatch = line.match(/([가-힣a-zA-Z0-9\s]{4,30}(?:공사|용역|감리|건설))/);
+        const name = nameMatch ? nameMatch[1].trim() : line.substring(0, 30).trim();
+        addPerfRow({ name, startDate:sd, endDate:ed, suspendDays:0, type:'주택건설', amount });
+        found++;
+      }
+    });
+    if (found) showStatus(`수행실적 ${found}건 추출 완료`);
+    else showStatus('PDF에서 수행실적 데이터를 찾지 못했습니다. 수동 입력해주세요.');
+    document.getElementById('perfPdfInput').value = '';
+  } catch(e) {
+    showStatus('PDF 분석 오류: ' + e.message);
+    document.getElementById('perfPdfInput').value = '';
+  }
+}
+
 function renderByeolchum2() {
   const mode = document.getElementById('perfOutputMode')?.value || 'simple';
   const calcs = perfRecords.map(calcPerfRecord).filter(Boolean);
