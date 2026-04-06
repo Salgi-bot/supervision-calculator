@@ -1300,10 +1300,7 @@ const ROLES = [
   { id: 'civil',  label: '토목감리원',       field: '토목', placement: '분야별', icon: '🛤', rowLabel: '분야별' },
   { id: 'mech',   label: '기타설비감리원',   field: '설비', placement: '분야별', icon: '⚙', rowLabel: '분야별' },
   { id: 'nonres', label: '비상주감리원',     field: '건축', placement: '비상주', icon: '📋', rowLabel: '비상주' },
-  { id: 'new1',   label: '신규감리원(1)',    field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규(1)', isNew: true },
-  { id: 'new2',   label: '신규감리원(2)',    field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규(2)', isNew: true },
-  { id: 'new3',   label: '신규감리원(3)',    field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규(3)', isNew: true },
-  { id: 'new4',   label: '신규감리원(4)',    field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규(4)', isNew: true },
+  { id: 'new1',   label: '신규감리원',       field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규', isNew: true },
 ];
 
 function makeEmptyPerson(role) {
@@ -1322,6 +1319,37 @@ let personnel = {};
 ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
 let currentPersonId = 'chief';
 
+// 비평가감리원 동적 관리
+let nonEvalList = [];
+let nonEvalCounter = 0;
+
+function findRole(roleId) {
+  return ROLES.find(r => r.id === roleId) || nonEvalList.find(r => r.id === roleId);
+}
+
+function addNonEvalPerson() {
+  const id = 'noneval_' + (nonEvalCounter++);
+  const idx = nonEvalList.length + 1;
+  const entry = { id, label: '비평가(' + idx + ')', field: '건축', placement: '비평가', icon: '👤', rowLabel: '비평가(' + idx + ')' };
+  nonEvalList.push(entry);
+  personnel[id] = makeEmptyPerson(entry);
+  renderPersonCards();
+  triggerAutoSave();
+  showStatus('비평가감리원(' + idx + ') 추가됨');
+}
+
+function removeNonEvalPerson(id) {
+  if (!confirm('이 비평가감리원을 삭제하시겠습니까?')) return;
+  nonEvalList = nonEvalList.filter(e => e.id !== id);
+  delete personnel[id];
+  nonEvalList.forEach((e, i) => { e.label = '비평가(' + (i+1) + ')'; e.rowLabel = '비평가(' + (i+1) + ')'; });
+  if (currentPersonId === id) { currentPersonId = 'chief'; loadPersonToForm('chief'); }
+  renderPersonCards();
+  triggerAutoSave();
+}
+
+function getAllRoles() { return [...ROLES, ...nonEvalList]; }
+
 // ══════════════════════════════════════════════════════
 //  자동 저장 (localStorage) — 공고 정보 제외
 // ══════════════════════════════════════════════════════
@@ -1338,6 +1366,8 @@ function doAutoSave() {
   const data = {
     company: getCompanyData(),
     personnel: personnel,
+    nonEvalList: nonEvalList,
+    nonEvalCounter: nonEvalCounter,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     savedAt: new Date().toISOString(),
@@ -1369,6 +1399,11 @@ function loadAutoSave() {
       personnel = data.personnel;
       ROLES.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
     }
+    if (data.nonEvalList) {
+      nonEvalList = data.nonEvalList;
+      nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
+      nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+    }
     if (data.perfRecords && data.perfRecords.length) {
       perfRecords = data.perfRecords;
       if (typeof renderPerfTable === 'function') renderPerfTable();
@@ -1379,7 +1414,7 @@ function loadAutoSave() {
       if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
     }
     loadPersonToForm(currentPersonId);
-    const names = ROLES.filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
+    const names = getAllRoles().filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
     if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
     return true;
   } catch(e) { console.warn('loadAutoSave error:', e); return false; }
@@ -1389,6 +1424,8 @@ function clearAutoSave() {
   if (!confirm('자동 저장 데이터를 초기화하시겠습니까?\n(감리원·회사 정보가 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+  nonEvalList.forEach(r => { delete personnel[r.id]; });
+  nonEvalList = []; nonEvalCounter = 0;
   currentPersonId = 'chief';
   loadPersonToForm('chief');
   renderPersonCards();
@@ -1525,12 +1562,14 @@ function switchTab(visualIdx) {
 // ══════════════════════════════════════════════════════
 function renderPersonCards() {
   const grid = document.getElementById('personGrid');
-  grid.innerHTML = ROLES.map(role => {
+  const allRoles = getAllRoles();
+  grid.innerHTML = allRoles.map(role => {
     const p = personnel[role.id];
     const hasData = p.info.name || p.careers.length > 0;
     const totalDays = p.careers.reduce((s, c) => s + (c.days || 0), 0);
     const totalConv = p.careers.reduce((s, c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
     const convYears = (totalConv / 365).toFixed(1);
+    const isNonEval = role.id.startsWith('noneval_');
 
     return `
     <div class="person-card ${hasData ? 'has-data' : ''}">
@@ -1557,10 +1596,17 @@ function renderPersonCards() {
         <div class="person-actions">
           <button class="btn btn-primary btn-sm" onclick="viewPersonDetail('${role.id}')">📋 경력 상세</button>
           <button class="btn btn-outline btn-sm" onclick="clearPerson('${role.id}')">🗑 초기화</button>
+          ${isNonEval ? `<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" onclick="removeNonEvalPerson('${role.id}')">삭제</button>` : ''}
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('') + `
+    <div class="person-card" style="border:2px dashed #cbd5e1;display:flex;align-items:center;justify-content:center;min-height:180px;cursor:pointer;background:#f8fafc" onclick="addNonEvalPerson()">
+      <div style="text-align:center;color:var(--gray4)">
+        <div style="font-size:32px;margin-bottom:8px">+</div>
+        <div style="font-size:14px;font-weight:600">비평가감리원 추가</div>
+      </div>
+    </div>`;
 }
 
 function triggerPersonUpload(roleId) {
@@ -1570,7 +1616,7 @@ function triggerPersonUpload(roleId) {
 async function handlePersonFileSelect(roleId, file) {
   if (!file) return;
   currentPersonId = roleId;
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   document.getElementById('pdfLoadingMsg').textContent = `${role.label} PDF 분석 중...`;
   document.getElementById('pdfLoading').classList.add('show');
   document.getElementById('pdfModalTitle').textContent = `${role.icon} ${role.label} — 경력증명서 파싱 결과`;
@@ -1597,7 +1643,7 @@ function viewPersonDetail(roleId) {
 }
 
 function clearPerson(roleId) {
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   if (!confirm(`${role.label} 데이터를 초기화하시겠습니까?`)) return;
   personnel[roleId] = makeEmptyPerson(role);
   if (currentPersonId === roleId) loadPersonToForm(roleId);
@@ -1610,7 +1656,7 @@ function clearPerson(roleId) {
 // ══════════════════════════════════════════════════════
 function renderPersonSelector(containerId) {
   const container = document.getElementById(containerId);
-  container.innerHTML = ROLES.map(role => {
+  container.innerHTML = getAllRoles().map(role => {
     const p = personnel[role.id];
     const n = p.careers.length;
     const label = p.info.name ? `${role.label} (${p.info.name})` : role.label;
@@ -1640,7 +1686,7 @@ function selectPerson(roleId, fromContainer) {
 // ══════════════════════════════════════════════════════
 function loadPersonToForm(roleId) {
   const p = personnel[roleId];
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   const info = p.info;
   document.getElementById('name').value = info.name || '';
   document.getElementById('birthdate').value = info.birthdate || '';
@@ -1833,7 +1879,7 @@ function renderRateSummary(grandTotal) {
 // ══════════════════════════════════════════════════════
 function loadScoreForPerson(roleId) {
   const p = personnel[roleId];
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   document.getElementById('scorePersonLabel').textContent = role.label;
   document.getElementById('scorePlacement').value = p.info.placement || role.placement;
   // Calc conversion
@@ -2093,6 +2139,8 @@ function clearAll() {
   if (!confirm('모든 데이터를 초기화하시겠습니까?\n(자동 저장 데이터도 함께 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+  nonEvalList.forEach(r => { delete personnel[r.id]; });
+  nonEvalList = []; nonEvalCounter = 0;
   document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
   perfRecords = [];
   docImages = [];
@@ -2611,7 +2659,7 @@ let parsedData = null;
 function showPdfModal(parsed, rawText) {
   parsedData = parsed;
   const body = document.getElementById('pdfModalBody');
-  const role = ROLES.find(r => r.id === currentPersonId);
+  const role = findRole(currentPersonId);
 
   let statusHtml = '';
   if (parsed.warnings.length) {
@@ -2701,7 +2749,7 @@ function importParsed() {
 
   // Save to current person
   const p = personnel[currentPersonId];
-  const role = ROLES.find(r => r.id === currentPersonId);
+  const role = findRole(currentPersonId);
   if (info.name) p.info.name = info.name;
   if (info.birthdate) p.info.birthdate = info.birthdate;
   if (info.regNo) p.info.regNo = info.regNo;
@@ -3110,7 +3158,7 @@ function renderByeolji1() {
   // 감리원 행 생성 (구분|분야|성명|생년월일|등급|자격번호|소속회사)
   const td = s => `<td style="text-align:center;padding:5px 4px;font-size:9pt">${escHtml(s)}</td>`;
   let personnelRows = '';
-  ROLES.forEach(r => {
+  getAllRoles().forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
     personnelRows += `<tr>
@@ -3229,7 +3277,7 @@ function renderByeolji1() {
 
 function calcPersonScore(roleId) {
   const p = personnel[roleId];
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   const grade = p.info.appliedGrade || p.info.grade || '특급';
   const placement = p.info.placement || role.placement;
   const careers = p.careers || [];
@@ -3270,7 +3318,7 @@ function calcPersonScore(roleId) {
 
 function buildByeolji2Html(roleId) {
   const p = personnel[roleId];
-  const role = ROLES.find(r => r.id === roleId);
+  const role = findRole(roleId);
   const info = p.info;
   const sc = calcPersonScore(roleId);
   const pj = getProjectData();
@@ -3559,7 +3607,7 @@ function renderByeolji2() {
 function renderByeolji2All() {
   syncPersonInfo();
   let html = '';
-  ROLES.forEach(r => {
+  getAllRoles().forEach(r => {
     if (personnel[r.id].info.name) html += buildByeolji2Html(r.id);
   });
   if (!html) html = '<div class="a4-placeholder"><div style="font-size:16px;color:var(--gray4)">감리원 정보를 입력한 후 생성하세요.</div></div>';
@@ -3581,14 +3629,15 @@ function renderByeolji3() {
   const bidPrice = document.getElementById('bidPrice').value || '';
 
   // 별지3호 입찰서
-  const staffCount = ROLES.filter(r => personnel[r.id].info.name).length;
-  const residentCount = ROLES.filter(r => r.placement !== '비상주' && personnel[r.id].info.name).length;
-  const nonresCount = ROLES.filter(r => r.placement === '비상주' && personnel[r.id].info.name).length;
+  const allR = getAllRoles();
+  const staffCount = allR.filter(r => personnel[r.id].info.name).length;
+  const residentCount = allR.filter(r => r.placement !== '비상주' && personnel[r.id].info.name).length;
+  const nonresCount = allR.filter(r => r.placement === '비상주' && personnel[r.id].info.name).length;
 
   // 부표 배치계획표
   let deployRows = '';
   let grandGrade = 0, grandExp = 0, grandTotal = 0;
-  ROLES.forEach(r => {
+  allR.forEach(r => {
     const p = personnel[r.id];
     const sc = calcPersonScore(r.id);
     grandGrade += sc.gradeScore;
@@ -3974,7 +4023,7 @@ function renderByeolchum3() {
   const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt"';
   let html = '';
   // 평가대상 감리원 (chief, arch/civil/mech, nonres)
-  const evalRoles = ROLES.filter(r => !r.isNew);
+  const evalRoles = [...ROLES.filter(r => !r.isNew), ...nonEvalList];
   evalRoles.forEach(role => {
     const p = personnel[role.id];
     if(!p.info.name) return;
