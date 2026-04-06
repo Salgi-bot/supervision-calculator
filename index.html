@@ -78,6 +78,16 @@ header .sub { font-size: 13px; opacity: .85; margin-top: 2px; }
 .tab-btn.active { color: var(--ci); border-bottom-color: var(--ci); }
 .tab-icon { margin-right: 4px; }
 
+/* ── Sub-tab bar (데이터 입력 내부 네비게이션) ── */
+.sub-tab-bar { display:flex; gap:4px; padding:8px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:16px; flex-wrap:wrap; position:sticky; top:100px; z-index:50; }
+.sub-tab-btn { padding:6px 14px; border:1px solid #e2e8f0; background:white; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; color:var(--gray4); transition:all .15s; }
+.sub-tab-btn:hover { color:var(--ci); border-color:var(--ci); }
+.sub-tab-btn.active { background:var(--ci); color:white; border-color:var(--ci); }
+
+/* ── Section divider (merged tab 구분선) ── */
+.section-divider { border:none; border-top:2px dashed #cbd5e1; margin:24px 0 16px; }
+.section-header { font-size:15px; font-weight:700; color:var(--ci); margin:0 0 12px; padding:8px 12px; background:var(--ci-light); border-radius:6px; display:flex; align-items:center; gap:8px; }
+
 /* ── Content ── */
 .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
 .tab-content.active { display: block; }
@@ -490,6 +500,17 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   line-height: 1.6;
 }
 .a4-preview h2 { text-align: center; font-size: 18pt; margin-bottom: 20px; color: #000; }
+.a4-page {
+  background: #fff;
+  border: 1px solid var(--gray3);
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 16px auto;
+  font-size: 11pt;
+  line-height: 1.6;
+}
 .a4-preview, .a4-preview * { color: #000 !important; }
 .a4-preview table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
 .a4-preview th, .a4-preview td { border: 1px solid #333; padding: 6px 8px; font-size: 10pt; }
@@ -507,8 +528,8 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   .tab-content { display: none !important; padding: 0 !important; }
   .tab-content.print-target { display: block !important; }
   body { background: #fff; }
-  .a4-preview { border: none; box-shadow: none; padding: 0; min-height: auto; page-break-after: always; }
-  .a4-preview:last-child { page-break-after: auto; }
+  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 0; min-height: auto; page-break-after: always; }
+  .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
   .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
   @page { margin: 1.5cm; size: A4; }
 }
@@ -530,14 +551,16 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ── TAB BAR ── -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab(0)"><span class="tab-icon">🏢</span>프로젝트</button>
-  <button class="tab-btn" onclick="switchTab(1)"><span class="tab-icon">👥</span>감리원 관리</button>
-  <button class="tab-btn" onclick="switchTab(2)"><span class="tab-icon">📋</span>경력 상세</button>
-  <button class="tab-btn" onclick="switchTab(3)"><span class="tab-icon">🎯</span>배점</button>
-  <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📝</span>별지1호</button>
-  <button class="tab-btn" onclick="switchTab(5)"><span class="tab-icon">📊</span>별지2호</button>
-  <button class="tab-btn" onclick="switchTab(6)"><span class="tab-icon">📑</span>별지3호+부표</button>
-  <button class="tab-btn" onclick="switchTab(7)"><span class="tab-icon">📖</span>고시참조</button>
+  <button class="tab-btn active" onclick="switchTab(0)"><span class="tab-icon">📂</span>데이터 입력</button>
+  <button class="tab-btn" onclick="switchTab(1)"><span class="tab-icon">📝</span>별지1호</button>
+  <button class="tab-btn" onclick="switchTab(2)"><span class="tab-icon">📊</span>별지2호</button>
+  <button class="tab-btn" onclick="switchTab(3)"><span class="tab-icon">📜</span>서약서</button>
+  <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📅</span>배치계획표</button>
+  <button class="tab-btn" onclick="switchTab(5)"><span class="tab-icon">🖋</span>사용인감계</button>
+  <button class="tab-btn" onclick="switchTab(6)"><span class="tab-icon">📋</span>위임장</button>
+  <button class="tab-btn" onclick="switchTab(7)"><span class="tab-icon">📈</span>수행실적</button>
+  <button class="tab-btn" onclick="switchTab(8)"><span class="tab-icon">👤</span>감리원경력</button>
+  <button class="tab-btn" onclick="switchTab(9)"><span class="tab-icon">📖</span>고시참조</button>
 </div>
 
 <!-- ── PDF MODAL ── -->
@@ -557,6 +580,13 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 0: 프로젝트 정보 ══════════ -->
 <div class="tab-content active" id="tab0">
+  <div class="sub-tab-bar" id="subTabBar">
+    <button class="sub-tab-btn active" onclick="scrollToSection('tab0','sec-project')">공고·공사</button>
+    <button class="sub-tab-btn" onclick="scrollToSection('tab1','sec-person')">감리원 관리</button>
+    <button class="sub-tab-btn" onclick="scrollToSection('tab2','sec-career')">경력 상세</button>
+    <button class="sub-tab-btn" onclick="scrollToSection('tab3','sec-score')">배점</button>
+  </div>
+  <div id="sec-project"></div>
   <div class="card">
     <div class="card-title"><span class="icon">📋</span>공고문 자동 입력</div>
     <div class="info-note">공고문 PDF를 업로드하면 공사정보가 자동으로 채워집니다. (이미지 PDF도 OCR 지원)</div>
@@ -570,6 +600,24 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
              onchange="handleAnnouncementFile(this.files[0])">
     </div>
     <div id="announceStatus" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📢</span>공고 정보</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column: span 2">
+        <label>공고번호</label>
+        <input type="text" id="pj_noticeNo" placeholder="예) 전주시 공고 제2025-1948호">
+      </div>
+      <div class="form-group">
+        <label>공고일</label>
+        <input type="text" id="pj_noticeDate" placeholder="예) 2025.09.01">
+      </div>
+      <div class="form-group">
+        <label>제출처</label>
+        <input type="text" id="pj_submitTo" placeholder="예) 전주시장">
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -652,6 +700,24 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   </div>
 
   <div class="card">
+    <div class="card-title"><span class="icon">🏗</span>시공자 정보</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column: span 2">
+        <label>시공자 상호</label>
+        <input type="text" id="pj_contractor" placeholder="예) ㈜세승주택건설">
+      </div>
+      <div class="form-group">
+        <label>시공자 대표자</label>
+        <input type="text" id="pj_contractorCeo" placeholder="예) 박정환">
+      </div>
+      <div class="form-group">
+        <label>시공자 연락처</label>
+        <input type="text" id="pj_contractorPhone" placeholder="예) 063-123-4567">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title"><span class="icon">✏️</span>설계자 정보</div>
     <div class="form-grid">
       <div class="form-group">
@@ -665,6 +731,24 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       <div class="form-group" style="grid-column: span 2">
         <label>설계자 주소</label>
         <input type="text" id="pj_designerAddress" placeholder="예) 전북특별자치도 전주시 완산구 ○○로 123">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">💰</span>감리비용 정보</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>감리대상 공사비 (천원)</label>
+        <input type="text" id="pj_supervisionCost" placeholder="예) 25,000,000" oninput="formatBidAmount(this)">
+      </div>
+      <div class="form-group">
+        <label>감리대가 기준 (원)</label>
+        <input type="text" id="pj_supervisionFee" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this)">
+      </div>
+      <div class="form-group">
+        <label>기초금액 (원)</label>
+        <input type="text" id="pj_baseFee" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this)">
       </div>
     </div>
   </div>
@@ -713,6 +797,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 1: 감리원 관리 ══════════ -->
 <div class="tab-content" id="tab1">
+  <hr class="section-divider"><div class="section-header" id="sec-person">👥 감리원 관리</div>
   <div class="info-note">
     각 감리원의 <strong>경력증명서 PDF</strong>를 업로드하면 기본정보와 경력이 자동으로 입력됩니다.<br>
     업로드 후 [경력 상세] 탭에서 세부 내역을 확인·수정할 수 있습니다.
@@ -720,8 +805,9 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <div class="person-grid" id="personGrid"></div>
 </div>
 
-<!-- ══════════ TAB 2: 경력 상세 ══════════ -->
+<!-- ══════════ TAB 2: 경력 상세 (데이터입력 서브섹션) ══════════ -->
 <div class="tab-content" id="tab2">
+  <hr class="section-divider"><div class="section-header" id="sec-career">📋 경력 상세</div>
   <div class="person-selector" id="personSelector"></div>
 
   <div class="person-upload-zone no-print" id="tab2UploadZone" style="margin-bottom:14px;padding:12px 10px"
@@ -879,6 +965,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 
 <!-- ══════════ TAB 3: 배점 ══════════ -->
 <div class="tab-content" id="tab3">
+  <hr class="section-divider"><div class="section-header" id="sec-score">🎯 배점</div>
   <div class="person-selector" id="personSelectorScore"></div>
   <div class="card">
     <div class="card-title"><span class="icon">🎯</span>배점 계산 — <span id="scorePersonLabel">총괄감리원(건축)</span></div>
@@ -1096,6 +1183,106 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   </div>
 </div>
 
+<!-- ══════════ TAB 8: 별첨1 서약서 ══════════ -->
+<div class="tab-content" id="tab8">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">📜</span>별첨1 — 서약서</div>
+    <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
+      <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="byeolchum1Preview"></div>
+</div>
+
+<!-- ══════════ TAB 9: (예비 — 배치계획표 리팩터링용) ══════════ -->
+<div class="tab-content" id="tab9"></div>
+
+<!-- ══════════ TAB 10: 사용인감계 ══════════ -->
+<div class="tab-content" id="tab10">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">🖋</span>사용인감계</div>
+    <div class="info-note">회사 정보 기반으로 사용인감계가 자동 생성됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-primary" onclick="renderSayongIngam()">미리보기 갱신</button>
+      <button class="btn" onclick="printTab('tab10')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="sayongIngamPreview"></div>
+</div>
+
+<!-- ══════════ TAB 11: 위임장·재직증명서 ══════════ -->
+<div class="tab-content" id="tab11">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">📋</span>위임장 · 재직증명서</div>
+    <div class="info-note">이미지 파일을 업로드하면 A4 크기로 출력됩니다.</div>
+    <div class="person-upload-zone" onclick="document.getElementById('docImageInput').click()" style="margin-top:10px"
+         ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
+         ondrop="event.preventDefault();this.classList.remove('dragover');handleDocImageDrop(event)">
+      <div class="up-icon">📋</div>
+      <div class="up-title">위임장 / 재직증명서 이미지 업로드</div>
+      <div class="up-sub">드래그 또는 클릭 — JPG, PNG, PDF 지원 (여러 파일 가능)</div>
+      <input type="file" id="docImageInput" accept=".jpg,.jpeg,.png,.pdf" multiple style="display:none"
+             onchange="handleDocImages(this.files)">
+    </div>
+    <div id="docImageList" style="margin-top:12px"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" onclick="printTab('tab11')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="docImagePreview"></div>
+</div>
+
+<!-- ══════════ TAB 12: 별첨2 수행실적 ══════════ -->
+<div class="tab-content" id="tab12">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">📈</span>별첨2 — 감리업무 수행실적</div>
+    <div class="info-note">회사의 감리업무 수행실적을 입력하세요. 행 추가 후 데이터를 입력하면 자동 계산됩니다.</div>
+    <div style="overflow-x:auto;margin:12px 0;">
+      <table id="perfTable" style="font-size:12px;border-collapse:collapse;width:100%;min-width:900px;">
+        <thead>
+          <tr style="background:#e8f0fe;">
+            <th style="padding:6px;border:1px solid #ccc;width:30px">#</th>
+            <th style="padding:6px;border:1px solid #ccc;min-width:140px">용역명</th>
+            <th style="padding:6px;border:1px solid #ccc;width:95px">착공일</th>
+            <th style="padding:6px;border:1px solid #ccc;width:95px">준공(예정)일</th>
+            <th style="padding:6px;border:1px solid #ccc;width:50px">중지(일)</th>
+            <th style="padding:6px;border:1px solid #ccc;width:70px">공사종류</th>
+            <th style="padding:6px;border:1px solid #ccc;width:80px">수주금액(억)</th>
+            <th style="padding:6px;border:1px solid #ccc;width:35px"></th>
+          </tr>
+        </thead>
+        <tbody id="perfTableBody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="addPerfRow()">+ 행 추가</button>
+      <button class="btn btn-primary" onclick="renderByeolchum2()">미리보기 갱신</button>
+      <select id="perfOutputMode" style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;">
+        <option value="simple">간략 버전</option>
+        <option value="detail">상세 버전</option>
+        <option value="both">간략 + 상세</option>
+      </select>
+      <button class="btn" onclick="printTab('tab12')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="byeolchum2Preview"></div>
+</div>
+
+<!-- ══════════ TAB 13: 별첨3 감리원경력 ══════════ -->
+<div class="tab-content" id="tab13">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">👤</span>별첨3 — 감리원 경력실적 + 별첨4 신규감리원</div>
+    <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-primary" onclick="renderByeolchum3()">미리보기 갱신</button>
+      <button class="btn" onclick="printTab('tab13')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="byeolchum3Preview"></div>
+</div>
+
 <!-- ── ACTION BAR ── -->
 <div class="action-bar no-print" id="actionBar">
   <span class="label">저장</span>
@@ -1232,15 +1419,40 @@ function getRowClass(rate) {
 // ══════════════════════════════════════════════════════
 //  TAB SWITCHING
 // ══════════════════════════════════════════════════════
-function switchTab(idx) {
-  document.querySelectorAll('.tab-content').forEach((el, i) => el.classList.toggle('active', i === idx));
-  document.querySelectorAll('.tab-btn').forEach((el, i) => el.classList.toggle('active', i === idx));
-  if (idx === 1) renderPersonCards();
-  if (idx === 2) { renderPersonSelector('personSelector'); loadPersonToForm(currentPersonId); renderCareerTable(); }
-  if (idx === 3) { renderPersonSelector('personSelectorScore'); calcScore(); }
-  if (idx === 4) renderByeolji1();
-  if (idx === 5) { renderPersonSelector('personSelectorB2'); renderByeolji2(); }
-  if (idx === 6) renderByeolji3();
+function switchTab(visualIdx) {
+  // Map visual tab index → content div IDs
+  const tabMap = [
+    ['tab0','tab1','tab2','tab3'], // 0: 데이터 입력 (merged)
+    ['tab4'],                      // 1: 별지1호
+    ['tab5'],                      // 2: 별지2호
+    ['tab8'],                      // 3: 별첨1 서약서
+    ['tab6'],                      // 4: 배치계획표 (기존 tab6 재활용)
+    ['tab10'],                     // 5: 사용인감계
+    ['tab11'],                     // 6: 위임장·재직증명서
+    ['tab12'],                     // 7: 별첨2 수행실적
+    ['tab13'],                     // 8: 별첨3 감리원경력
+    ['tab7'],                      // 9: 고시참조
+  ];
+  const activeIds = tabMap[visualIdx] || ['tab0'];
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.toggle('active', activeIds.includes(el.id));
+  });
+  document.querySelectorAll('.tab-btn').forEach((el, i) => el.classList.toggle('active', i === visualIdx));
+  // Sub-tab bar visibility
+  const subBar = document.getElementById('subTabBar');
+  if (subBar) subBar.style.display = visualIdx === 0 ? 'flex' : 'none';
+  // Render hooks
+  if (visualIdx === 0) {
+    renderPersonCards();
+    renderPersonSelector('personSelector');
+    loadPersonToForm(currentPersonId);
+    renderCareerTable();
+    renderPersonSelector('personSelectorScore');
+    calcScore();
+  }
+  if (visualIdx === 1) renderByeolji1();
+  if (visualIdx === 2) { renderPersonSelector('personSelectorB2'); renderByeolji2(); }
+  if (visualIdx === 4) renderByeolji3();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1640,6 +1852,9 @@ function getProjectData() {
     authority: pf('pj_authority'),
     designerName: pf('pj_designerName'), designerCompany: pf('pj_designerCompany'),
     designerAddress: pf('pj_designerAddress'),
+    noticeNo: pf('pj_noticeNo'), noticeDate: pf('pj_noticeDate'), submitTo: pf('pj_submitTo'),
+    contractor: pf('pj_contractor'), contractorCeo: pf('pj_contractorCeo'), contractorPhone: pf('pj_contractorPhone'),
+    supervisionCost: pf('pj_supervisionCost'), supervisionFee: pf('pj_supervisionFee'), baseFee: pf('pj_baseFee'),
   };
 }
 
@@ -1655,11 +1870,13 @@ function getCompanyData() {
 function saveAllJSON() {
   syncPersonInfo();
   const data = {
-    version: '2.0',
+    version: '2.1',
     exportDate: new Date().toISOString(),
     project: getProjectData(),
     company: getCompanyData(),
     personnel: personnel,
+    perfRecords: perfRecords,
+    docImages: docImages,
   };
   const pjName = data.project.name || '감리자지정';
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1677,7 +1894,7 @@ function loadJSONFile(input) {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.version === '2.0') {
+      if (data.version === '2.1' || data.version === '2.0') {
         loadV2Data(data);
       } else if (data.version === '1.0') {
         loadV1Data(data);
@@ -1714,9 +1931,13 @@ function loadV2Data(data) {
       if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r);
     });
   }
+  // Performance records
+  if (data.perfRecords) { perfRecords = data.perfRecords; renderPerfTable(); }
+  // Doc images
+  if (data.docImages) { docImages = data.docImages; renderDocImageList(); renderDocImagePreview(); }
   loadPersonToForm(currentPersonId);
   renderCareerTable();
-  showStatus('v2.0 데이터 불러오기 완료');
+  showStatus('데이터 불러오기 완료');
 }
 
 function loadV1Data(data) {
@@ -2750,6 +2971,10 @@ function renderByeolji1() {
           <tr>
             ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
           </tr>
+          <tr>
+            <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">시 공 자</td>
+            ${tdLabel('상&emsp;&emsp;호')}${tdVal(pj.contractor||'','')}${tdLabel('대 표 자')}${tdVal(pj.contractorCeo||'','')}
+          </tr>
         </tbody>
       </table>
 
@@ -3298,6 +3523,334 @@ function printByeolji(num) {
   tab.classList.add('print-target');
   window.print();
   setTimeout(() => tab.classList.remove('print-target'), 500);
+}
+function printTab(tabId) {
+  const tab = document.getElementById(tabId);
+  if (!tab) return;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
+  tab.classList.add('print-target');
+  window.print();
+  setTimeout(() => tab.classList.remove('print-target'), 500);
+}
+
+// ── Sub-tab scroll navigation ──
+function scrollToSection(tabId, sectionId) {
+  const el = document.getElementById(sectionId || tabId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+  if (event && event.target) event.target.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+//  별첨1 서약서
+// ══════════════════════════════════════════════════════
+function renderByeolchum1() {
+  const pj = getProjectData(), co = getCompanyData();
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  const authority = pj.submitTo || pj.authority || '○○시장';
+  document.getElementById('byeolchum1Preview').innerHTML = `
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
+      <div style="font-size:14px;font-weight:bold;margin-bottom:30px;">【별첨 1】</div>
+      <h2 style="text-align:center;font-size:24px;letter-spacing:8px;margin:40px 0 60px;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+      <div style="margin-bottom:8px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
+      <div style="margin-bottom:40px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
+      <div style="text-indent:2em;text-align:justify;">
+        본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, <b><u>자기평가서</u></b>는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 <b>"허위·거짓 등"</b>의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 <b><u>참여감리원(평가대상 및 비평가대상감리원)</u></b>은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.
+      </div>
+      <div style="text-align:center;margin:60px 0 80px;font-size:16px;">${dateStr}</div>
+      <div style="text-align:right;margin-right:40px;line-height:2.4;">
+        <div>서약자 주소 : ${escHtml(co.address||'')}</div>
+        <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
+        <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+      </div>
+      <div style="margin-top:80px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  사용인감계
+// ══════════════════════════════════════════════════════
+function renderSayongIngam() {
+  const pj = getProjectData(), co = getCompanyData();
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  document.getElementById('sayongIngamPreview').innerHTML = `
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
+      <h2 style="text-align:center;font-size:28px;letter-spacing:16px;margin:40px 0 50px;">사 용 인 감 계</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:50px;">
+        <tr>
+          <td style="width:120px;border:2px solid #000;padding:15px;vertical-align:middle;text-align:center;font-weight:bold;">
+            <u>사용인감</u><br><br><div style="height:80px;border:1px dashed #999;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;">(인감 날인)</div>
+          </td>
+          <td style="border:2px solid #000;padding:20px 30px;line-height:2.4;font-size:16px;">
+            <div>상&emsp;&emsp;호 : ${escHtml(co.name||'')}</div>
+            <div>주&emsp;&emsp;소 : ${escHtml(co.address||'')}</div>
+            <div>대표이사 : ${escHtml(co.ceo||'')}</div>
+          </td>
+        </tr>
+      </table>
+      <div style="line-height:2.2;font-size:16px;">
+        <p style="margin-bottom:10px;"><u>위의 사용인감은 본사가 사용하는 인감으로서</u></p>
+        <p style="margin-bottom:10px;"><u>${escHtml(pj.noticeNo||'○○시 공고 제0000-0000호')}, ${escHtml(pj.name||'')} 에</u></p>
+        <p style="margin-bottom:10px;"><u>대한 주택건설공사 감리자(건축) 지정신청에 사용하고자 이에 사용인감계를 제출합니다.</u></p>
+      </div>
+      <div style="margin:40px 0 20px;text-align:center;font-size:14px;">붙임 : 법인인감증명서 1부.  끝.</div>
+      <div style="text-align:center;margin:50px 0 60px;font-size:16px;">${dateStr}</div>
+      <div style="text-align:right;margin-right:40px;line-height:2.4;">
+        <div>주&emsp;&emsp;소 :&emsp;${escHtml(co.address||'')}</div>
+        <div>상&emsp;&emsp;호 :&emsp;${escHtml(co.name||'')}</div>
+        <div>대표이사 :&emsp;${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  위임장·재직증명서 이미지 업로드
+// ══════════════════════════════════════════════════════
+let docImages = [];
+function handleDocImages(files) {
+  Array.from(files).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      docImages.push({ name: f.name, data: e.target.result });
+      renderDocImageList();
+      renderDocImagePreview();
+    };
+    reader.readAsDataURL(f);
+  });
+}
+function handleDocImageDrop(e) { if(e.dataTransfer&&e.dataTransfer.files) handleDocImages(e.dataTransfer.files); }
+function removeDocImage(idx) { docImages.splice(idx, 1); renderDocImageList(); renderDocImagePreview(); }
+function renderDocImageList() {
+  document.getElementById('docImageList').innerHTML = docImages.map((img, i) =>
+    `<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:#f1f5f9;border-radius:4px;margin:2px;font-size:13px;">
+      📎 ${escHtml(img.name)} <button onclick="removeDocImage(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-weight:bold;">✕</button>
+    </div>`
+  ).join('');
+}
+function renderDocImagePreview() {
+  document.getElementById('docImagePreview').innerHTML = docImages.map(img =>
+    `<div class="a4-page" style="padding:20px;display:flex;align-items:center;justify-content:center;min-height:900px;">
+      <img src="${img.data}" style="max-width:100%;max-height:1050px;object-fit:contain;">
+    </div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  별첨2 수행실적
+// ══════════════════════════════════════════════════════
+let perfRecords = [];
+function addPerfRow(data) {
+  const r = data || { name:'', startDate:'', endDate:'', suspendDays:0, type:'비주택건축', amount:0 };
+  perfRecords.push(r);
+  renderPerfTable();
+}
+function removePerfRow(i) { perfRecords.splice(i,1); renderPerfTable(); }
+function renderPerfTable() {
+  const tbody = document.getElementById('perfTableBody');
+  if(!tbody) return;
+  tbody.innerHTML = perfRecords.map((r,i) => `<tr>
+    <td style="text-align:center;border:1px solid #ccc;padding:4px">${i+1}</td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" value="${r.suspendDays||0}" onchange="perfRecords[${i}].suspendDays=+this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><select onchange="perfRecords[${i}].type=this.value" style="width:100%;border:none;padding:4px;font-size:12px">
+      <option value="주택건설" ${r.type==='주택건설'?'selected':''}>주택건설</option>
+      <option value="비주택건축" ${r.type==='비주택건축'?'selected':''}>비주택건축</option>
+      <option value="토목" ${r.type==='토목'?'selected':''}>토목</option>
+      <option value="설비" ${r.type==='설비'?'selected':''}>설비</option>
+    </select></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px;text-align:center"><button onclick="removePerfRow(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-weight:bold;">✕</button></td>
+  </tr>`).join('');
+}
+function calcPerfRecord(r) {
+  const parseD = s => { const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
+  const s = parseD(r.startDate), e = parseD(r.endDate);
+  if(!s||!e) return null;
+  const totalDays = Math.round((e-s)/(86400000));
+  const suspend = r.suspendDays||0;
+  const netDays = totalDays - suspend;
+  // 최근 3년 기준일 (오늘 기준)
+  const now = new Date();
+  const y3ago = new Date(now.getFullYear()-3, now.getMonth(), now.getDate());
+  const recentStart = s < y3ago ? y3ago : s;
+  const recentEnd = e > now ? now : e;
+  const recentDays = Math.max(0, Math.round((recentEnd-recentStart)/86400000));
+  const recentSuspend = 0; // 중지기간 비율 적용 가능하나 단순화
+  const applicableDays = totalDays;
+  const appliedDays = recentDays - recentSuspend;
+  const periodRate = applicableDays > 0 ? appliedDays / applicableDays : 0;
+  const typeRateMap = { '주택건설':1.0, '비주택건축':0.8, '토목':0.6, '설비':0.6 };
+  const typeRate = typeRateMap[r.type] || 0.8;
+  const isHousing = r.type === '주택건설';
+  const converted = r.amount * periodRate * typeRate;
+  return { totalDays, suspend, netDays, recentDays, recentSuspend, applicableDays, appliedDays,
+    periodRate, typeRate, isHousing, amount: r.amount, converted, name: r.name,
+    startDate: r.startDate, endDate: r.endDate, type: r.type };
+}
+function renderByeolchum2() {
+  const mode = document.getElementById('perfOutputMode')?.value || 'simple';
+  const calcs = perfRecords.map(calcPerfRecord).filter(Boolean);
+  const totalAmount = calcs.reduce((s,c) => s + c.amount, 0);
+  const totalConverted = calcs.reduce((s,c) => s + c.converted, 0);
+  let html = '';
+  const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
+  const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
+  // 간략 버전
+  if(mode==='simple'||mode==='both') {
+    html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+      <div style="font-size:12pt;margin-bottom:4px;">[별첨 2]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
+      <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리자 감리업무수행 실적</div>
+      <table style="border-collapse:collapse;width:100%;">
+        <thead>
+          <tr><th rowspan="2" ${thS}>연번</th><th rowspan="2" ${thS} style="min-width:120px">용 역 명</th>
+          <th colspan="2" ${thS}>감 리 기 간</th><th colspan="2" ${thS}>수주금액(억원)</th>
+          <th colspan="2" ${thS}>적용요율(%)</th><th rowspan="2" ${thS}>환산금액<br>(억원)</th></tr>
+          <tr><th ${thS}>착공일</th><th ${thS}>준공(예정)일</th><th ${thS}>주택건설<br>공사</th><th ${thS}>건축공사</th>
+          <th ${thS}>환산<br>비율</th><th ${thS}>공사종<br>류요율</th></tr>
+        </thead><tbody>`;
+    calcs.forEach((c,i) => {
+      html += `<tr><td ${tdS}>${i+1}</td><td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.name)}</td>
+        <td ${tdS}>${c.startDate}</td><td ${tdS}>${c.endDate}</td>
+        <td ${tdS}>${c.isHousing ? '-' : ''}</td><td ${tdS}>${c.isHousing ? '' : c.amount.toFixed(2)}</td>
+        <td ${tdS}>${(c.periodRate*100).toFixed(2)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
+        <td ${tdS}>${c.converted.toFixed(2)}</td></tr>`;
+    });
+    html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="2" ${tdS}></td>
+      <td ${tdS}>-</td><td ${tdS}>${totalAmount.toFixed(2)}</td><td ${tdS}></td><td ${tdS}></td>
+      <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
+      <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
+        ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
+        ※ 수주금액 : 금액은 억원 단위로 표기하고 억원 단위 미만은 소수점아래로 표기(예시: 234,500,000원은 2.345)<br>
+        ※ 해당일수 : 총감리기간 - 중지기간<br>
+        ※ 적용일수 : 최근3년간 해당일수 - 최근3년간 해당중지일수<br>
+        ※ 적용기간요율 : 적용일수 ÷ 해당일수
+      </div></div>`;
+  }
+  // 상세 버전
+  if(mode==='detail'||mode==='both') {
+    html += `<div class="a4-page" style="padding:40px 20px;font-family:'Batang','바탕',serif;color:#000;">
+      <div style="font-size:12pt;font-weight:bold;margin-bottom:4px;">[별첨 2]</div>
+      <div style="font-size:13pt;font-weight:bold;margin-bottom:4px;">○감리자 감리업무수행 실적</div>
+      <div style="font-size:9pt;margin-bottom:8px;">※ 아래실적만 인정 받고자 합니다.</div>
+      <table style="border-collapse:collapse;width:100%;font-size:7.5pt;">
+        <thead>
+          <tr><th rowspan="2" ${thS}>연<br>번</th><th rowspan="2" ${thS} style="min-width:80px">용 역 명</th>
+          <th colspan="8" ${thS}>기간 및 일수</th><th rowspan="2" ${thS}>적용기간<br>요율(%)</th>
+          <th colspan="2" ${thS}>수주금액(억원)</th><th colspan="2" ${thS}>적용요율(%)</th><th rowspan="2" ${thS}>환산금액<br>(억원)</th></tr>
+          <tr><th ${thS}>감리<br>기간</th><th ${thS}>중지<br>기간</th><th ${thS}>총감리<br>일수</th><th ${thS}>중지<br>일수</th>
+          <th ${thS}>최근3년간<br>해당일수</th><th ${thS}>중지<br>일수</th><th ${thS}>해당<br>일수</th><th ${thS}>적용<br>일수</th>
+          <th ${thS}>주택건설<br>공사</th><th ${thS}>건축공사</th><th ${thS}>건축<br>공사</th><th ${thS}>공사종류<br>요율</th></tr>
+        </thead><tbody>`;
+    calcs.forEach((c,i) => {
+      html += `<tr><td ${tdS}>${i+1}</td><td ${tdS} style="text-align:left;padding-left:4px;font-size:7.5pt">${escHtml(c.name)}</td>
+        <td ${tdS} style="font-size:7pt">${c.startDate}<br>~ ${c.endDate}</td><td ${tdS}>${c.suspend}</td>
+        <td ${tdS}>${c.totalDays}</td><td ${tdS}>${c.suspend}</td>
+        <td ${tdS}>${c.recentDays}</td><td ${tdS}>${c.recentSuspend}</td>
+        <td ${tdS}>${c.applicableDays}</td><td ${tdS}>${c.appliedDays}</td>
+        <td ${tdS}>${(c.periodRate*100).toFixed(2)}%</td>
+        <td ${tdS}>${c.isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${c.isHousing ? '-' : c.amount.toFixed(2)}</td>
+        <td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
+        <td ${tdS}>${c.converted.toFixed(2)}</td></tr>`;
+    });
+    html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="7" ${tdS}></td>
+      <td ${tdS}></td><td ${tdS}>-</td><td ${tdS}>${totalAmount.toFixed(2)}</td><td colspan="2" ${tdS}></td>
+      <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
+      <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
+        ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
+        ※ 수주금액 : 금액은 억원 단위로 표기하고 억원 단위 미만은 소수점아래로 표기(예시: 234,500,000원은 2.345)<br>
+        ※ 해당일수 : 총감리기간 - 중지기간<br>
+        ※ 적용일수 : 최근3년간 해당일수 - 최근3년간 해당중지일수<br>
+        ※ 적용기간요율 : 적용일수 ÷ 해당일수
+      </div></div>`;
+  }
+  document.getElementById('byeolchum2Preview').innerHTML = html || '<div class="card" style="padding:20px;text-align:center;color:var(--gray4)">수행실적 데이터를 입력하세요.</div>';
+}
+
+// ══════════════════════════════════════════════════════
+//  별첨3 감리원경력 + 별첨4 신규감리원
+// ══════════════════════════════════════════════════════
+function renderByeolchum3() {
+  syncPersonInfo();
+  const co = getCompanyData();
+  const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5"';
+  const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt"';
+  let html = '';
+  // 평가대상 감리원 (chief, arch/civil/mech, nonres)
+  const evalRoles = ROLES.filter(r => !r.isNew);
+  evalRoles.forEach(role => {
+    const p = personnel[role.id];
+    if(!p.info.name) return;
+    const careers = p.careers || [];
+    const totalConvDays = careers.reduce((s,c) => s + Math.round((c.days||0)*getRate(c.conType,c.workType,c.resident)), 0);
+    const convYears = (totalConvDays/365).toFixed(1);
+    const score = calcPersonScore(role.id);
+    const placementLabel = role.placement === '총괄' ? '총괄감리원' : role.placement === '비상주' ? '비상주감리원' : '분야별감리원';
+    const fieldLabel = role.field;
+    html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+      <div style="font-size:12pt;margin-bottom:2px;">[별첨 3]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
+      <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리원 업무수행 실적</div>
+      <table style="border-collapse:collapse;width:100%;">
+        <thead>
+          <tr><th rowspan="2" ${thS} style="width:60px">구<br>분</th>
+          <th colspan="2" ${thS}>경력사항</th>
+          <th rowspan="2" ${thS} style="width:55px">경 력<br>일 수</th>
+          <th rowspan="2" ${thS} style="width:50px">환산비</th>
+          <th rowspan="2" ${thS} style="width:60px">평가환산<br>일수</th>
+          <th rowspan="2" ${thS} style="width:45px">등급</th>
+          <th rowspan="2" ${thS} style="width:40px">평점</th></tr>
+          <tr><th ${thS}>사 업 명</th><th ${thS} style="width:100px">기 간</th></tr>
+        </thead><tbody>`;
+    const rowCount = Math.max(careers.length, 1);
+    careers.forEach((c, ci) => {
+      const rate = getRate(c.conType, c.workType, c.resident);
+      const convDays = Math.round((c.days||0)*rate);
+      html += `<tr>
+        ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="writing-mode:vertical-lr;letter-spacing:3px;font-weight:700;font-size:9pt;line-height:1.4;padding:8px 4px">${escHtml(placementLabel)}<br>＜${escHtml(fieldLabel)}＞<br>${escHtml(p.info.name)}</td>` : ''}
+        <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.siteName||'')}</td>
+        <td ${tdS} style="font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
+        <td ${tdS}>${c.days||0}</td>
+        <td ${tdS}>${rate.toFixed(1)}</td>
+        <td ${tdS}>${convDays}</td>
+        ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="font-weight:700">${escHtml(p.info.appliedGrade||p.info.grade||'')}</td>
+        <td rowspan="${rowCount}" ${tdS} style="font-weight:700">${score.total||''}</td>` : ''}
+      </tr>`;
+    });
+    html += `<tr style="font-weight:bold">
+      <td colspan="3" ${tdS}>소&emsp;&emsp;계</td>
+      <td ${tdS}>${totalConvDays.toLocaleString()}일</td>
+      <td ${tdS}></td><td ${tdS}>${convYears}년</td><td ${tdS}></td><td ${tdS}></td>
+    </tr></tbody></table></div>`;
+  });
+  // 별첨4 신규감리원
+  const newRoles = ROLES.filter(r => r.isNew);
+  const hasNew = newRoles.some(r => personnel[r.id].info.name);
+  html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+    <div style="font-size:12pt;margin-bottom:2px;">[별첨 4]</div>
+    <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○신규감리원</div>`;
+  if(!hasNew) {
+    html += `<div style="text-align:center;padding:60px 0;font-size:14pt;font-weight:bold;">해당사항 없음</div>`;
+  } else {
+    newRoles.forEach(role => {
+      const p = personnel[role.id];
+      if(!p.info.name) return;
+      html += `<div style="margin-bottom:20px;font-weight:700">가. 자격사항</div>
+        <table style="border-collapse:collapse;width:100%;margin-bottom:20px;">
+          <tr><th ${thS}>성명</th><td ${tdS}>${escHtml(p.info.name)}</td><th ${thS}>생년월일</th><td ${tdS}>${escHtml(p.info.birthdate)}</td></tr>
+          <tr><th ${thS}>등급</th><td ${tdS}>${escHtml(p.info.grade)}</td><th ${thS}>자격번호</th><td ${tdS}>${escHtml(p.info.regNo)}</td></tr>
+        </table>
+        <div style="margin-bottom:20px;font-weight:700">나. 경력 및 실적</div>`;
+      const careers = p.careers || [];
+      if(careers.length === 0) {
+        html += `<div style="padding:20px;text-align:center;">해당사항 없음</div>`;
+      }
+    });
+  }
+  html += '</div>';
+  document.getElementById('byeolchum3Preview').innerHTML = html;
 }
 
 // ══════════════════════════════════════════════════════
