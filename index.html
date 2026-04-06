@@ -595,7 +595,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
          ondrop="event.preventDefault();this.classList.remove('dragover');handleAnnounceDrop(event)">
       <div class="up-icon">📋</div>
       <div class="up-title">공고문 PDF 업로드</div>
-      <div class="up-sub">드래그 또는 클릭 — 공사명, 위치, 세대수, 면적, 기간, 발주처 자동 추출</div>
+      <div class="up-sub">드래그 또는 클릭 — 공사명, 소재지, 세대수, 면적, 공사기간, 발주처, 사업주체 자동 추출</div>
       <input type="file" id="announceFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
              onchange="handleAnnouncementFile(this.files[0])">
     </div>
@@ -663,30 +663,34 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
         <input type="text" id="pj_stories" placeholder="예) 지하2층/지상28층">
       </div>
       <div class="form-group">
-        <label>착공일</label>
-        <input type="text" id="pj_startDate" placeholder="YYYY.MM.DD">
+        <label>공사기간 시작일</label>
+        <input type="text" id="pj_startDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays()">
       </div>
       <div class="form-group">
-        <label>준공일 (예정)</label>
-        <input type="text" id="pj_endDate" placeholder="YYYY.MM.DD">
+        <label>공사기간 종료일</label>
+        <input type="text" id="pj_endDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays()">
+      </div>
+      <div class="form-group">
+        <label>공사일수</label>
+        <input type="text" id="pj_constructionDays" readonly style="background:#f0f7ff;font-weight:700;color:var(--ci)" placeholder="자동계산">
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title"><span class="icon">🏛</span>사업주체 정보</div>
+    <div class="card-title"><span class="icon">🏛</span>발주처 · 사업주체 정보</div>
     <div class="form-grid">
       <div class="form-group" style="grid-column: span 2">
-        <label>사업주체 상호 (발주처)</label>
+        <label>발주처 (공고 주최 = 귀하 란)</label>
+        <input type="text" id="pj_authority" placeholder="예) 전주시장 (공고를 낸 시장·구청장)">
+      </div>
+      <div class="form-group" style="grid-column: span 2">
+        <label>사업주체 상호</label>
         <input type="text" id="pj_client" placeholder="예) ㈜세승주택건설">
       </div>
       <div class="form-group">
         <label>사업주체 대표자</label>
         <input type="text" id="pj_clientCeo" placeholder="예) 박정환">
-      </div>
-      <div class="form-group">
-        <label>허가권자 (공고 주최, 귀하 란)</label>
-        <input type="text" id="pj_authority" placeholder="예) 전주시장">
       </div>
       <div class="form-group">
         <label>담당자</label>
@@ -1524,7 +1528,11 @@ async function handlePersonFileSelect(roleId, file) {
 
 function viewPersonDetail(roleId) {
   currentPersonId = roleId;
-  switchTab(2);
+  loadPersonToForm(roleId);
+  renderCareerTable();
+  renderPersonSelector('personSelector');
+  switchTab(0);
+  setTimeout(() => scrollToSection('tab2','sec-career'), 100);
 }
 
 function clearPerson(roleId) {
@@ -1775,6 +1783,22 @@ function loadScoreForPerson(roleId) {
   calcScore();
 }
 
+function calcConstructionDays() {
+  const s = document.getElementById('pj_startDate')?.value || '';
+  const e = document.getElementById('pj_endDate')?.value || '';
+  const el = document.getElementById('pj_constructionDays');
+  if (!el) return;
+  const parse = v => { const m = v.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? new Date(+m[1], +m[2]-1, +m[3]) : null; };
+  const d1 = parse(s), d2 = parse(e);
+  if (d1 && d2 && d2 > d1) {
+    const days = Math.round((d2 - d1) / 86400000) + 1;
+    const months = Math.round(days / 30.44 * 10) / 10;
+    el.value = `${days.toLocaleString()}일 (약 ${months}개월)`;
+  } else {
+    el.value = '';
+  }
+}
+
 function calcScore() {
   const convDays = parseFloat(document.getElementById('convDays').value) || 0;
   const convYears = convDays / 365;
@@ -1846,7 +1870,7 @@ function getProjectData() {
     name: pf('pj_name'), location: pf('pj_location'), units: pf('pj_units'),
     blocks: pf('pj_blocks'), sizeClass: pf('pj_sizeClass'),
     area: pf('pj_area'), siteArea: pf('pj_siteArea'), stories: pf('pj_stories'),
-    startDate: pf('pj_startDate'), endDate: pf('pj_endDate'),
+    startDate: pf('pj_startDate'), endDate: pf('pj_endDate'), constructionDays: pf('pj_constructionDays'),
     client: pf('pj_client'), clientCeo: pf('pj_clientCeo'),
     clientContact: pf('pj_clientContact'), clientPhone: pf('pj_clientPhone'),
     authority: pf('pj_authority'),
@@ -1937,6 +1961,7 @@ function loadV2Data(data) {
   if (data.docImages) { docImages = data.docImages; renderDocImageList(); renderDocImagePreview(); }
   loadPersonToForm(currentPersonId);
   renderCareerTable();
+  calcConstructionDays();
   showStatus('데이터 불러오기 완료');
 }
 
@@ -2099,11 +2124,23 @@ async function parsePDFWithOCR(pdf) {
 async function parseImage(file) {
   const url = URL.createObjectURL(file);
   const body = document.getElementById('pdfModalBody');
-  body.innerHTML = `
-    <div class="parse-status warn">⚠ 이미지 파일 — PDF로 변환 후 다시 시도하세요.</div>
-    <img src="${url}" style="max-width:100%;border:1px solid var(--gray2);border-radius:8px">`;
+  body.innerHTML = `<div class="parse-status warn">⏳ 이미지 OCR 추출 중...</div>`;
   document.getElementById('importBtn').style.display = 'none';
   document.getElementById('pdfModal').classList.add('open');
+  try {
+    let worker;
+    try { worker = await Tesseract.createWorker('kor+eng'); }
+    catch { worker = await Tesseract.createWorker('kor'); }
+    const { data: { text } } = await worker.recognize(url);
+    await worker.terminate();
+    URL.revokeObjectURL(url);
+    const parsed = parseKCEAText([], text);
+    showPdfModal(parsed, text);
+  } catch (err) {
+    URL.revokeObjectURL(url);
+    body.innerHTML = `<div class="parse-status fail">OCR 오류: ${escHtml(err.message)}</div>
+      <img src="${URL.createObjectURL(file)}" style="max-width:100%;border:1px solid var(--gray2);border-radius:8px">`;
+  }
 }
 
 // ══ 경력증명서 파서 ══
@@ -2729,7 +2766,26 @@ function parseAnnouncementText(rawText) {
   const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
   const joined = lines.join(' ');
 
-  const result = { name: '', location: '', units: '', area: '', stories: '', startDate: '', endDate: '', client: '', bidAmount: '' };
+  const result = { noticeNo: '', noticeDate: '', name: '', location: '', units: '', blocks: '', area: '', siteArea: '', stories: '', startDate: '', endDate: '', authority: '', client: '', clientCeo: '', designerName: '', designerCompany: '', supervisionCost: '', supervisionFee: '', baseFee: '', bidAmount: '' };
+
+  // 공고번호 (예: ○○시 공고 제2025-1948호)
+  const noticeNoPatterns = [
+    /(\S+\s*공\s*고\s*제?\s*\d{4}\s*[-‐]\s*\d+\s*호)/,
+    /공\s*고\s*번\s*호\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+  ];
+  for (const pat of noticeNoPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.noticeNo = m[1].trim().replace(/\s+/g, ' '); break; }
+  }
+
+  // 공고일 (공고번호 근처 또는 "공고일" 레이블)
+  const noticeDatePatterns = [
+    /공\s*고\s*일\s*[:：]?\s*(\d{4})\s*[\.\/\-년]\s*(\d{1,2})\s*[\.\/\-월]\s*(\d{1,2})/,
+  ];
+  for (const pat of noticeDatePatterns) {
+    const m = joined.match(pat);
+    if (m) { result.noticeDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`; break; }
+  }
 
   // 공사명 / 현장명 / 사업명
   const namePatterns = [
@@ -2760,6 +2816,26 @@ function parseAnnouncementText(rawText) {
   for (const pat of unitPatterns) {
     const m = joined.match(pat);
     if (m) { result.units = m[1].replace(/,/g, ''); break; }
+  }
+
+  // 동수
+  const blockPatterns = [
+    /(\d+)\s*개?\s*동/,
+    /동\s*수\s*[:：]?\s*(\d+)/,
+  ];
+  for (const pat of blockPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.blocks = m[1] + '개동'; break; }
+  }
+
+  // 대지면적
+  const siteAreaPatterns = [
+    /대\s*지\s*면\s*적\s*[:：]?\s*([\d,\.]+)\s*(?:m²|㎡|m2)/,
+    /대\s*지\s*면\s*적\s*([\d,\.]+)/,
+  ];
+  for (const pat of siteAreaPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.siteArea = m[1]; break; }
   }
 
   // 연면적
@@ -2801,15 +2877,69 @@ function parseAnnouncementText(rawText) {
     result.endDate = dates[dates.length - 1];
   }
 
-  // 발주처 / 사업주체 / 건축주
+  // 발주처 (공고 주최 = 시장/구청장) → authority
+  const authorityPatterns = [
+    /(?:발\s*주\s*처|발\s*주\s*자|허\s*가\s*권\s*자)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /(\S+시장|\S+구청장|\S+군수|\S+도지사)\s/,
+  ];
+  for (const pat of authorityPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.authority = m[1].trim().replace(/\s{2,}/g, ' '); break; }
+  }
+
+  // 사업주체 / 건축주 / 시행자 → client
   const clientPatterns = [
-    /(?:발\s*주\s*처|발\s*주\s*자|사\s*업\s*주\s*체|건\s*축\s*주|시\s*행\s*자)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
-    /(?:발\s*주\s*처|사\s*업\s*주\s*체)\s*(.+?)(?:공사|감리|소재|위치)/,
+    /(?:사\s*업\s*주\s*체|건\s*축\s*주|시\s*행\s*자|시\s*행\s*사)\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /(?:사\s*업\s*주\s*체|건\s*축\s*주)\s*(.+?)(?:공사|감리|소재|위치)/,
   ];
   for (const pat of clientPatterns) {
     const m = joined.match(pat);
     if (m) { result.client = m[1].trim().replace(/\s{2,}/g, ' '); break; }
   }
+
+  // 사업주체 대표자
+  const clientCeoPatterns = [
+    /(?:사\s*업\s*주\s*체|건\s*축\s*주|시\s*행\s*자)\s*.*?대\s*표\s*자?\s*[:：]?\s*([가-힣]{2,5})/,
+    /대\s*표\s*이?\s*사?\s*[:：]?\s*([가-힣]{2,5})/,
+  ];
+  for (const pat of clientCeoPatterns) {
+    const m = joined.match(pat);
+    if (m) { result.clientCeo = m[1].trim(); break; }
+  }
+
+  // 설계자
+  const designerPatterns = [
+    /설\s*계\s*자?\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+    /설\s*계\s*사\s*[:：]?\s*(.+?)(?:\s{2,}|$)/,
+  ];
+  for (const pat of designerPatterns) {
+    const m = joined.match(pat);
+    if (m) {
+      const dVal = m[1].trim().replace(/\s{2,}/g, ' ');
+      // "성명 / 상호" 또는 상호만
+      const dSplit = dVal.match(/^([가-힣]{2,5})\s*[\/,]\s*(.+)/);
+      if (dSplit) {
+        result.designerName = dSplit[1];
+        result.designerCompany = dSplit[2].trim();
+      } else if (/^[가-힣]{2,5}$/.test(dVal)) {
+        result.designerName = dVal;
+      } else {
+        result.designerCompany = dVal;
+      }
+      break;
+    }
+  }
+
+  // 감리대상 공사비 / 감리대가 / 기초금액
+  const costPatterns = [
+    { key: 'supervisionCost', re: /(?:감\s*리\s*대\s*상\s*공\s*사\s*비|공\s*사\s*비)\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/ },
+    { key: 'supervisionFee', re: /(?:감\s*리\s*대\s*가\s*(?:기\s*준)?|감\s*리\s*용\s*역\s*대\s*가)\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원)/ },
+    { key: 'baseFee', re: /(?:기\s*초\s*금\s*액)\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원)/ },
+  ];
+  costPatterns.forEach(cp => {
+    const m = joined.match(cp.re);
+    if (m) result[cp.key] = m[1];
+  });
 
   // 감리용역 예정금액
   const amountPatterns = [
@@ -2827,14 +2957,25 @@ function parseAnnouncementText(rawText) {
 function showAnnouncementResult(parsed, rawText) {
   const statusEl = document.getElementById('announceStatus');
   const fields = [
+    { key: 'noticeNo', label: '공고번호', target: 'pj_noticeNo' },
+    { key: 'noticeDate', label: '공고일', target: 'pj_noticeDate' },
     { key: 'name', label: '공사명', target: 'pj_name' },
     { key: 'location', label: '소재지', target: 'pj_location' },
     { key: 'units', label: '세대수', target: 'pj_units' },
+    { key: 'blocks', label: '동수', target: 'pj_blocks' },
     { key: 'area', label: '연면적', target: 'pj_area' },
+    { key: 'siteArea', label: '대지면적', target: 'pj_siteArea' },
     { key: 'stories', label: '층수', target: 'pj_stories' },
-    { key: 'startDate', label: '시작일', target: 'pj_startDate' },
-    { key: 'endDate', label: '종료일', target: 'pj_endDate' },
-    { key: 'client', label: '발주처', target: 'pj_client' },
+    { key: 'startDate', label: '공사시작일', target: 'pj_startDate' },
+    { key: 'endDate', label: '공사종료일', target: 'pj_endDate' },
+    { key: 'authority', label: '발주처 (허가권자)', target: 'pj_authority' },
+    { key: 'client', label: '사업주체', target: 'pj_client' },
+    { key: 'clientCeo', label: '사업주체 대표자', target: 'pj_clientCeo' },
+    { key: 'designerName', label: '설계자 성명', target: 'pj_designerName' },
+    { key: 'designerCompany', label: '설계 상호', target: 'pj_designerCompany' },
+    { key: 'supervisionCost', label: '감리대상 공사비', target: 'pj_supervisionCost' },
+    { key: 'supervisionFee', label: '감리대가 기준', target: 'pj_supervisionFee' },
+    { key: 'baseFee', label: '기초금액', target: 'pj_baseFee' },
     { key: 'bidAmount', label: '예정금액', target: 'bidAmount' },
   ];
 
@@ -2887,11 +3028,14 @@ function applyAnnouncement() {
   if (parsed.units && document.querySelector('.announce-check[data-key="units"]:checked')) {
     const u = parseInt(parsed.units);
     const sel = document.getElementById('pj_sizeClass');
-    if (u >= 1000) sel.value = '1000이상';
+    if (u >= 1500) sel.value = '1500이상';
+    else if (u >= 1000) sel.value = '1000이상';
+    else if (u >= 800) sel.value = '800이상';
     else if (u >= 500) sel.value = '500이상';
     else if (u >= 300) sel.value = '300이상';
     else sel.value = '300미만';
   }
+  calcConstructionDays();
   document.getElementById('announceStatus').innerHTML = `<div class="parse-status ok">✅ ${applied}개 항목 적용 완료</div>`;
   window._announceParsed = null;
   showStatus(`공고문에서 ${applied}개 항목 자동 입력 완료`);
@@ -2962,7 +3106,7 @@ function renderByeolji1() {
             ${tdLabel('규&emsp;&emsp;모')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.stories || '')}${pj.blocks ? ', ' + pj.blocks : ''}${pj.units ? ', ' + pj.units + '세대' : ''}</td>
           </tr>
           <tr>
-            ${tdLabel('공사기간')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.startDate)} ~ ${escHtml(pj.endDate)}</td>
+            ${tdLabel('공사기간')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.startDate)} ~ ${escHtml(pj.endDate)}${pj.constructionDays ? ' (' + escHtml(pj.constructionDays) + ')' : ''}</td>
           </tr>
           <tr>
             <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
