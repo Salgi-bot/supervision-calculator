@@ -916,6 +916,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       <table id="careerTable">
         <thead>
           <tr>
+            <th style="width:36px"></th>
             <th style="width:32px">No</th>
             <th style="width:160px">현장명</th>
             <th style="width:100px">공사 종류</th>
@@ -926,7 +927,6 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
             <th style="width:70px">인정일수</th>
             <th style="width:60px">환산률</th>
             <th style="width:70px">환산일수</th>
-            <th style="width:36px">삭제</th>
           </tr>
         </thead>
         <tbody id="careerBody"></tbody>
@@ -1702,6 +1702,7 @@ function renderCareerTable() {
     const tr = document.createElement('tr');
     tr.className = getRowClass(rate);
     tr.innerHTML = `
+      <td><button class="btn-icon" onclick="removeRow(${i})">🗑</button></td>
       <td>${i+1}</td>
       <td><input type="text" value="${escHtml(r.site)}" onchange="updateRow(${i},'site',this.value)"></td>
       <td><select onchange="updateRowCalc(${i},'conType',this.value)">${CON_TYPES.map(t=>`<option value="${t}" ${r.conType===t?'selected':''}>${t}</option>`).join('')}</select></td>
@@ -1711,8 +1712,7 @@ function renderCareerTable() {
       <td><input type="text" value="${r.endDate}" placeholder="YYYY.MM.DD" onchange="updateRowDates(${i},'end',this.value)"></td>
       <td><input type="number" value="${r.days}" min="0" onchange="updateRowCalc(${i},'days',+this.value)"></td>
       <td><span class="rate-badge ${getRateBadgeClass(rate)}">${(rate*100).toFixed(0)}%</span></td>
-      <td class="fw-bold">${conv.toLocaleString()}</td>
-      <td><button class="btn-icon" onclick="removeRow(${i})">🗑</button></td>`;
+      <td class="fw-bold">${conv.toLocaleString()}</td>`;
     tbody.appendChild(tr);
   });
   updateInputSummary();
@@ -2651,7 +2651,7 @@ function showPdfModal(parsed, rawText) {
     careersHtml = `
       <div style="font-size:13px;font-weight:700;color:var(--ci);margin-bottom:6px">경력 (${parsed.careers.length}건)</div>
       <div class="tbl-wrap"><table class="parse-result-table" id="parseTable"><thead><tr>
-        <th>No</th><th>현장명</th><th>공사종류</th><th>업무분야</th><th>상주</th><th>시작일</th><th>종료일</th><th>인정일수</th><th>삭제</th>
+        <th></th><th>No</th><th>현장명</th><th>공사종류</th><th>업무분야</th><th>상주</th><th>시작일</th><th>종료일</th><th>인정일수</th>
       </tr></thead><tbody>
         ${parsed.careers.map((c,i)=>careerParseRow(c,i)).join('')}
       </tbody></table></div>
@@ -2680,6 +2680,7 @@ function infoSelect(label, id, opts, val) {
 
 function careerParseRow(c, i) {
   return `<tr id="prow_${i}">
+    <td><button class="btn-icon" onclick="this.closest('tr').remove()">🗑</button></td>
     <td style="color:var(--gray4)">${i+1}</td>
     <td><input type="text" value="${escHtml(c.site)}" style="min-width:120px"></td>
     <td><select>${CON_TYPES.map(t=>`<option ${t===c.conType?'selected':''}>${t}</option>`).join('')}</select></td>
@@ -2687,8 +2688,7 @@ function careerParseRow(c, i) {
     <td><select><option ${c.resident==='상주'?'selected':''}>상주</option><option ${c.resident==='비상주'?'selected':''}>비상주</option></select></td>
     <td><input type="text" value="${c.startDate}" style="width:90px"></td>
     <td><input type="text" value="${c.endDate}" style="width:90px"></td>
-    <td><input type="number" value="${c.days}" style="width:65px"></td>
-    <td><button class="btn-icon" onclick="this.closest('tr').remove()">🗑</button></td></tr>`;
+    <td><input type="number" value="${c.days}" style="width:65px"></td></tr>`;
 }
 
 function addParseRow() {
