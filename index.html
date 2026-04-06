@@ -2735,7 +2735,7 @@ function importParsed() {
   if (newRows.length) {
     p.careers = newRows;
     loadPersonToForm(currentPersonId);
-    renderCareerTable();
+    calcAll();
     closePdfModal();
     renderPersonCards();
     triggerAutoSave();
