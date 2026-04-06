@@ -2770,7 +2770,7 @@ function parseAnnouncementText(rawText) {
 
   // ── 헬퍼: 라벨 뒤 값 추출 (다음 라벨 또는 3+공백까지) ──
   const afterLabel = (label, fallbackStop) => {
-    const re = new RegExp(label + '\\s*[:：]?\\s*(.+?)(?=' + (fallbackStop || '\\s{3,}|$') + ')', 's');
+    const re = new RegExp('(?:' + label + ')\\s*[:：]?\\s*(.+?)(?=' + (fallbackStop || '\\s{3,}|$') + ')', 's');
     const m = joined.match(re);
     return m ? m[1].trim().replace(/\s{2,}/g, ' ') : '';
   };
@@ -2778,9 +2778,9 @@ function parseAnnouncementText(rawText) {
   // ── 라인 기반 파싱 (테이블 형태 공고문용) ──
   const findLineValue = (label) => {
     for (const line of lines) {
-      const re = new RegExp(label + '\\s*[:：]?\\s*(.+)');
+      const re = new RegExp('(?:' + label + ')\\s*[:：]?\\s*(.+)');
       const m = line.match(re);
-      if (m) return m[1].trim();
+      if (m && m[1]) return m[1].trim();
     }
     return '';
   };
