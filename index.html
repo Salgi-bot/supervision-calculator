@@ -778,7 +778,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       </div>
       <div class="form-group">
         <label>대표전화</label>
-        <input type="text" id="co_phone" value="042-489-0434">
+        <input type="text" id="co_phone" value="042-489-0430">
       </div>
       <div class="form-group">
         <label>FAX</label>
@@ -795,6 +795,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
     <button class="btn btn-primary" onclick="saveAllJSON()">💾 전체 저장 (JSON)</button>
     <button class="btn btn-outline" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 불러오기</button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="loadJSONFile(this)">
+    <button class="btn btn-outline" onclick="clearProjectOnly()">📋 새 입찰 (공고 초기화)</button>
     <button class="btn btn-outline" onclick="clearAll()">🗑 전체 초기화</button>
   </div>
 </div>
@@ -1293,6 +1294,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <button class="btn btn-primary btn-sm" onclick="saveAllJSON()">💾 JSON</button>
   <button class="btn btn-outline btn-sm" onclick="document.getElementById('jsonFileInput2').click()">📂 불러오기</button>
   <input type="file" id="jsonFileInput2" accept=".json" style="display:none" onchange="loadJSONFile(this)">
+  <span id="autoSaveStatus" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
   <div class="divider"></div>
   <button class="btn btn-success btn-sm" onclick="saveExcel()">📊 Excel</button>
   <div class="divider"></div>
@@ -1334,6 +1336,80 @@ function makeEmptyPerson(role) {
 let personnel = {};
 ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
 let currentPersonId = 'chief';
+
+// ══════════════════════════════════════════════════════
+//  자동 저장 (localStorage) — 공고 정보 제외
+// ══════════════════════════════════════════════════════
+const AUTOSAVE_KEY = 'hb_autosave_v1';
+let _autoSaveTimer = null;
+
+function triggerAutoSave() {
+  if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(doAutoSave, 1000);
+}
+
+function doAutoSave() {
+  syncPersonInfo();
+  const data = {
+    company: getCompanyData(),
+    personnel: personnel,
+    perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
+    docImages: typeof docImages !== 'undefined' ? docImages : [],
+    savedAt: new Date().toISOString(),
+  };
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    const el = document.getElementById('autoSaveStatus');
+    if (el) {
+      const t = new Date();
+      el.textContent = `자동저장 ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+    }
+  } catch (e) {
+    console.warn('자동 저장 실패:', e.message);
+  }
+}
+
+function loadAutoSave() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.company) {
+      Object.entries(data.company).forEach(([k, v]) => {
+        const el = document.getElementById('co_' + k);
+        if (el) el.value = v || '';
+      });
+    }
+    if (data.personnel) {
+      personnel = data.personnel;
+      ROLES.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+    }
+    if (data.perfRecords && data.perfRecords.length) {
+      perfRecords = data.perfRecords;
+      if (typeof renderPerfTable === 'function') renderPerfTable();
+    }
+    if (data.docImages && data.docImages.length) {
+      docImages = data.docImages;
+      if (typeof renderDocImageList === 'function') renderDocImageList();
+      if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
+    }
+    loadPersonToForm(currentPersonId);
+    renderCareerTable();
+    renderPersonCards();
+    return true;
+  } catch { return false; }
+}
+
+function clearAutoSave() {
+  if (!confirm('자동 저장 데이터를 초기화하시겠습니까?\n(감리원·회사 정보가 삭제됩니다)')) return;
+  localStorage.removeItem(AUTOSAVE_KEY);
+  ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+  currentPersonId = 'chief';
+  loadPersonToForm('chief');
+  renderPersonCards();
+  renderCareerTable();
+  showStatus('자동 저장 초기화 완료');
+}
 
 // ══════════════════════════════════════════════════════
 //  런타임 상수 (localStorage 기반, 법령 개정 시 업데이트)
@@ -1608,6 +1684,7 @@ function syncPersonInfo() {
   info.cert = document.getElementById('cert').value.trim();
   info.company = document.getElementById('company').value.trim();
   info.memo = document.getElementById('memo').value.trim();
+  triggerAutoSave();
 }
 
 function getRows() { return personnel[currentPersonId].careers; }
@@ -1663,9 +1740,10 @@ function addRow() {
     resident: '상주', startDate: '', endDate: '', days: 0, rate: 1, convDays: 0
   });
   renderCareerTable();
+  triggerAutoSave();
 }
 
-function removeRow(i) { getRows().splice(i, 1); renderCareerTable(); }
+function removeRow(i) { getRows().splice(i, 1); renderCareerTable(); triggerAutoSave(); }
 
 function sortRows() {
   getRows().sort((a, b) => (parseDate(a.startDate) || new Date(0)) - (parseDate(b.startDate) || new Date(0)));
@@ -1962,6 +2040,7 @@ function loadV2Data(data) {
   loadPersonToForm(currentPersonId);
   renderCareerTable();
   calcConstructionDays();
+  triggerAutoSave();
   showStatus('데이터 불러오기 완료');
 }
 
@@ -2019,15 +2098,25 @@ function saveExcel() {
 // ══════════════════════════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════════════════════════
+function clearProjectOnly() {
+  if (!confirm('공고/프로젝트 정보만 초기화합니다.\n(감리원·회사 정보는 유지됩니다)')) return;
+  document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
+  document.getElementById('constructionDaysDisplay').textContent = '';
+  showStatus('공고 정보 초기화 — 새 입찰 준비 완료');
+}
+
 function clearAll() {
-  if (!confirm('모든 데이터를 초기화하시겠습니까?')) return;
+  if (!confirm('모든 데이터를 초기화하시겠습니까?\n(자동 저장 데이터도 함께 삭제됩니다)')) return;
+  localStorage.removeItem(AUTOSAVE_KEY);
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
-  ['pj_name','pj_location','pj_units','pj_area','pj_stories','pj_startDate','pj_endDate',
-   'pj_client','pj_clientContact','pj_clientPhone'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
+  perfRecords = [];
+  docImages = [];
+  if (typeof renderPerfTable === 'function') renderPerfTable();
+  if (typeof renderDocImageList === 'function') { renderDocImageList(); renderDocImagePreview(); }
   currentPersonId = 'chief';
   loadPersonToForm('chief');
+  renderPersonCards();
   renderCareerTable();
   document.getElementById('resultBody').innerHTML = '<tr><td colspan="9" style="padding:30px;color:var(--gray4)">경력 데이터를 입력 후 [환산 계산]을 클릭하세요.</td></tr>';
   document.getElementById('resultHeader').style.display = 'none';
@@ -2664,14 +2753,9 @@ function importParsed() {
     loadPersonToForm(currentPersonId);
     renderCareerTable();
     closePdfModal();
+    renderPersonCards();
+    triggerAutoSave();
     showStatus(`${role.label}: ${info.name || ''} — ${newRows.length}건 경력 가져오기 완료`);
-    // 현재 탭이 감리원 관리(tab1)면 유지하여 연속 입력 가능, 아니면 경력 상세로 이동
-    const activeTab = document.querySelector('.tab-content.active');
-    if (activeTab && activeTab.id === 'tab1') {
-      renderPersonCards();
-    } else {
-      switchTab(2);
-    }
   } else {
     alert('가져올 경력 데이터가 없습니다.');
   }
@@ -3744,12 +3828,13 @@ function handleDocImages(files) {
       docImages.push({ name: f.name, data: e.target.result });
       renderDocImageList();
       renderDocImagePreview();
+      triggerAutoSave();
     };
     reader.readAsDataURL(f);
   });
 }
 function handleDocImageDrop(e) { if(e.dataTransfer&&e.dataTransfer.files) handleDocImages(e.dataTransfer.files); }
-function removeDocImage(idx) { docImages.splice(idx, 1); renderDocImageList(); renderDocImagePreview(); }
+function removeDocImage(idx) { docImages.splice(idx, 1); renderDocImageList(); renderDocImagePreview(); triggerAutoSave(); }
 function renderDocImageList() {
   document.getElementById('docImageList').innerHTML = docImages.map((img, i) =>
     `<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:#f1f5f9;border-radius:4px;margin:2px;font-size:13px;">
@@ -3773,8 +3858,9 @@ function addPerfRow(data) {
   const r = data || { name:'', startDate:'', endDate:'', suspendDays:0, type:'비주택건축', amount:0 };
   perfRecords.push(r);
   renderPerfTable();
+  triggerAutoSave();
 }
-function removePerfRow(i) { perfRecords.splice(i,1); renderPerfTable(); }
+function removePerfRow(i) { perfRecords.splice(i,1); renderPerfTable(); triggerAutoSave(); }
 function renderPerfTable() {
   const tbody = document.getElementById('perfTableBody');
   if(!tbody) return;
@@ -3986,9 +4072,16 @@ function renderByeolchum3() {
 // ══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
   loadRuntimeConstants();
-  renderPersonCards();
-  renderCareerTable();
+  const restored = loadAutoSave();
+  if (!restored) {
+    renderPersonCards();
+    renderCareerTable();
+  }
   checkLawUpdate();
+  // 회사정보 필드 변경 시 자동 저장
+  document.querySelectorAll('[id^="co_"]').forEach(el => {
+    el.addEventListener('change', triggerAutoSave);
+  });
 });
 
 // ══════════════════════════════════════════════════════
