@@ -1396,12 +1396,10 @@ function loadAutoSave() {
       if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
     }
     loadPersonToForm(currentPersonId);
-    renderCareerTable();
-    renderPersonCards();
-    const names = ROLES.filter(r => personnel[r.id].info.name).map(r => personnel[r.id].info.name);
-    if (names.length) showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`);
+    const names = ROLES.filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
+    if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
     return true;
-  } catch { return false; }
+  } catch(e) { console.warn('loadAutoSave error:', e); return false; }
 }
 
 function clearAutoSave() {
@@ -4076,11 +4074,10 @@ function renderByeolchum3() {
 // ══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
   loadRuntimeConstants();
-  const restored = loadAutoSave();
-  if (!restored) {
-    renderPersonCards();
-    renderCareerTable();
-  }
+  try { loadAutoSave(); } catch(e) { console.warn('자동복원 오류:', e); }
+  // 항상 렌더링 보장
+  renderPersonCards();
+  renderCareerTable();
   checkLawUpdate();
   // 회사정보 필드 변경 시 자동 저장
   document.querySelectorAll('[id^="co_"]').forEach(el => {
