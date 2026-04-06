@@ -522,7 +522,10 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
     <h1>주택건설공사</h1>
     <div class="sub">주택건설공사 감리자지정기준 (국토교통부 고시 제2024-529호)</div>
   </div>
-  <span class="badge">v2.0 · ㈜아이팝엔지니어링</span>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="hb-const-btn" onclick="openConstEditor()" title="계산 기준값 편집 (법령 개정 시 업데이트)" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">⚙️ 기준값</button>
+    <span class="badge">v2.1 · ㈜아이팝엔지니어링</span>
+  </div>
 </header>
 
 <!-- ── TAB BAR ── -->
@@ -974,7 +977,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 <!-- ══════════ TAB 7: 고시 참조 ══════════ -->
 <div class="tab-content" id="tab7">
   <div class="card">
-    <div class="card-title"><span class="icon">📖</span>환산비율표 (부표 나.(2) 분야별감리원)</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:10px;"><span><span class="icon">📖</span>환산비율표 (부표 나.(2) 분야별감리원)</span><button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:2px 8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문 원문</button></div>
     <div class="info-note">
       국토교통부 고시 제2024-529호 (2024.10.08 시행) — 주택건설공사 감리자지정기준 부표
     </div>
@@ -1032,7 +1035,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   </div>
 
   <div class="card">
-    <div class="card-title"><span class="icon">📋</span>배점기준표 요약 (별표2)</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:10px;"><span><span class="icon">📋</span>배점기준표 요약 (별표2)</span><button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:2px 8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문 원문</button></div>
     <div class="ref-section">
       <h3>분야별감리원 (등급 2점 + 경력 7점 = 9점)</h3>
       <div class="tbl-wrap">
@@ -1070,12 +1073,12 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   <div class="card">
     <div class="card-title"><span class="icon">⚖️</span>참조 법령</div>
     <table class="ref-table">
-      <thead><tr><th>법령명</th><th>근거</th><th>시행일</th></tr></thead>
+      <thead><tr><th>법령명</th><th>근거</th><th>시행일</th><th></th></tr></thead>
       <tbody>
-        <tr><td class="text-left fw-bold">주택건설공사 감리자지정기준</td><td>국토교통부 고시 제2024-529호</td><td>2024.10.08</td></tr>
-        <tr><td class="text-left">주택법</td><td>제43조 (감리자의 지정)</td><td></td></tr>
-        <tr><td class="text-left">건설기술진흥법 시행령</td><td>별표1 (건설기술인 등급)</td><td></td></tr>
-        <tr><td class="text-left">건설사업관리 업무수행지침</td><td>국토교통부 고시</td><td></td></tr>
+        <tr><td class="text-left fw-bold">주택건설공사 감리자지정기준</td><td>국토교통부 고시 제2024-529호</td><td>2024.10.08</td><td><button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:2px 7px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문</button></td></tr>
+        <tr><td class="text-left">주택법</td><td>제43조 (감리자의 지정)</td><td></td><td><button onclick="openLawSearch('주택법 제43조')" style="padding:2px 7px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문</button></td></tr>
+        <tr><td class="text-left">건설기술진흥법 시행령</td><td>별표1 (건설기술인 등급)</td><td></td><td><button onclick="openLawSearch('건설기술진흥법 시행령')" style="padding:2px 7px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문</button></td></tr>
+        <tr><td class="text-left">건설사업관리 업무수행지침</td><td>국토교통부 고시</td><td></td><td><button onclick="openLawArticle('건설사업관리 업무수행지침')" style="padding:2px 7px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문</button></td></tr>
       </tbody>
     </table>
   </div>
@@ -1142,19 +1145,63 @@ ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
 let currentPersonId = 'chief';
 
 // ══════════════════════════════════════════════════════
+//  런타임 상수 (localStorage 기반, 법령 개정 시 업데이트)
+// ══════════════════════════════════════════════════════
+const HB_CONST_KEY = 'hb_const_v1';
+const DEFAULT_RATES = {
+  '주택건설공사':   { cm: 1.00, other: 0.80 },
+  '비주택건축공사': { cm: 0.80, other: 0.60 },
+  '토목공사':       { cm: 0.60, other: 0.40 },
+  '설비공사':       { cm: 0.60, other: 0.40 },
+};
+const DEFAULT_NONRESIDENT_MULT = 0.20;
+const DEFAULT_GRADE_SCORES = { '특급': 2.0, '고급': 1.8, '중급': 1.6, '초급': 1.4 };
+const DEFAULT_EXP_SCORES = {
+  '분야별': [{ min:10, score:7.0, label:'10년↑' }, { min:8, score:6.3, label:'8년↑' }, { min:6, score:5.6, label:'6년↑' }, { min:0, score:4.9, label:'6년↓' }],
+  '비상주': [{ min:10, score:4.0, label:'10년↑' }, { min:8, score:3.6, label:'8년↑' }, { min:6, score:3.2, label:'6년↑' }, { min:0, score:2.8, label:'6년↓' }],
+  '총괄':   [{ min:12, score:18.0, label:'12년↑' }, { min:10, score:16.5, label:'10년↑' }, { min:8, score:15.0, label:'8년↑' }, { min:0, score:13.5, label:'8년↓' }],
+};
+
+let _runtimeRates = null, _runtimeNRMult = null, _runtimeGradeScores = null, _runtimeExpScores = null;
+let _runtimeLawNoHB = null, _runtimeLawDateHB = null;
+
+function loadRuntimeConstants() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HB_CONST_KEY) || 'null');
+    if (!saved) return;
+    if (saved.rates)        _runtimeRates = saved.rates;
+    if (saved.nrMult != null) _runtimeNRMult = saved.nrMult;
+    if (saved.gradeScores)  _runtimeGradeScores = saved.gradeScores;
+    if (saved.expScores)    _runtimeExpScores = saved.expScores;
+    if (saved.lawNo)        _runtimeLawNoHB = saved.lawNo;
+    if (saved.lawDate)      _runtimeLawDateHB = saved.lawDate;
+    const btn = document.getElementById('hb-const-btn');
+    if (btn) { btn.style.background='#fde68a'; btn.style.borderColor='#f59e0b'; btn.title='사용자 정의 기준값 적용 중 (클릭하여 편집)'; }
+  } catch {}
+}
+function saveRuntimeConstants(data) { localStorage.setItem(HB_CONST_KEY, JSON.stringify(data)); }
+function resetRuntimeConstants() {
+  localStorage.removeItem(HB_CONST_KEY);
+  _runtimeRates=_runtimeNRMult=_runtimeGradeScores=_runtimeExpScores=_runtimeLawNoHB=_runtimeLawDateHB=null;
+  const btn = document.getElementById('hb-const-btn');
+  if (btn) { btn.style.background='#fef3c7'; btn.style.borderColor='#fcd34d'; btn.title='계산 기준값 편집 (법령 개정 시 업데이트)'; }
+}
+function getRates()       { return _runtimeRates       || DEFAULT_RATES; }
+function getNRMult()      { return _runtimeNRMult  != null ? _runtimeNRMult : DEFAULT_NONRESIDENT_MULT; }
+function getGradeScores() { return _runtimeGradeScores || DEFAULT_GRADE_SCORES; }
+function getExpScores()   { return _runtimeExpScores   || DEFAULT_EXP_SCORES; }
+function getRuntimeLawNoHB()   { return _runtimeLawNoHB   || LAW_CURRENT_NO_HB; }
+function getRuntimeLawDateHB() { return _runtimeLawDateHB || LAW_CURRENT_DATE_HB; }
+
+// ══════════════════════════════════════════════════════
 //  CONVERSION RATE ENGINE (부표 나.(2))
 // ══════════════════════════════════════════════════════
 function getRate(conType, workType, resident) {
   const isCM = ['감리(주택법)','감독권한대행CM','시공단계CM','책임감리','감리(건설기술진흥법)'].includes(workType);
-  let base = 0;
-  switch (conType) {
-    case '주택건설공사':   base = isCM ? 1.00 : 0.80; break;
-    case '비주택건축공사': base = isCM ? 0.80 : 0.60; break;
-    case '토목공사':       base = isCM ? 0.60 : 0.40; break;
-    case '설비공사':       base = isCM ? 0.60 : 0.40; break;
-    default: base = 0;
-  }
-  if (resident === '비상주') base *= 0.20;
+  const rTbl = getRates();
+  const entry = rTbl[conType];
+  let base = entry ? (isCM ? entry.cm : entry.other) : 0;
+  if (resident === '비상주') base *= getNRMult();
   return base;
 }
 
@@ -1528,35 +1575,29 @@ function calcScore() {
 
   let gradeScore = 0, expScore = 0, maxGrade = 0, maxExp = 0, expLabel = '', gradeLabel = '';
 
+  const gMap = getGradeScores();
+  const eTbl = getExpScores();
+  function calcExpScore(key) {
+    const tbl = eTbl[key] || [];
+    for (const e of tbl) { if (convYears >= e.min) return { score: e.score, label: `${convYears.toFixed(2)}년 (${e.label}) → ${e.score}점` }; }
+    return { score: 0, label: '기준 없음' };
+  }
   if (placement === '신규') {
     maxGrade = 0; maxExp = 0;
     gradeLabel = '신규감리원 — 개인 배점 없음'; expLabel = '—';
   } else if (placement === '비상주') {
-    maxGrade = 2; maxExp = 4;
-    const gMap = { '특급': 2.0, '고급': 1.8, '중급': 1.6, '초급': 1.4 };
-    gradeScore = gMap[grade] || 0;
-    gradeLabel = `${grade} → ${gradeScore}점`;
-    if (convYears >= 10)      { expScore = 4.0; expLabel = '10년↑ → 4.0점'; }
-    else if (convYears >= 8)  { expScore = 3.6; expLabel = `${convYears.toFixed(2)}년 (8년↑) → 3.6점`; }
-    else if (convYears >= 6)  { expScore = 3.2; expLabel = `${convYears.toFixed(2)}년 (6년↑) → 3.2점`; }
-    else                      { expScore = 2.8; expLabel = `${convYears.toFixed(2)}년 (6년↓) → 2.8점`; }
+    maxGrade = 2; maxExp = eTbl['비상주']?.[0]?.score || 4;
+    gradeScore = gMap[grade] || 0; gradeLabel = `${grade} → ${gradeScore}점`;
+    const r = calcExpScore('비상주'); expScore = r.score; expLabel = r.label;
   } else if (placement === '분야별') {
-    maxGrade = 2; maxExp = 7;
-    const gMap = { '특급': 2.0, '고급': 1.8, '중급': 1.6, '초급': 1.4 };
-    gradeScore = gMap[grade] || 0;
-    gradeLabel = `${grade} → ${gradeScore}점`;
-    if (convYears >= 10)      { expScore = 7.0; expLabel = '10년↑ → 7.0점'; }
-    else if (convYears >= 8)  { expScore = 6.3; expLabel = `${convYears.toFixed(2)}년 (8년↑) → 6.3점`; }
-    else if (convYears >= 6)  { expScore = 5.6; expLabel = `${convYears.toFixed(2)}년 (6년↑) → 5.6점`; }
-    else                      { expScore = 4.9; expLabel = `${convYears.toFixed(2)}년 (6년↓) → 4.9점`; }
+    maxGrade = 2; maxExp = eTbl['분야별']?.[0]?.score || 7;
+    gradeScore = gMap[grade] || 0; gradeLabel = `${grade} → ${gradeScore}점`;
+    const r = calcExpScore('분야별'); expScore = r.score; expLabel = r.label;
   } else {
-    maxGrade = 6; maxExp = 18;
+    maxGrade = 6; maxExp = eTbl['총괄']?.[0]?.score || 18;
     gradeScore = grade === '특급' ? 6.0 : 0;
     gradeLabel = grade === '특급' ? '특급 → 6.0점' : `${grade} — 총괄 자격 없음`;
-    if (convYears >= 12)      { expScore = 18.0; expLabel = '12년↑ → 18.0점'; }
-    else if (convYears >= 10) { expScore = 16.5; expLabel = `${convYears.toFixed(2)}년 (10년↑) → 16.5점`; }
-    else if (convYears >= 8)  { expScore = 15.0; expLabel = `${convYears.toFixed(2)}년 (8년↑) → 15.0점`; }
-    else                      { expScore = 13.5; expLabel = `${convYears.toFixed(2)}년 (8년↓) → 13.5점`; }
+    const r = calcExpScore('총괄'); expScore = r.score; expLabel = r.label;
   }
 
   const total = gradeScore + expScore;
@@ -3263,10 +3304,173 @@ function printByeolji(num) {
 //  INIT
 // ══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
+  loadRuntimeConstants();
   renderPersonCards();
   renderCareerTable();
   checkLawUpdate();
 });
+
+// ══════════════════════════════════════════════════════
+//  기준값 편집 모달 (법령 개정 시 업데이트)
+// ══════════════════════════════════════════════════════
+function openConstEditor() {
+  const existing = document.getElementById('hb-const-modal');
+  if (existing) existing.remove();
+
+  const curRates = getRates();
+  const curNR = getNRMult();
+  const curG = getGradeScores();
+  const curE = getExpScores();
+  const curLawNo = getRuntimeLawNoHB();
+  const curLawDate = getRuntimeLawDateHB();
+
+  const conTypes = ['주택건설공사','비주택건축공사','토목공사','설비공사'];
+  const grades = ['특급','고급','중급','초급'];
+
+  let ratesRows = conTypes.map(t => {
+    const e = curRates[t] || { cm:0, other:0 };
+    return `<tr>
+      <td style="padding:6px 8px;font-weight:600">${t}</td>
+      <td style="padding:4px 6px"><input type="number" step="0.01" min="0" max="1" value="${e.cm}" id="ce_r_${t}_cm" style="width:70px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center"></td>
+      <td style="padding:4px 6px"><input type="number" step="0.01" min="0" max="1" value="${e.other}" id="ce_r_${t}_ot" style="width:70px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center"></td>
+    </tr>`;
+  }).join('');
+
+  let gradeRows = grades.map(g =>
+    `<tr><td style="padding:6px 8px;font-weight:600">${g}</td>
+    <td style="padding:4px 6px"><input type="number" step="0.1" min="0" value="${curG[g]||0}" id="ce_g_${g}" style="width:70px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center"></td></tr>`
+  ).join('');
+
+  const expKeys = ['분야별','비상주','총괄'];
+  let expHtml = expKeys.map(k => {
+    const rows = (curE[k] || []).map((e, i) =>
+      `<tr><td style="padding:4px 6px"><input type="text" value="${e.label}" id="ce_el_${k}_${i}" style="width:80px;padding:3px;border:1px solid #ddd;border-radius:3px;font-size:11px"></td>
+      <td style="padding:4px 6px"><input type="number" step="0.01" min="0" value="${e.min}" id="ce_em_${k}_${i}" style="width:55px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center"></td>
+      <td style="padding:4px 6px"><input type="number" step="0.1" min="0" value="${e.score}" id="ce_es_${k}_${i}" style="width:60px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center"></td></tr>`
+    ).join('');
+    return `<div style="margin-bottom:12px"><strong>${k}감리원</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
+        <thead><tr style="background:#f1f5f9"><th style="padding:4px 6px;text-align:left">구간</th><th style="padding:4px 6px">최소(년)</th><th style="padding:4px 6px">점수</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'hb-const-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `<div style="background:#fff;border-radius:8px;padding:24px;max-width:560px;width:92%;max-height:88vh;overflow-y:auto;position:relative;">
+    <button onclick="document.getElementById('hb-const-modal').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#666;">✕</button>
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px;">⚙️ 계산 기준값 편집</div>
+    <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid #e5e7eb;padding-bottom:10px">
+      <button onclick="ceSwitchTab('rates')" id="ce_tab_rates" style="padding:5px 12px;border-radius:4px;border:1px solid #6366f1;background:#6366f1;color:#fff;font-size:12px;cursor:pointer">환산비율</button>
+      <button onclick="ceSwitchTab('grade')" id="ce_tab_grade" style="padding:5px 12px;border-radius:4px;border:1px solid #ddd;background:#f9fafb;color:#374151;font-size:12px;cursor:pointer">배점(등급)</button>
+      <button onclick="ceSwitchTab('exp')" id="ce_tab_exp" style="padding:5px 12px;border-radius:4px;border:1px solid #ddd;background:#f9fafb;color:#374151;font-size:12px;cursor:pointer">배점(경력)</button>
+      <button onclick="ceSwitchTab('law')" id="ce_tab_law" style="padding:5px 12px;border-radius:4px;border:1px solid #ddd;background:#f9fafb;color:#374151;font-size:12px;cursor:pointer">고시정보</button>
+    </div>
+
+    <div id="ce_panel_rates">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:8px">* 소수 입력 (1.00 = 100%, 0.20 = 20%)</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#f1f5f9"><th style="padding:6px 8px;text-align:left">공사종류</th><th style="padding:6px 8px">감리·CM(상주)</th><th style="padding:6px 8px">기타(상주)</th></tr></thead>
+        <tbody>${ratesRows}</tbody>
+      </table>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+        <label style="font-size:13px;font-weight:600">비상주 배율:</label>
+        <input type="number" step="0.01" min="0" max="1" value="${curNR}" id="ce_nr_mult" style="width:70px;padding:3px;border:1px solid #ddd;border-radius:3px;text-align:center">
+        <span style="font-size:12px;color:#6b7280">(기본값 0.20 = 상주×20%)</span>
+      </div>
+    </div>
+
+    <div id="ce_panel_grade" style="display:none">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:8px">분야별·비상주감리원 등급 배점 (총괄은 별표 고정)</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#f1f5f9"><th style="padding:6px 8px;text-align:left">등급</th><th style="padding:6px 8px">점수</th></tr></thead>
+        <tbody>${gradeRows}</tbody>
+      </table>
+    </div>
+
+    <div id="ce_panel_exp" style="display:none">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:8px">최소(년) 이상 충족 시 해당 점수 부여 (위에서 아래로 우선 적용)</p>
+      ${expHtml}
+    </div>
+
+    <div id="ce_panel_law" style="display:none">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:12px">고시 개정 시 번호와 시행일(YYYYMMDD)을 업데이트하세요.</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">고시 번호</label>
+          <input type="text" id="ce_law_no" value="${curLawNo}" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:13px;box-sizing:border-box"></div>
+        <div><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">시행일 (YYYYMMDD)</label>
+          <input type="text" id="ce_law_date" value="${curLawDate}" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:13px;box-sizing:border-box">
+          <span style="font-size:11px;color:#9ca3af">예) 20241008</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb">
+      <button onclick="ceSave()" style="flex:1;padding:8px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">저장</button>
+      <button onclick="ceReset()" style="padding:8px 14px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:13px;cursor:pointer">초기화</button>
+      <button onclick="document.getElementById('hb-const-modal').remove()" style="padding:8px 14px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-size:13px;cursor:pointer">취소</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function ceSwitchTab(t) {
+  ['rates','grade','exp','law'].forEach(k => {
+    document.getElementById('ce_panel_'+k).style.display = k===t ? 'block' : 'none';
+    const btn = document.getElementById('ce_tab_'+k);
+    btn.style.background = k===t ? '#6366f1' : '#f9fafb';
+    btn.style.color = k===t ? '#fff' : '#374151';
+    btn.style.borderColor = k===t ? '#6366f1' : '#ddd';
+  });
+}
+
+function ceSave() {
+  const conTypes = ['주택건설공사','비주택건축공사','토목공사','설비공사'];
+  const grades = ['특급','고급','중급','초급'];
+  const expKeys = ['분야별','비상주','총괄'];
+  const curE = getExpScores();
+
+  const rates = {};
+  conTypes.forEach(t => {
+    rates[t] = {
+      cm:    parseFloat(document.getElementById(`ce_r_${t}_cm`)?.value) || 0,
+      other: parseFloat(document.getElementById(`ce_r_${t}_ot`)?.value) || 0,
+    };
+  });
+  const nrMult = parseFloat(document.getElementById('ce_nr_mult')?.value) ?? DEFAULT_NONRESIDENT_MULT;
+
+  const gradeScores = {};
+  grades.forEach(g => { gradeScores[g] = parseFloat(document.getElementById(`ce_g_${g}`)?.value) || 0; });
+
+  const expScores = {};
+  expKeys.forEach(k => {
+    expScores[k] = (curE[k] || []).map((_, i) => ({
+      label: document.getElementById(`ce_el_${k}_${i}`)?.value || '',
+      min:   parseFloat(document.getElementById(`ce_em_${k}_${i}`)?.value) || 0,
+      score: parseFloat(document.getElementById(`ce_es_${k}_${i}`)?.value) || 0,
+    }));
+  });
+
+  const lawNo   = document.getElementById('ce_law_no')?.value.trim() || LAW_CURRENT_NO_HB;
+  const lawDate = document.getElementById('ce_law_date')?.value.trim() || LAW_CURRENT_DATE_HB;
+
+  const data = { rates, nrMult, gradeScores, expScores, lawNo, lawDate };
+  saveRuntimeConstants(data);
+  _runtimeRates = rates; _runtimeNRMult = nrMult; _runtimeGradeScores = gradeScores;
+  _runtimeExpScores = expScores; _runtimeLawNoHB = lawNo; _runtimeLawDateHB = lawDate;
+
+  const btn = document.getElementById('hb-const-btn');
+  if (btn) { btn.style.background='#fde68a'; btn.style.borderColor='#f59e0b'; }
+  document.getElementById('hb-const-modal').remove();
+  showStatus('기준값 저장 완료 — 재계산해주세요');
+}
+
+function ceReset() {
+  if (!confirm('기준값을 초기화하고 고시 원본값으로 되돌리겠습니까?')) return;
+  resetRuntimeConstants();
+  document.getElementById('hb-const-modal').remove();
+  showStatus('기준값 초기화 완료');
+}
 
 // ──────────────────────────────────────────────────────
 // 고시 변경 감지 (7일 캐시)
@@ -3288,7 +3492,7 @@ async function checkLawUpdate() {
     if (!item) return;
     const enfDate = item.querySelector('시행일자')?.textContent || '';
     localStorage.setItem(LAW_CHECK_KEY_HB, JSON.stringify({ ts: Date.now(), enfDate }));
-    if (enfDate > LAW_CURRENT_DATE_HB) showLawUpdateBanner(enfDate);
+    if (enfDate > getRuntimeLawDateHB()) showLawUpdateBanner(enfDate);
   } catch { /* 네트워크 오류 시 무시 */ }
 }
 
@@ -3297,8 +3501,9 @@ function showLawUpdateBanner(enfDate) {
   const banner = document.createElement('div');
   banner.id = 'hb-law-update-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#fffbe6;border-bottom:2px solid #f0c040;padding:10px 16px;z-index:8000;font-size:13px;display:flex;align-items:center;gap:12px;box-sizing:border-box;';
-  banner.innerHTML = `<span>⚠️ <strong>고시 변경 감지</strong>: 주택건설공사 감리자 지정기준이 갱신되었습니다 (시행일 ${fmt}). 현행 기준(${LAW_CURRENT_NO_HB})을 확인하세요.</span>
+  banner.innerHTML = `<span>⚠️ <strong>고시 변경 감지</strong>: 주택건설공사 감리자 지정기준이 갱신되었습니다 (시행일 ${fmt}). 현행 기준(${getRuntimeLawNoHB()})을 확인하세요.</span>
     <button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:3px 10px;background:#fff7d6;border:1px solid #f0c040;border-radius:4px;cursor:pointer;color:#7a5c00;font-size:12px;white-space:nowrap;">📄 조문 원문 보기</button>
+    <button onclick="openConstEditor()" style="padding:3px 10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;cursor:pointer;color:#92400e;font-size:12px;white-space:nowrap;">⚙️ 기준값 검토·수정</button>
     <button onclick="document.getElementById('hb-law-update-banner').remove()" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#888;">✕</button>`;
   document.body.prepend(banner);
 }
