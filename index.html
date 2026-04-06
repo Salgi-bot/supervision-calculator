@@ -703,23 +703,6 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title"><span class="icon">🏗</span>시공자 정보</div>
-    <div class="form-grid">
-      <div class="form-group" style="grid-column: span 2">
-        <label>시공자 상호</label>
-        <input type="text" id="pj_contractor" placeholder="예) ㈜세승주택건설">
-      </div>
-      <div class="form-group">
-        <label>시공자 대표자</label>
-        <input type="text" id="pj_contractorCeo" placeholder="예) 박정환">
-      </div>
-      <div class="form-group">
-        <label>시공자 연락처</label>
-        <input type="text" id="pj_contractorPhone" placeholder="예) 063-123-4567">
-      </div>
-    </div>
-  </div>
 
   <div class="card">
     <div class="card-title"><span class="icon">✏️</span>설계자 정보</div>
@@ -1957,7 +1940,6 @@ function getProjectData() {
     designerName: pf('pj_designerName'), designerCompany: pf('pj_designerCompany'),
     designerAddress: pf('pj_designerAddress'),
     noticeNo: pf('pj_noticeNo'), noticeDate: pf('pj_noticeDate'), submitTo: pf('pj_submitTo'),
-    contractor: pf('pj_contractor'), contractorCeo: pf('pj_contractorCeo'), contractorPhone: pf('pj_contractorPhone'),
     supervisionCost: pf('pj_supervisionCost'), supervisionFee: pf('pj_supervisionFee'), baseFee: pf('pj_baseFee'),
   };
 }
@@ -3180,10 +3162,6 @@ function renderByeolji1() {
           </tr>
           <tr>
             ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
-          </tr>
-          <tr>
-            <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">시 공 자</td>
-            ${tdLabel('상&emsp;&emsp;호')}${tdVal(pj.contractor||'','')}${tdLabel('대 표 자')}${tdVal(pj.contractorCeo||'','')}
           </tr>
         </tbody>
       </table>
