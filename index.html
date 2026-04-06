@@ -3265,7 +3265,42 @@ function printByeolji(num) {
 window.addEventListener('DOMContentLoaded', () => {
   renderPersonCards();
   renderCareerTable();
+  checkLawUpdate();
 });
+
+// ──────────────────────────────────────────────────────
+// 고시 변경 감지 (7일 캐시)
+// ──────────────────────────────────────────────────────
+const LAW_CHECK_KEY_HB = 'hb_law_check';
+const LAW_CURRENT_NO_HB = '제2024-529호';
+const LAW_CURRENT_DATE_HB = '20241008';
+
+async function checkLawUpdate() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(LAW_CHECK_KEY_HB) || '{}');
+    if (cached.ts && (Date.now() - cached.ts) < 7 * 24 * 60 * 60 * 1000) return;
+    const url = `https://www.law.go.kr/DRF/lawSearch.do?OC=bosslaw2026&target=admrul&type=XML&query=${encodeURIComponent('주택건설공사 감리자 지정기준')}&display=1`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const text = await res.text();
+    const xml = (new DOMParser()).parseFromString(text, 'text/xml');
+    const item = xml.querySelector('admrul');
+    if (!item) return;
+    const enfDate = item.querySelector('시행일자')?.textContent || '';
+    localStorage.setItem(LAW_CHECK_KEY_HB, JSON.stringify({ ts: Date.now(), enfDate }));
+    if (enfDate > LAW_CURRENT_DATE_HB) showLawUpdateBanner(enfDate);
+  } catch { /* 네트워크 오류 시 무시 */ }
+}
+
+function showLawUpdateBanner(enfDate) {
+  const fmt = enfDate.length === 8 ? `${enfDate.slice(0,4)}.${enfDate.slice(4,6)}.${enfDate.slice(6)}` : enfDate;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#fffbe6;border-bottom:2px solid #f0c040;padding:10px 16px;z-index:8000;font-size:13px;display:flex;align-items:center;gap:12px;';
+  banner.innerHTML = `<span>⚠️ <strong>고시 변경 감지</strong>: 주택건설공사 감리자 지정기준이 갱신되었습니다 (시행일 ${fmt}). 현행 기준(${LAW_CURRENT_NO_HB})을 확인하세요.</span>
+    <a href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent('주택건설공사 감리자 지정기준')}" target="_blank" style="color:#0066cc;text-decoration:underline;white-space:nowrap;">법령 보기 →</a>
+    <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#888;">✕</button>`;
+  document.body.prepend(banner);
+}
 
 // ──────────────────────────────────────────────────────
 // 국가법령정보 조회 (www.law.go.kr/DRF/)
