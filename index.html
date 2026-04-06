@@ -1036,7 +1036,9 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
       <button class="btn btn-primary" onclick="renderByeolji2Cover()">I. 총괄표 생성</button>
       <button class="btn" onclick="renderByeolji2()">II. 경력환산서 (선택 감리원)</button>
       <button class="btn" onclick="renderByeolji2All()">II. 경력환산서 (전원)</button>
-      <button class="btn" onclick="printByeolji(2)">인쇄 / PDF 저장</button>
+    </div>
+    <div style="margin:6px 0">
+      <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
     </div>
     <div class="person-selector" id="personSelectorB2" style="margin:8px 0 0"></div>
   </div>
@@ -1396,6 +1398,8 @@ function loadAutoSave() {
     loadPersonToForm(currentPersonId);
     renderCareerTable();
     renderPersonCards();
+    const names = ROLES.filter(r => personnel[r.id].info.name).map(r => personnel[r.id].info.name);
+    if (names.length) showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`);
     return true;
   } catch { return false; }
 }
@@ -1531,7 +1535,7 @@ function switchTab(visualIdx) {
     calcScore();
   }
   if (visualIdx === 1) renderByeolji1();
-  if (visualIdx === 2) { renderPersonSelector('personSelectorB2'); renderByeolji2(); }
+  if (visualIdx === 2) { syncPersonInfo(); renderPersonSelector('personSelectorB2'); renderByeolji2(); }
   if (visualIdx === 4) renderByeolji3();
 }
 
