@@ -522,15 +522,92 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   font-size: 15px;
 }
 
+/* ── Focus / Accessibility ── */
+:focus-visible { outline: 2px solid var(--ci); outline-offset: 2px; }
+button:focus-visible { box-shadow: 0 0 0 3px rgba(0,112,159,0.3); }
+
+/* ── Tab Transition ── */
+.tab-content { opacity: 0; transition: opacity 0.2s ease; }
+.tab-content.active { opacity: 1; }
+
+/* ── Table row hover (non-special rows) ── */
+tbody tr:hover td { background: var(--ci-light); }
+
+/* ── Responsive: Tablet & Mobile (≤768px) ── */
+@media (max-width: 768px) {
+  header { padding: 10px 16px; }
+  header h1 { font-size: 16px; }
+  header .sub { font-size: 11px; }
+  .badge { font-size: 11px; padding: 4px 10px; }
+
+  .tab-bar { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding: 0 8px; gap: 1px; scrollbar-width: none; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: 10px 10px; font-size: 12px; min-height: 44px; }
+
+  .sub-tab-bar { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding: 6px 8px; scrollbar-width: none; }
+  .sub-tab-bar::-webkit-scrollbar { display: none; }
+  .sub-tab-btn { padding: 6px 10px; font-size: 12px; min-height: 40px; flex-shrink: 0; }
+
+  .tab-content { padding: 14px 10px; }
+  .card { padding: 12px 14px; }
+  .card-title { font-size: 14px; }
+
+  .form-grid { grid-template-columns: 1fr; }
+  .person-grid { grid-template-columns: 1fr; }
+  .score-grid { grid-template-columns: repeat(2, 1fr); }
+
+  table { font-size: 11px; }
+  th { font-size: 11px; padding: 8px 5px; }
+  td { font-size: 11px; padding: 6px 5px; }
+
+  .btn { min-height: 44px; padding: 10px 14px; }
+  .action-bar { padding: 8px 12px; gap: 6px; }
+  .action-bar .divider { display: none; }
+
+  .a4-preview { padding: 16px; max-width: 100%; }
+  .a4-page { max-width: 100%; margin: 10px auto; }
+
+  .summary-strip { gap: 12px; padding: 8px 12px; }
+  .summary-item .val { font-size: 15px; }
+
+  .person-card-header h3 { font-size: 13px; }
+  .person-card-body { padding: 10px 12px; }
+  .person-info-grid { gap: 4px 10px; font-size: 12px; }
+
+  .modal-box { width: 98vw; max-height: 95vh; }
+  .modal-header { padding: 10px 14px; }
+  .modal-body { padding: 12px 14px; }
+}
+
+/* ── Responsive: Small Phone (≤480px) ── */
+@media (max-width: 480px) {
+  header h1 { font-size: 14px; }
+  .tab-btn { padding: 8px 6px; font-size: 0; min-height: 44px; }
+  .tab-btn .tab-icon { font-size: 18px; margin-right: 0; }
+  .sub-tab-btn { font-size: 11px; padding: 5px 8px; }
+
+  .action-bar { flex-direction: column; align-items: stretch; }
+  .action-bar .btn { width: 100%; justify-content: center; }
+
+  .score-grid { grid-template-columns: 1fr; }
+  .score-box .value { font-size: 24px; }
+
+  .person-info-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Print ── */
 @media print {
-  header, .tab-bar, .action-bar, .no-print { display: none !important; }
-  .tab-content { display: none !important; padding: 0 !important; }
-  .tab-content.print-target { display: block !important; }
-  body { background: #fff; }
-  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 0; min-height: auto; page-break-after: always; }
+  header, .tab-bar, .sub-tab-bar, .action-bar, .no-print { display: none !important; }
+  .tab-content { display: none !important; padding: 0 !important; opacity: 1 !important; }
+  .tab-content.print-target { display: block !important; opacity: 1 !important; }
+  body { background: #fff; font-size: 11pt; }
+  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 15mm; min-height: auto; width: 210mm; margin: 0 auto; page-break-after: always; }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
-  .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+  .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  .btn, button:not(.no-print-exclude) { display: none !important; }
+  .person-upload-zone, .upload-zone { display: none !important; }
   @page { margin: 1.5cm; size: A4; }
 }
 </style>
@@ -550,18 +627,18 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </header>
 
 <!-- ── TAB BAR ── -->
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab(0)"><span class="tab-icon">📂</span>데이터 입력</button>
-  <button class="tab-btn" onclick="switchTab(1)"><span class="tab-icon">📝</span>별지1호</button>
-  <button class="tab-btn" onclick="switchTab(2)"><span class="tab-icon">📊</span>별지2호</button>
-  <button class="tab-btn" onclick="switchTab(3)"><span class="tab-icon">📜</span>서약서</button>
-  <button class="tab-btn" onclick="switchTab(4)"><span class="tab-icon">📑</span>입찰서</button>
-  <button class="tab-btn" onclick="switchTab(5)"><span class="tab-icon">📅</span>배치계획표</button>
-  <button class="tab-btn" onclick="switchTab(6)"><span class="tab-icon">🖋</span>사용인감계</button>
-  <button class="tab-btn" onclick="switchTab(7)"><span class="tab-icon">📋</span>위임장</button>
-  <button class="tab-btn" onclick="switchTab(8)"><span class="tab-icon">📈</span>수행실적</button>
-  <button class="tab-btn" onclick="switchTab(9)"><span class="tab-icon">👤</span>감리원경력</button>
-  <button class="tab-btn" onclick="switchTab(10)"><span class="tab-icon">📖</span>고시참조</button>
+<div class="tab-bar" role="tablist" aria-label="메인 탭 내비게이션">
+  <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab(0)"><span class="tab-icon">📂</span>데이터 입력</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(1)"><span class="tab-icon">📝</span>별지1호</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(2)"><span class="tab-icon">📊</span>별지2호</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(3)"><span class="tab-icon">📜</span>서약서</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(4)"><span class="tab-icon">📑</span>입찰서</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(5)"><span class="tab-icon">📅</span>배치계획표</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(6)"><span class="tab-icon">🖋</span>사용인감계</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(7)"><span class="tab-icon">📋</span>위임장</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(8)"><span class="tab-icon">📈</span>수행실적</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(9)"><span class="tab-icon">👤</span>감리원경력</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(10)"><span class="tab-icon">📖</span>고시참조</button>
 </div>
 
 <!-- ── PDF MODAL ── -->
@@ -580,7 +657,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 0: 프로젝트 정보 ══════════ -->
-<div class="tab-content active" id="tab0">
+<div class="tab-content active" id="tab0" role="tabpanel">
   <div class="sub-tab-bar" id="subTabBar">
     <button class="sub-tab-btn active" onclick="scrollToSection('tab0','sec-project')">공고·공사</button>
     <button class="sub-tab-btn" onclick="scrollToSection('tab1','sec-person')">감리원 관리</button>
@@ -807,7 +884,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 1: 감리원 관리 ══════════ -->
-<div class="tab-content" id="tab1">
+<div class="tab-content" id="tab1" role="tabpanel">
   <hr class="section-divider"><div class="section-header" id="sec-person">👥 감리원 관리</div>
   <div class="info-note">
     각 감리원의 <strong>경력증명서 PDF</strong>를 업로드하면 기본정보와 경력이 자동으로 입력됩니다.<br>
@@ -817,7 +894,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 2: 경력 상세 (데이터입력 서브섹션) ══════════ -->
-<div class="tab-content" id="tab2">
+<div class="tab-content" id="tab2" role="tabpanel">
   <hr class="section-divider"><div class="section-header" id="sec-career">📋 경력 상세</div>
   <div class="person-selector" id="personSelector"></div>
 
@@ -975,7 +1052,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 3: 배점 ══════════ -->
-<div class="tab-content" id="tab3">
+<div class="tab-content" id="tab3" role="tabpanel">
   <hr class="section-divider"><div class="section-header" id="sec-score">🎯 배점</div>
   <div class="person-selector" id="personSelectorScore"></div>
   <div class="card">
@@ -1018,7 +1095,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 4: 별지1호 ══════════ -->
-<div class="tab-content" id="tab4">
+<div class="tab-content" id="tab4" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</div>
     <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
@@ -1031,7 +1108,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 5: 별지2호 ══════════ -->
-<div class="tab-content" id="tab5">
+<div class="tab-content" id="tab5" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📊</span>별지 제2호 — 자기평가서 (총괄표)</div>
     <div class="info-note">
@@ -1045,7 +1122,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 6: 부표 배치계획표 ══════════ -->
-<div class="tab-content" id="tab6">
+<div class="tab-content" id="tab6" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📅</span>부표 — 감리원 배치계획표</div>
     <div class="info-note">감리원 배치계획표가 A4 양식으로 자동 생성됩니다.</div>
@@ -1057,7 +1134,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 7: 고시 참조 ══════════ -->
-<div class="tab-content" id="tab7">
+<div class="tab-content" id="tab7" role="tabpanel">
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;gap:10px;"><span><span class="icon">📖</span>환산비율표 (부표 나.(2) 분야별감리원)</span><button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:2px 8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문 원문</button></div>
     <div class="info-note">
@@ -1179,7 +1256,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 8: 별첨1 서약서 ══════════ -->
-<div class="tab-content" id="tab8">
+<div class="tab-content" id="tab8" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📜</span>별첨1 — 서약서</div>
     <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
@@ -1192,7 +1269,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 9: 별지3호 입찰서 ══════════ -->
-<div class="tab-content" id="tab9">
+<div class="tab-content" id="tab9" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📑</span>별지 제3호 — 입찰서</div>
     <div class="info-note">입찰서가 A4 양식으로 자동 생성됩니다.</div>
@@ -1214,7 +1291,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 10: 사용인감계 ══════════ -->
-<div class="tab-content" id="tab10">
+<div class="tab-content" id="tab10" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">🖋</span>사용인감계</div>
     <div class="info-note">회사 정보 기반으로 사용인감계가 자동 생성됩니다.</div>
@@ -1227,7 +1304,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 11: 위임장·재직증명서 ══════════ -->
-<div class="tab-content" id="tab11">
+<div class="tab-content" id="tab11" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📋</span>위임장 · 재직증명서</div>
     <div class="info-note">데이터 입력 탭의 위임장 정보를 기반으로 양식이 자동 생성됩니다. 추가 서류는 이미지로 업로드하세요.</div>
@@ -1250,7 +1327,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 12: 별첨2 수행실적 ══════════ -->
-<div class="tab-content" id="tab12">
+<div class="tab-content" id="tab12" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📈</span>별첨2 — 감리업무 수행실적</div>
     <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
@@ -1294,7 +1371,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 </div>
 
 <!-- ══════════ TAB 13: 별첨3 감리원경력 ══════════ -->
-<div class="tab-content" id="tab13">
+<div class="tab-content" id="tab13" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">👤</span>별첨3 — 감리원 경력실적 + 별첨4 신규감리원</div>
     <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
@@ -1580,7 +1657,11 @@ function switchTab(visualIdx) {
   document.querySelectorAll('.tab-content').forEach(el => {
     el.classList.toggle('active', activeIds.includes(el.id));
   });
-  document.querySelectorAll('.tab-btn').forEach((el, i) => el.classList.toggle('active', i === visualIdx));
+  document.querySelectorAll('.tab-btn').forEach((el, i) => {
+    const isActive = i === visualIdx;
+    el.classList.toggle('active', isActive);
+    el.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
   // Sub-tab bar visibility
   const subBar = document.getElementById('subTabBar');
   if (subBar) subBar.style.display = visualIdx === 0 ? 'flex' : 'none';
@@ -2240,27 +2321,34 @@ function handleTab2Drop(event) {
 
 async function parsePDF(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-  let allItems = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const tc = await page.getTextContent();
-    tc.items.forEach(item => {
-      allItems.push({ str: item.str, x: item.transform[4], y: item.transform[5], page: p });
-    });
+    let allItems = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      tc.items.forEach(item => {
+        allItems.push({ str: item.str, x: item.transform[4], y: item.transform[5], page: p });
+      });
+    }
+
+    const nonEmpty = allItems.filter(i => i.str.trim().length > 0);
+    if (nonEmpty.length === 0) {
+      await parsePDFWithOCR(pdf);
+      return;
+    }
+
+    const rawText = allItems.map(i => i.str).join(' ');
+    const parsed = parseKCEAText(allItems, rawText);
+    showPdfModal(parsed, rawText);
+  } catch (err) {
+    const body = document.getElementById('pdfModalBody');
+    body.innerHTML = `<div class="parse-status fail">PDF 파일을 읽을 수 없습니다. 다른 파일을 시도해주세요.<br><small>${escHtml(err.message)}</small></div>`;
+    document.getElementById('importBtn').style.display = 'none';
+    document.getElementById('pdfModal').classList.add('open');
   }
-
-  const nonEmpty = allItems.filter(i => i.str.trim().length > 0);
-  if (nonEmpty.length === 0) {
-    await parsePDFWithOCR(pdf);
-    return;
-  }
-
-  const rawText = allItems.map(i => i.str).join(' ');
-  const parsed = parseKCEAText(allItems, rawText);
-  showPdfModal(parsed, rawText);
 }
 
 async function parsePDFWithOCR(pdf) {
@@ -2270,25 +2358,29 @@ async function parsePDFWithOCR(pdf) {
   document.getElementById('importBtn').style.display = 'none';
   document.getElementById('pdfModal').classList.add('open');
 
-  let worker;
-  try { worker = await Tesseract.createWorker('kor+eng'); }
-  catch { worker = await Tesseract.createWorker('kor'); }
+  try {
+    let worker;
+    try { worker = await Tesseract.createWorker('kor+eng'); }
+    catch { worker = await Tesseract.createWorker('kor'); }
 
-  let allText = '';
-  for (let p = 1; p <= total; p++) {
-    body.querySelector('.parse-status').textContent = `⏳ OCR 추출 중... (${p}/${total})`;
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const { data: { text } } = await worker.recognize(canvas);
-    allText += text + '\n';
+    let allText = '';
+    for (let p = 1; p <= total; p++) {
+      body.querySelector('.parse-status').textContent = `⏳ OCR 추출 중... (${p}/${total})`;
+      const page = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      const { data: { text } } = await worker.recognize(canvas);
+      allText += text + '\n';
+    }
+    await worker.terminate();
+
+    const parsed = parseKCEAText([], allText);
+    showPdfModal(parsed, allText);
+  } catch (err) {
+    body.innerHTML = `<div class="parse-status fail">OCR 처리 중 오류가 발생했습니다. 다른 파일을 시도해주세요.<br><small>${escHtml(err.message)}</small></div>`;
   }
-  await worker.terminate();
-
-  const parsed = parseKCEAText([], allText);
-  showPdfModal(parsed, allText);
 }
 
 async function parseImage(file) {
