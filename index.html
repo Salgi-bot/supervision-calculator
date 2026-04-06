@@ -4053,9 +4053,8 @@ function renderByeolchum3() {
 window.addEventListener('DOMContentLoaded', () => {
   loadRuntimeConstants();
   try { loadAutoSave(); } catch(e) { console.warn('자동복원 오류:', e); }
-  // 항상 렌더링 보장
-  renderPersonCards();
-  renderCareerTable();
+  // 초기 탭 활성화 (tab0~tab3 모두 표시)
+  switchTab(0);
   checkLawUpdate();
   // 회사정보 필드 변경 시 자동 저장
   document.querySelectorAll('[id^="co_"]').forEach(el => {
