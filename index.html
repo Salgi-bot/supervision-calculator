@@ -629,10 +629,10 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ── TAB BAR ── -->
 <div class="tab-bar" role="tablist" aria-label="메인 탭 내비게이션">
   <button class="tab-btn active" role="tab" aria-selected="true" onclick="switchTab(0)"><span class="tab-icon">📂</span>데이터 입력</button>
-  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(1)"><span class="tab-icon">📝</span>별지1호</button>
-  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(2)"><span class="tab-icon">📊</span>별지2호</button>
-  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(3)"><span class="tab-icon">📜</span>서약서</button>
-  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(4)"><span class="tab-icon">📑</span>입찰서</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(1)"><span class="tab-icon">📄</span>표지</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(2)"><span class="tab-icon">📝</span>별지1호</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(3)"><span class="tab-icon">📊</span>별지2호</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(4)"><span class="tab-icon">📜</span>서약서</button>
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(5)"><span class="tab-icon">📅</span>배치계획표</button>
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(6)"><span class="tab-icon">🖋</span>사용인감계</button>
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(7)"><span class="tab-icon">📋</span>위임장</button>
@@ -654,6 +654,19 @@ tbody tr:hover td { background: var(--ci-light); }
       <button class="btn btn-primary" id="importBtn" onclick="importParsed()">이 데이터로 가져오기</button>
     </div>
   </div>
+</div>
+
+<!-- ══════════ TAB COVER: 표지 ══════════ -->
+<div class="tab-content" id="tab_cover" role="tabpanel">
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">📄</span>표지</div>
+    <div class="info-note">데이터 입력 탭의 공사 정보와 제출일을 기반으로 표지가 자동 생성됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-primary" onclick="renderCover()">미리보기 갱신</button>
+      <button class="btn" onclick="printTab('tab_cover')">인쇄 / PDF 저장</button>
+    </div>
+  </div>
+  <div id="coverPreview"></div>
 </div>
 
 <!-- ══════════ TAB 0: 프로젝트 정보 ══════════ -->
@@ -694,6 +707,10 @@ tbody tr:hover td { background: var(--ci-light); }
       <div class="form-group">
         <label>제출처</label>
         <input type="text" id="pj_submitTo" placeholder="예) 전주시장">
+      </div>
+      <div class="form-group">
+        <label>제출일 (입찰서 제출 마감일)</label>
+        <input type="text" id="pj_submitDate" placeholder="예) 2025.09.11" onchange="triggerAutoSave()">
       </div>
     </div>
   </div>
@@ -767,16 +784,8 @@ tbody tr:hover td { background: var(--ci-light); }
         <input type="text" id="pj_client" placeholder="예) ㈜세승주택건설">
       </div>
       <div class="form-group">
-        <label>사업주체 대표자</label>
+        <label>사업주체 대표이사</label>
         <input type="text" id="pj_clientCeo" placeholder="예) 박정환">
-      </div>
-      <div class="form-group">
-        <label>담당자</label>
-        <input type="text" id="pj_clientContact" placeholder="예) 홍길동 부장">
-      </div>
-      <div class="form-group">
-        <label>연락처</label>
-        <input type="text" id="pj_clientPhone" placeholder="예) 010-1234-5678">
       </div>
     </div>
   </div>
@@ -786,12 +795,12 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="card-title"><span class="icon">✏️</span>설계자 정보</div>
     <div class="form-grid">
       <div class="form-group">
-        <label>설계자 성명 (대표)</label>
-        <input type="text" id="pj_designerName" placeholder="예) 이길환">
+        <label>설계자</label>
+        <input type="text" id="pj_designerCompany" placeholder="예) ㈜길종합건축사사무소이엔지">
       </div>
       <div class="form-group">
-        <label>설계 상호</label>
-        <input type="text" id="pj_designerCompany" placeholder="예) ㈜길종합건축사사무소이엔지">
+        <label>설계자 대표이사</label>
+        <input type="text" id="pj_designerName" placeholder="예) 이길환">
       </div>
       <div class="form-group" style="grid-column: span 2">
         <label>설계자 주소</label>
@@ -857,11 +866,11 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="form-grid">
       <div class="form-group">
         <label>수임자 성명</label>
-        <input type="text" id="dl_name" placeholder="예) 김홍정" onchange="triggerAutoSave()">
+        <input type="text" id="dl_name" value="김홍정" onchange="triggerAutoSave()">
       </div>
       <div class="form-group">
         <label>수임자 직위</label>
-        <input type="text" id="dl_position" placeholder="예) 부사장" onchange="triggerAutoSave()">
+        <input type="text" id="dl_position" value="부사장" onchange="triggerAutoSave()">
       </div>
       <div class="form-group">
         <label>수임자 주민등록번호</label>
@@ -870,6 +879,18 @@ tbody tr:hover td { background: var(--ci-light); }
       <div class="form-group">
         <label>위임 사항</label>
         <input type="text" id="dl_scope" value="주택건설공사 감리자지정 입찰에 관한 일체의 권한" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group" style="grid-column: span 2">
+        <label>수임자 개인 주소 (재직증명서)</label>
+        <input type="text" id="dl_personalAddress" placeholder="예) 대전시 서구 복수서로 15, 106동 2503호" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group">
+        <label>재직기간 시작일</label>
+        <input type="text" id="dl_employedSince" value="2003.09.21" onchange="triggerAutoSave()">
+      </div>
+      <div class="form-group">
+        <label>재직증명서 용도</label>
+        <input type="text" id="dl_purpose" value="감리입찰업무" onchange="triggerAutoSave()">
       </div>
     </div>
   </div>
@@ -1276,11 +1297,11 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="form-grid" style="margin:12px 0">
       <div class="form-group">
         <label>감리용역 예정금액 (원)</label>
-        <input type="text" id="bidAmount" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this)">
+        <input type="text" id="bidAmount" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this);renderInputSheet()">
       </div>
       <div class="form-group">
         <label>입찰금액 (원)</label>
-        <input type="text" id="bidPrice" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this)">
+        <input type="text" id="bidPrice" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this);renderInputSheet()">
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -1350,6 +1371,7 @@ tbody tr:hover td { background: var(--ci-light); }
             <th style="padding:6px;border:1px solid #ccc;width:50px">중지(일)</th>
             <th style="padding:6px;border:1px solid #ccc;width:70px">공사종류</th>
             <th style="padding:6px;border:1px solid #ccc;width:80px">수주금액(억)</th>
+            <th style="padding:6px;border:1px solid #ccc;width:90px;background:#e8f4fb">계산수행금액(억)</th>
             <th style="padding:6px;border:1px solid #ccc;width:35px"></th>
           </tr>
         </thead>
@@ -1410,7 +1432,6 @@ const ROLES = [
   { id: 'civil',  label: '토목감리원',       field: '토목', placement: '분야별', icon: '🛤', rowLabel: '분야별' },
   { id: 'mech',   label: '기타설비감리원',   field: '설비', placement: '분야별', icon: '⚙', rowLabel: '분야별' },
   { id: 'nonres', label: '비상주감리원',     field: '건축', placement: '비상주', icon: '📋', rowLabel: '비상주' },
-  { id: 'new1',   label: '신규감리원',       field: '건축', placement: '신규',  icon: '🆕', rowLabel: '신규', isNew: true },
 ];
 
 function makeEmptyPerson(role) {
@@ -1433,8 +1454,12 @@ let currentPersonId = 'chief';
 let nonEvalList = [];
 let nonEvalCounter = 0;
 
+// 신규감리원 동적 관리
+let newEvalList = [];
+let newEvalCounter = 0;
+
 function findRole(roleId) {
-  return ROLES.find(r => r.id === roleId) || nonEvalList.find(r => r.id === roleId);
+  return ROLES.find(r => r.id === roleId) || nonEvalList.find(r => r.id === roleId) || newEvalList.find(r => r.id === roleId);
 }
 
 function addNonEvalPerson() {
@@ -1458,13 +1483,36 @@ function removeNonEvalPerson(id) {
   triggerAutoSave();
 }
 
-function getAllRoles() { return [...ROLES, ...nonEvalList]; }
+function addNewPerson() {
+  const id = 'neweval_' + (newEvalCounter++);
+  const idx = newEvalList.length + 1;
+  const entry = { id, label: '신규(' + idx + ')', field: '건축', placement: '신규', icon: '🆕', rowLabel: '신규(' + idx + ')', isNew: true };
+  newEvalList.push(entry);
+  personnel[id] = makeEmptyPerson(entry);
+  renderPersonCards();
+  triggerAutoSave();
+  showStatus('신규감리원(' + idx + ') 추가됨');
+}
+
+function removeNewPerson(id) {
+  if (!confirm('이 신규감리원을 삭제하시겠습니까?')) return;
+  newEvalList = newEvalList.filter(e => e.id !== id);
+  delete personnel[id];
+  newEvalList.forEach((e, i) => { e.label = '신규(' + (i+1) + ')'; e.rowLabel = '신규(' + (i+1) + ')'; });
+  if (currentPersonId === id) { currentPersonId = 'chief'; loadPersonToForm('chief'); }
+  renderPersonCards();
+  triggerAutoSave();
+}
+
+function getAllRoles() { return [...ROLES, ...nonEvalList, ...newEvalList]; }
 
 // ══════════════════════════════════════════════════════
 //  자동 저장 (localStorage) — 공고 정보 제외
 // ══════════════════════════════════════════════════════
 const AUTOSAVE_KEY = 'hb_autosave_v1';
 let _autoSaveTimer = null;
+let b2NumState = {};  // 별지2호 신청자 점수 사용자 편집값
+let b2EgState = {};   // 별지2호 산출근거 사용자 편집값
 
 function triggerAutoSave() {
   if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
@@ -1478,7 +1526,14 @@ function doAutoSave() {
     personnel: personnel,
     nonEvalList: nonEvalList,
     nonEvalCounter: nonEvalCounter,
-    delegation: { name: document.getElementById('dl_name')?.value||'', position: document.getElementById('dl_position')?.value||'', idNo: document.getElementById('dl_idNo')?.value||'', scope: document.getElementById('dl_scope')?.value||'' },
+    newEvalList: newEvalList,
+    newEvalCounter: newEvalCounter,
+    submitDate: document.getElementById('pj_submitDate')?.value||'',
+    delegation: { name: document.getElementById('dl_name')?.value||'', position: document.getElementById('dl_position')?.value||'', idNo: document.getElementById('dl_idNo')?.value||'', scope: document.getElementById('dl_scope')?.value||'', personalAddress: document.getElementById('dl_personalAddress')?.value||'', employedSince: document.getElementById('dl_employedSince')?.value||'', purpose: document.getElementById('dl_purpose')?.value||'' },
+    bidAmount: document.getElementById('bidAmount')?.value||'',
+    bidPrice: document.getElementById('bidPrice')?.value||'',
+    b2NumState: b2NumState,
+    b2EgState: b2EgState,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     savedAt: new Date().toISOString(),
@@ -1515,8 +1570,17 @@ function loadAutoSave() {
       nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
       nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
     }
+    if (data.newEvalList) {
+      newEvalList = data.newEvalList;
+      newEvalCounter = data.newEvalCounter || newEvalList.length;
+      newEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+    }
+    if (data.submitDate) {
+      const el = document.getElementById('pj_submitDate');
+      if (el) el.value = data.submitDate;
+    }
     if (data.delegation) {
-      ['name','position','idNo','scope'].forEach(k => {
+      ['name','position','idNo','scope','personalAddress','employedSince','purpose'].forEach(k => {
         const el = document.getElementById('dl_' + k);
         if (el && data.delegation[k]) el.value = data.delegation[k];
       });
@@ -1530,6 +1594,10 @@ function loadAutoSave() {
       if (typeof renderDocImageList === 'function') renderDocImageList();
       if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
     }
+    if (data.bidAmount) { const el = document.getElementById('bidAmount'); if (el) el.value = data.bidAmount; }
+    if (data.bidPrice) { const el = document.getElementById('bidPrice'); if (el) el.value = data.bidPrice; }
+    if (data.b2NumState) b2NumState = data.b2NumState;
+    if (data.b2EgState) b2EgState = data.b2EgState;
     loadPersonToForm(currentPersonId);
     const names = getAllRoles().filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
     if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
@@ -1543,6 +1611,8 @@ function clearAutoSave() {
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
+  newEvalList.forEach(r => { delete personnel[r.id]; });
+  newEvalList = []; newEvalCounter = 0;
   currentPersonId = 'chief';
   loadPersonToForm('chief');
   renderPersonCards();
@@ -1642,10 +1712,10 @@ function switchTab(visualIdx) {
   // Map visual tab index → content div IDs
   const tabMap = [
     ['tab0','tab1','tab2','tab3'], // 0: 데이터 입력 (merged)
-    ['tab4'],                      // 1: 별지1호
-    ['tab5'],                      // 2: 별지2호
-    ['tab8'],                      // 3: 별첨1 서약서
-    ['tab9'],                      // 4: 입찰서 (별지3호)
+    ['tab_cover'],                 // 1: 표지
+    ['tab4'],                      // 2: 별지1호
+    ['tab5'],                      // 3: 별지2호
+    ['tab8'],                      // 4: 별첨1 서약서
     ['tab6'],                      // 5: 배치계획표 (부표)
     ['tab10'],                     // 6: 사용인감계
     ['tab11'],                     // 7: 위임장·재직증명서
@@ -1674,10 +1744,10 @@ function switchTab(visualIdx) {
     renderPersonSelector('personSelectorScore');
     calcScore();
   }
-  if (visualIdx === 1) renderByeolji1();
-  if (visualIdx === 2) { syncPersonInfo(); renderByeolji2Cover(); }
-  if (visualIdx === 3) renderByeolchum1();
-  if (visualIdx === 4) renderInputSheet();
+  if (visualIdx === 1) renderCover();
+  if (visualIdx === 2) renderByeolji1();
+  if (visualIdx === 3) { syncPersonInfo(); renderByeolji2Cover(); }
+  if (visualIdx === 4) renderByeolchum1();
   if (visualIdx === 5) renderDeployTable();
   if (visualIdx === 6) renderSayongIngam();
   if (visualIdx === 7) renderDelegation();
@@ -1697,6 +1767,7 @@ function renderPersonCards() {
     const totalConv = p.careers.reduce((s, c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
     const convYears = (totalConv / 365).toFixed(1);
     const isNonEval = role.id.startsWith('noneval_');
+    const isNewEval = role.id.startsWith('neweval_');
 
     return `
     <div class="person-card ${hasData ? 'has-data' : ''}">
@@ -1724,6 +1795,7 @@ function renderPersonCards() {
           <button class="btn btn-primary btn-sm" onclick="viewPersonDetail('${role.id}')">📋 경력 상세</button>
           <button class="btn btn-outline btn-sm" onclick="clearPerson('${role.id}')">🗑 초기화</button>
           ${isNonEval ? `<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" onclick="removeNonEvalPerson('${role.id}')">삭제</button>` : ''}
+          ${isNewEval ? `<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" onclick="removeNewPerson('${role.id}')">삭제</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -1732,6 +1804,12 @@ function renderPersonCards() {
       <div style="text-align:center;color:var(--gray4)">
         <div style="font-size:32px;margin-bottom:8px">+</div>
         <div style="font-size:14px;font-weight:600">비평가감리원 추가</div>
+      </div>
+    </div>
+    <div class="person-card" style="border:2px dashed #a7f3d0;display:flex;align-items:center;justify-content:center;min-height:180px;cursor:pointer;background:#f0fdf4" onclick="addNewPerson()">
+      <div style="text-align:center;color:#16a34a">
+        <div style="font-size:32px;margin-bottom:8px">+</div>
+        <div style="font-size:14px;font-weight:600">신규감리원 추가</div>
       </div>
     </div>`;
 }
@@ -1863,7 +1941,11 @@ function renderCareerTable() {
     const tr = document.createElement('tr');
     tr.className = getRowClass(rate);
     tr.innerHTML = `
-      <td><button class="btn-icon" onclick="removeRow(${i})">🗑</button></td>
+      <td style="display:flex;gap:2px;align-items:center">
+        <button class="btn-icon" onclick="moveCareerRow(${i},-1)" title="위로" style="font-size:11px;padding:1px 4px" ${i===0?'disabled':''}>▲</button>
+        <button class="btn-icon" onclick="moveCareerRow(${i},1)" title="아래로" style="font-size:11px;padding:1px 4px" ${i===rows.length-1?'disabled':''}>▼</button>
+        <button class="btn-icon" onclick="removeRow(${i})">🗑</button>
+      </td>
       <td>${i+1}</td>
       <td><input type="text" value="${escHtml(r.site)}" onchange="updateRow(${i},'site',this.value)"></td>
       <td><select onchange="updateRowCalc(${i},'conType',this.value)">${CON_TYPES.map(t=>`<option value="${t}" ${r.conType===t?'selected':''}>${t}</option>`).join('')}</select></td>
@@ -1905,6 +1987,14 @@ function addRow() {
 }
 
 function removeRow(i) { getRows().splice(i, 1); renderCareerTable(); triggerAutoSave(); }
+function moveCareerRow(i, dir) {
+  const rows = getRows();
+  const j = i + dir;
+  if (j < 0 || j >= rows.length) return;
+  [rows[i], rows[j]] = [rows[j], rows[i]];
+  renderCareerTable();
+  triggerAutoSave();
+}
 
 function sortRows() {
   getRows().sort((a, b) => (parseDate(a.startDate) || new Date(0)) - (parseDate(b.startDate) || new Date(0)));
@@ -2115,7 +2205,7 @@ function getProjectData() {
     authority: pf('pj_authority'),
     designerName: pf('pj_designerName'), designerCompany: pf('pj_designerCompany'),
     designerAddress: pf('pj_designerAddress'),
-    noticeNo: pf('pj_noticeNo'), noticeDate: pf('pj_noticeDate'), submitTo: pf('pj_submitTo'),
+    noticeNo: pf('pj_noticeNo'), noticeDate: pf('pj_noticeDate'), submitTo: pf('pj_submitTo'), submitDate: pf('pj_submitDate'),
     supervisionCost: pf('pj_supervisionCost'), supervisionFee: pf('pj_supervisionFee'), baseFee: pf('pj_baseFee'),
   };
 }
@@ -2271,6 +2361,8 @@ function clearAll() {
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
+  newEvalList.forEach(r => { delete personnel[r.id]; });
+  newEvalList = []; newEvalCounter = 0;
   document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
   perfRecords = [];
   docImages = [];
@@ -2289,6 +2381,18 @@ function clearAll() {
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 제출일 문자열 반환 (pj_submitDate 입력값 → "YYYY년 MM월 DD일", 없으면 오늘)
+function getSubmitDateStr() {
+  const raw = (document.getElementById('pj_submitDate')?.value || '').trim();
+  if (!raw) {
+    const t = new Date();
+    return `${t.getFullYear()}년 ${String(t.getMonth()+1).padStart(2,' ')}월 ${String(t.getDate()).padStart(2,' ')}일`;
+  }
+  const m = raw.match(/(\d{4})[.\-\/년]\s*(\d{1,2})[.\-\/월]\s*(\d{1,2})/);
+  if (m) return `${m[1]}년 ${m[2].padStart(2,' ')}월 ${m[3].padStart(2,' ')}일`;
+  return raw;
 }
 
 function showStatus(msg) {
@@ -2498,8 +2602,9 @@ function parseKCEAText(items, rawText) {
   for (const [k,v] of Object.entries(fieldMap)) {
     if (new RegExp(k+'\\s*(분야|기술인|기사|산업기사)').test(text)) { result.info.field = v; break; }
   }
-  const gradeM = text.match(/(특급|고급|중급|초급)/);
-  if (gradeM) result.info.grade = gradeM[1];
+  const cmGradeM = text.match(/건\s*설\s*사\s*업\s*관\s*리[\s\S]{0,300}?(특급|고급|중급|초급)/);
+  const gradeM = cmGradeM || text.match(/(특급|고급|중급|초급)/);
+  if (gradeM) result.info.grade = cmGradeM ? cmGradeM[1] : gradeM[1];
   const certM = text.match(/(토목|건축|설비|전기|조경|측량)\s*(기사|산업기사|기술사)\s*[\(（]?(\d{4}[.\-]\d{1,2}[.\-]\d{1,2})/);
   if (certM) result.info.cert = certM[0].replace(/\s+/g,' ').trim();
 
@@ -3014,7 +3119,7 @@ async function extractAnnouncementImage(file) {
 }
 
 function parseAnnouncementText(rawText) {
-  const result = { noticeNo: '', noticeDate: '', name: '', location: '', units: '', blocks: '', area: '', siteArea: '', stories: '', startDate: '', endDate: '', authority: '', client: '', clientCeo: '', designerName: '', designerCompany: '', supervisionCost: '', supervisionFee: '', baseFee: '', bidAmount: '' };
+  const result = { noticeNo: '', noticeDate: '', submitDate: '', name: '', location: '', units: '', blocks: '', area: '', siteArea: '', stories: '', startDate: '', endDate: '', authority: '', client: '', clientCeo: '', designerName: '', designerCompany: '', supervisionCost: '', supervisionFee: '', baseFee: '', bidAmount: '' };
 
   // 원본 텍스트 (주소/이름 등 값 패턴 매칭용)
   const raw = rawText.replace(/\r/g, '');
@@ -3031,6 +3136,17 @@ function parseAnnouncementText(rawText) {
   // ── 공고일 ──
   m = joined.match(/공고일\s*[:：]?\s*(\d{4})\s*[\.\/\-년]\s*(\d{1,2})\s*[\.\/\-월]\s*(\d{1,2})/);
   if (m) result.noticeDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
+  // 폴백: 공고기간의 첫 번째 날짜 (PDF에 "공고일" 라벨 없을 때)
+  if (!result.noticeDate) {
+    m = joined.match(/공고기간\s*[:：]?\s*(\d{4})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})/);
+    if (m) result.noticeDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
+  }
+
+  // ── 입찰서 제출일시 마지막 날짜 ──
+  m = joined.match(/입찰서\s*제출일시[^~]*~\s*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
+  if (!m) m = joined.match(/제출일시[^~\n]*~[^0-9]*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
+  if (!m) m = joined.match(/일\s*시\s*[:：][^~\n]*~[^0-9]*(\d{4})\s*[.\s]*(\d{1,2})\s*[.\s]*(\d{1,2})/);
+  if (m) result.submitDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
 
   // ── 공사명: "XX 공동주택 신축공사" 패턴 (규정 제목 제외) ──
   const nameRe = /([가-힣a-zA-Z0-9\s·‧]+(?:신축|증축|리모델링|개축|대수선)공사)/g;
@@ -3080,9 +3196,9 @@ function parseAnnouncementText(rawText) {
   if (m) result.stories = `지하${m[1]}층/지상${m[2]}층`;
 
   // ── 공사기간: 착공일/준공일 두 날짜 연속 캡처 ──
-  // PDF 테이블에서 "착공일 준공일 ... date1 date2" 형태로 추출됨
+  // PDF 테이블에서 "착공일 준공일 ... date1 date2" 형태 또는 "공사기간 : date1 ~ date2"
   const dateP = '(20[2-4]\\d)\\s*[\\.\\/ \\-]\\s*(\\d{1,2})\\s*[\\.\\/ \\-]\\s*(\\d{1,2})';
-  m = joined.match(new RegExp('(?:착공일|공사기간|용역기간).*?' + dateP + '[\\s\\.]+?' + dateP));
+  m = joined.match(new RegExp('(?:착공일|공사기간|용역기간).*?' + dateP + '[\\s\\.~∼]+?' + dateP));
   if (m) {
     result.startDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
     result.endDate = `${m[4]}.${m[5].padStart(2,'0')}.${m[6].padStart(2,'0')}`;
@@ -3129,49 +3245,43 @@ function parseAnnouncementText(rawText) {
     if (m) result.client = '㈜' + m[1];
   }
 
-  // ── 사업주체 대표자 ──
-  if (result.client) {
-    const esc = result.client.replace(/[㈜()\s]/g, '.?');
-    m = joined.match(new RegExp(esc + '\\s+([가-힣]{2,4})'));
-    if (m) result.clientCeo = m[1];
-  }
-  // 폴백: "대표자" 라벨 근처 이름
-  if (!result.clientCeo) {
-    m = joined.match(/사업주체.*?대\s*표\s*자\s*[:：]?\s*([가-힣]{2,4})/);
-    if (m) result.clientCeo = m[1];
-  }
-
-  // ── 설계자: 건축사사무소 (자사 제외) ──
+  // ── 설계자 상호 (건축사사무소, 자사 제외) ──
   m = joined.match(/((?:㈜)?[가-힣]*건축사사무소[가-힣]*)/g);
   if (m) {
     const ext = m.filter(n => !/아이팝/.test(n));
     if (ext.length > 0) result.designerCompany = ext[0].replace(/\s/g, '');
   }
-  // 설계자 성명: 설계상호 또는 "설계자" 라벨 근처의 단독 이름
-  if (result.designerCompany) {
-    // 1) 원본에서 설계상호 근처 단독 이름 줄 찾기
-    const rawLines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-    for (let i = 0; i < rawLines.length; i++) {
-      if (/설계자/.test(rawLines[i]) || rawLines[i].includes(result.designerCompany.substring(1,5))) {
-        for (let j = Math.max(0, i-5); j < Math.min(rawLines.length, i+5); j++) {
-          if (/^[가-힣]{2,4}$/.test(rawLines[j]) && !/노영섭|설계자|사업주체|대표자|감리원|처리함|건축사|시행사|발주자|시공자|허가권|위임장|서약서|재직증|공사비|대지면|연면적|세대수/.test(rawLines[j])) {
-            result.designerName = rawLines[j]; break;
-          }
-        }
-        if (result.designerName) break;
-      }
+
+  // ── 사업주체 대표이사 / 설계자 대표이사: joined 부분문자열 기반 파싱 ──
+  // 공고문 순서: 사업주체 → 대표이사(사업주체) → 설계자 → 대표이사(설계자)
+  // joined는 \n이 공백으로 치환되어 있어 \s+로 줄경계를 넘을 수 있음
+  {
+    const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝/;
+    const findCeo = (text) => {
+      const nm = text.match(/대표이사\s+([가-힣]{2,4})(?![가-힣])/) || text.match(/대표자\s+([가-힣]{2,4})(?![가-힣])/);
+      return (nm && !excl.test(nm[1])) ? nm[1] : null;
+    };
+
+    const clientPos = joined.search(/사\s*업\s*주\s*체/);
+
+    // 설계자 위치: 글자 사이 공백 허용(설 계 자), 사업주체 이후에서 탐색
+    let designerPos = -1;
+    {
+      const re = /설\s*계\s*자/g;
+      re.lastIndex = clientPos >= 0 ? clientPos + 10 : 0;
+      const dm = re.exec(joined);
+      if (dm) designerPos = dm.index;
     }
-    // 2) 줄 끝에 2공백+이름 패턴 ("리시설  이길환")
-    if (!result.designerName) {
-      m = raw.match(/\s{2,}([가-힣]{2,4})\s*\n/g);
-      if (m) {
-        for (const match of m) {
-          const name = match.trim();
-          if (/^[가-힣]{2,4}$/.test(name) && !/노영섭|설계자|사업주체|처리함|건축사|시행사|발주자|시공자/.test(name)) {
-            result.designerName = name; break;
-          }
-        }
-      }
+
+    // 사업주체 대표이사: 사업주체 위치 ~ 설계자 위치(또는 +800자) 구간
+    if (clientPos >= 0) {
+      const sEnd = (designerPos > clientPos) ? designerPos : clientPos + 800;
+      result.clientCeo = findCeo(joined.slice(clientPos, sEnd)) || result.clientCeo;
+    }
+
+    // 설계자 대표이사: 설계자 위치 ~ +800자 구간
+    if (designerPos >= 0) {
+      result.designerName = findCeo(joined.slice(designerPos, designerPos + 800)) || result.designerName;
     }
   }
 
@@ -3196,6 +3306,7 @@ function showAnnouncementResult(parsed, rawText) {
   const fields = [
     { key: 'noticeNo', label: '공고번호', target: 'pj_noticeNo' },
     { key: 'noticeDate', label: '공고일', target: 'pj_noticeDate' },
+    { key: 'submitDate', label: '제출일 (마감)', target: 'pj_submitDate' },
     { key: 'name', label: '공사명', target: 'pj_name' },
     { key: 'location', label: '소재지', target: 'pj_location' },
     { key: 'units', label: '세대수', target: 'pj_units' },
@@ -3207,13 +3318,12 @@ function showAnnouncementResult(parsed, rawText) {
     { key: 'endDate', label: '공사종료일', target: 'pj_endDate' },
     { key: 'authority', label: '발주처 (허가권자)', target: 'pj_authority' },
     { key: 'client', label: '사업주체', target: 'pj_client' },
-    { key: 'clientCeo', label: '사업주체 대표자', target: 'pj_clientCeo' },
-    { key: 'designerName', label: '설계자 성명', target: 'pj_designerName' },
-    { key: 'designerCompany', label: '설계 상호', target: 'pj_designerCompany' },
+    { key: 'clientCeo', label: '사업주체 대표이사', target: 'pj_clientCeo' },
+    { key: 'designerCompany', label: '설계자', target: 'pj_designerCompany' },
+    { key: 'designerName', label: '설계자 대표이사', target: 'pj_designerName' },
     { key: 'supervisionCost', label: '감리대상 공사비', target: 'pj_supervisionCost' },
     { key: 'supervisionFee', label: '감리대가 기준', target: 'pj_supervisionFee' },
     { key: 'baseFee', label: '기초금액', target: 'pj_baseFee' },
-    { key: 'bidAmount', label: '예정금액', target: 'bidAmount' },
   ];
 
   const foundCount = fields.filter(f => parsed[f.key]).length;
@@ -3287,14 +3397,49 @@ function toggleAnnouncementRaw() {
 //  별지 FORMS (A4 출력용)
 // ══════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════
+//  표지 렌더링
+// ══════════════════════════════════════════════════════
+function renderCover() {
+  const pj = getProjectData();
+  const co = getCompanyData();
+  const dateStr = getSubmitDateStr();
+  document.getElementById('coverPreview').innerHTML = `
+    <div class="a4-page" style="padding:50px 60px;font-family:'Batang','바탕',serif;color:#000;display:flex;flex-direction:column;min-height:1050px;position:relative;">
+      <table style="border-collapse:collapse;width:180px;font-size:12px;margin-bottom:0;">
+        <tr>
+          <td style="border:1px solid #000;padding:5px 10px;font-weight:700;text-align:center">분야</td>
+          <td style="border:1px solid #000;padding:5px 10px;font-weight:700;text-align:center">접수번호</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:8px 10px;text-align:center">건축</td>
+          <td style="border:1px solid #000;padding:8px 10px;text-align:center"></td>
+        </tr>
+      </table>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:22pt;font-weight:900;text-align:center;letter-spacing:4px;margin-bottom:20px;line-height:1.5;">
+          주택건설공사 감리자(건축) 지정신청
+        </div>
+        <div style="font-size:13pt;text-align:center;margin-bottom:60px;">
+          (사업명: ${escHtml(pj.name||'')})
+        </div>
+        <div style="font-size:14pt;font-weight:700;margin:60px 0 20px;">${dateStr}</div>
+      </div>
+      <div style="text-align:center;font-size:15pt;font-weight:700;margin-bottom:30px;">
+        ${escHtml(co.name||'')}
+      </div>
+    </div>`;
+}
+
 function renderByeolji1() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
-  const today = new Date();
-  const y = today.getFullYear();
-  const mo = String(today.getMonth() + 1).padStart(2, ' ');
-  const d = String(today.getDate()).padStart(2, ' ');
+  const submitStr = getSubmitDateStr();
+  const sparts = submitStr.match(/(\d{4})년\s*(\d+)월\s*(\d+)일/) || [];
+  const y = sparts[1] || new Date().getFullYear();
+  const mo = sparts[2] ? String(sparts[2]).padStart(2,' ') : String(new Date().getMonth()+1).padStart(2,' ');
+  const d = sparts[3] ? String(sparts[3]).padStart(2,' ') : String(new Date().getDate()).padStart(2,' ');
 
   // 감리원 행 생성 (구분|분야|성명|생년월일|등급|자격번호|소속회사)
   const td = s => `<td style="text-align:center;padding:5px 4px;font-size:9pt">${escHtml(s)}</td>`;
@@ -3302,20 +3447,36 @@ function renderByeolji1() {
   getAllRoles().forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
+    const structLabel = r.placement === '총괄' ? '총괄감리원' :
+                         r.placement === '비상주' ? '비상주감리원' :
+                         r.isNew ? '신규감리원' : '분야별감리원';
     personnelRows += `<tr>
-      <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">${r.rowLabel || r.label}</td>
-      ${td(p.field || r.field)}
+      <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">${structLabel}</td>
+      ${td(r.id === 'civil' ? '토목(전)' : (p.field || r.field))}
       ${td(dash ? '-' : p.name)}
       ${td(dash ? '-' : p.birthdate)}
       ${td(p.appliedGrade || p.grade)}
       ${td(dash ? '-' : p.regNo)}
       ${td(p.company || co.name)}
     </tr>`;
+    // 토목은 전/후 2명으로 구성: 토목(후)는 등급만 동일, 성명·생년·자격번호 '-'
+    if (r.id === 'civil') {
+      personnelRows += `<tr>
+        <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">분야별감리원</td>
+        ${td('토목(후)')}
+        ${td('-')}
+        ${td('-')}
+        ${td(p.appliedGrade || p.grade)}
+        ${td('-')}
+        ${td(p.company || co.name)}
+      </tr>`;
+    }
   });
 
   const thStyle = 'style="text-align:center;background:#e8e8e8;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #999"';
   const tdLabel = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 8px;border:1px solid #bbb;letter-spacing:1px">${s}</td>`;
   const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
+  const tdColHeader = s => `<td style="text-align:center;background:#e0e0e0;font-weight:600;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb">${s}</td>`;
 
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc">
@@ -3326,31 +3487,32 @@ function renderByeolji1() {
 
       <!-- 1. 공사개요 -->
       <div style="font-weight:700;font-size:10pt;margin-bottom:4px">1. 공사개요</div>
-      <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%">
-        <colgroup><col style="width:10%"><col style="width:15%"><col style="width:25%"><col style="width:15%"><col style="width:35%"></colgroup>
+      <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
+        <colgroup><col style="width:10%"><col style="width:10%"><col style="width:17%"><col style="width:13%"><col style="width:23%"><col style="width:27%"></colgroup>
         <tbody>
           <tr>
-            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}${tdVal(pj.client,'')}<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 8px;border:1px solid #bbb">대 표 자</td>${tdVal(pj.clientCeo,'')}
+            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
           </tr>
           <tr>
-            <td rowspan="4" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
-            ${tdLabel('위&emsp;&emsp;치')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.location)}</td>
+            <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
+            ${tdLabel('위&emsp;&emsp;치')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.location)}</td>${tdLabel('대지면적')}<td style="padding:6px 8px;font-size:9.5pt;border:1px solid #bbb;text-align:center">${escHtml(pj.siteArea ? pj.siteArea + ' ㎡' : '')}</td>
           </tr>
           <tr>
-            ${tdLabel('대지면적')}${tdVal(pj.siteArea ? pj.siteArea + ' ㎡' : '','')}${tdLabel('연 면 적')}${tdVal(pj.area ? pj.area + ' ㎡' : '','')}
+            <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:4px 2px;border:1px solid #bbb;letter-spacing:1px">사업내용</td>
+            ${tdColHeader('규&emsp;모')}${tdColHeader('연&nbsp;면&nbsp;적')}${tdColHeader('착&nbsp;공&nbsp;일')}${tdColHeader('준&nbsp;공&nbsp;일')}
           </tr>
           <tr>
-            ${tdLabel('규&emsp;&emsp;모')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.stories || '')}${pj.blocks ? ', ' + pj.blocks : ''}${pj.units ? ', ' + pj.units + '세대' : ''}</td>
-          </tr>
-          <tr>
-            ${tdLabel('공사기간')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.startDate)} ~ ${escHtml(pj.endDate)}${pj.constructionDays ? ' (' + escHtml(pj.constructionDays) + ')' : ''}</td>
+            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml((pj.stories?pj.stories+'층 ':'')+(pj.blocks?pj.blocks+'동 ':'')+(pj.units?pj.units+'세대':''))}</td>
+            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.area ? pj.area+' ㎡' : '')}</td>
+            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.startDate||'')}</td>
+            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.endDate||'')}</td>
           </tr>
           <tr>
             <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
-            ${tdLabel('성&emsp;&emsp;명')}${tdVal(pj.designerName,'')}${tdLabel('상&emsp;&emsp;호')}${tdVal(pj.designerCompany,'')}
+            ${tdLabel('성&emsp;&emsp;명')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerName)}</td>${tdLabel('상&emsp;&emsp;호')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerCompany)}</td>
           </tr>
           <tr>
-            ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
+            ${tdLabel('주&emsp;&emsp;소')}<td colspan="4" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
           </tr>
         </tbody>
       </table>
@@ -3359,15 +3521,17 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%">
-        <colgroup><col style="width:12%"><col style="width:28%"><col style="width:12%"><col style="width:28%"><col style="width:8%"><col style="width:12%"></colgroup>
+        <colgroup><col style="width:12%"><col style="width:21%"><col style="width:12%"><col style="width:21%"><col style="width:14%"><col style="width:20%"></colgroup>
         <tbody>
           <tr>
-            ${tdLabel('상&emsp;호')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(co.name)}</td>
-            ${tdLabel('대 표 자')}${tdVal(co.ceo,'')}<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px;border:1px solid #bbb">등록번호<br>개설신고번호</td>${tdVal(co.regNo,'')}
+            ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
+            ${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(co.ceo,'')}
+            <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px;border:1px solid #bbb">등록번호<br>개설신고번호</td>${tdVal(co.regNo,'')}
           </tr>
           <tr>
-            ${tdLabel('주&emsp;소')}${tdVal(co.address,'2')}
-            ${tdLabel('용역참여<br>지분율')}${tdVal(co.shareRatio ? co.shareRatio + ' %' : '','')}${tdLabel('전화번호')}${tdVal(co.phone,'')}
+            ${tdLabel('주&emsp;소')}${tdVal(co.address,'')}
+            ${tdLabel('용역참여<br>지분율')}${tdVal(co.shareRatio ? co.shareRatio + '%' : '','')}
+            ${tdLabel('전화번호')}${tdVal(co.phone,'')}
           </tr>
         </tbody>
       </table>
@@ -3399,7 +3563,7 @@ function renderByeolji1() {
         ${y}년 &ensp;${mo}월 &ensp;${d}일
       </div>
       <div style="text-align:right;font-size:10pt;margin:4px 20px 0 0">
-        입찰자(대표자) &emsp;&emsp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
+        입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
       </div>
 
       <div style="font-size:14pt;font-weight:800;margin:24px 0 0 0">
@@ -3489,8 +3653,9 @@ function buildByeolji2Html(roleId) {
     careerRows = '<tr><td colspan="9" style="text-align:center;color:#999;padding:12px">경력 데이터 없음</td></tr>';
   }
 
-  const today = new Date();
-  const y = today.getFullYear(), mo = String(today.getMonth()+1).padStart(2,' '), d = String(today.getDate()).padStart(2,' ');
+  const submitStr2 = getSubmitDateStr();
+  const sp2 = submitStr2.match(/(\d{4})년\s*(\d+)월\s*(\d+)일/) || [];
+  const y = sp2[1] || new Date().getFullYear(), mo = sp2[2] ? String(sp2[2]).padStart(2,' ') : String(new Date().getMonth()+1).padStart(2,' '), d = sp2[3] ? String(sp2[3]).padStart(2,' ') : String(new Date().getDate()).padStart(2,' ');
 
   return `
     <div class="a4-preview" style="margin-bottom:20px">
@@ -3577,167 +3742,182 @@ function buildByeolji2Html(roleId) {
     </div>`;
 }
 
+function calcB2() {
+  const v = id => { const el = document.getElementById('b2_'+id); return el ? (parseFloat(el.value)||0) : 0; };
+  const set = (id, val) => { const el = document.getElementById('b2_'+id); if(el) el.textContent = val.toFixed(1); };
+  const cSum = v('c_fin')+v('c_perf')+v('c_admin')+v('c_td1')+v('c_td2')+v('c_td3')+v('c_new')+v('c_chg')+v('c_b1')+v('c_b2')+v('c_b3');
+  set('c_sum', cSum);
+  const chSum = v('ch_g')+v('ch_e')+v('ch_i')+v('ch_p')+v('ch_qb')+v('ch_ad')+v('ch_r');
+  set('ch_sum', chSum);
+  const fSum = v('fa_g')+v('fa_e')+v('fa_qb')+v('fa_ad')+v('fa_r')+v('fc_g')+v('fc_e')+v('fc_qb')+v('fc_ad')+v('fc_r')+v('fm_g')+v('fm_e')+v('fm_qb')+v('fm_ad')+v('fm_r');
+  set('f_sum', fSum);
+  const nSum = v('n_g')+v('n_e')+v('n_ad')+v('n_r');
+  set('n_sum', nSum);
+  const monSum = chSum+fSum+nSum;
+  set('mon_sum', monSum);
+  set('total', cSum+monSum);
+}
+
 function renderByeolji2Cover() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
 
-  // 감리원 배점 자동 계산
   const chief = calcPersonScore('chief');
   const arch  = calcPersonScore('arch');
   const civil = calcPersonScore('civil');
   const mech  = calcPersonScore('mech');
   const nonr  = calcPersonScore('nonres');
 
-  const th = s => `<th style="text-align:center;background:#d9d9d9;font-size:8.5pt;font-weight:700;padding:5px 4px;border:1px solid #999">${s}</th>`;
-  const tdC = (s, bold, bg) => `<td style="text-align:center;font-size:8.5pt;padding:5px 4px;border:1px solid #bbb${bold?';font-weight:700':''}${bg?';background:'+bg:''}">${s}</td>`;
-  const tdL = (s, bold, bg) => `<td style="text-align:left;font-size:8.5pt;padding:5px 8px;border:1px solid #bbb${bold?';font-weight:700':''}${bg?';background:'+bg:''}">${s}</td>`;
-  const inputTd = (id, v) => `<td style="padding:3px;border:1px solid #bbb"><input id="b2c_${id}" type="text" value="${v||''}" style="width:100%;border:none;text-align:center;font-size:8.5pt;font-family:var(--font)"></td>`;
+  // 스타일 상수 (공고문 이미지 서식 일치)
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:8pt;font-weight:700;padding:4px 3px;border:1px solid #999;vertical-align:middle';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px';
+  const IT  = 'text-align:left;font-size:8pt;padding:3px 6px;border:1px solid #bbb;vertical-align:middle';
+  const SC  = 'text-align:center;font-size:8pt;padding:3px;border:1px solid #bbb;vertical-align:middle';
+  const EG  = 'text-align:left;font-size:7.5pt;padding:3px 5px;border:1px solid #bbb;color:#444;vertical-align:middle';
+  const SR  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
+  const SV  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
 
-  // 회사 점수 항목 (직접 입력)
-  const coFields = [
-    { key:'c1', label:'재무상태 건실도', max:'5' },
-    { key:'c2', label:'감리업무수행실적(감리비)', max:'12' },
-    { key:'c3', label:'행정제재', max:'9' },
-    { key:'c4', label:'기술개발 및 투자실적', max:'5(2+2.5+0.5)' },
-    { key:'c5', label:'신규감리원 배치', max:'2' },
-    { key:'c6', label:'교체빈도', max:'7' },
-    { key:'c7', label:'가점: 감리원 추가배치·총괄등급상향', max:'(1)' },
-    { key:'c8', label:'가점: 지역가점', max:'(1)' },
-    { key:'c9', label:'가점: 설계용역수행가점', max:'(1)' },
-    { key:'c10', label:'적·부: 감리원배치계획', max:'적·부' },
-    { key:'c11', label:'적·부: 업무중첩도', max:'적·부' },
-    { key:'c12', label:'적·부: 감리원추가의무배치', max:'적·부' },
-  ];
-
-  const tdSt = 'padding:5px 8px;font-size:8.5pt;border:1px solid #bbb';
-  const tdCSt = 'text-align:center;font-size:8.5pt;padding:5px 4px;border:1px solid #bbb';
-  const emptyTd = `<td style="border:1px solid #bbb"></td>`;
-
-  // 감리자(회사) 섹션 행 생성
-  let coSectionRows = `<tr>
-    <td rowspan="${coFields.length + 1}" style="text-align:center;font-weight:700;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb;background:#f5f5f5;vertical-align:middle">감리자<br>(감리회사)</td>
-    <td style="${tdSt}">${coFields[0].label}</td>
-    <td style="${tdCSt}">${coFields[0].max}</td>
-    ${inputTd(coFields[0].key,'')}${emptyTd}${emptyTd}
-  </tr>`;
-  coFields.slice(1).forEach(f => {
-    coSectionRows += `<tr>
-      <td style="${tdSt}">${f.label}</td>
-      <td style="${tdCSt}">${f.max}</td>
-      ${inputTd(f.key,'')}${emptyTd}${emptyTd}
-    </tr>`;
-  });
-  coSectionRows += `<tr>
-    <td colspan="2" style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">계</td>
-    <td style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">40</td>
-    ${emptyTd}${emptyTd}${emptyTd}
-  </tr>`;
-
-  const convYr = (id) => calcPersonScore(id).convYears.toFixed(2) + '년';
+  const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
+  const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
+  const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
+  const sc  = s => `<td style="${SC}">${s}</td>`;
+  let _egIdx = 0;
+  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444"></td>`; };
+  const mt  = () => `<td style="border:1px solid #bbb"></td>`;
+  const inp = (id,val) => { const stored=b2NumState[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="b2NumState['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
+  const pi  = personnel;
+  const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
+  const pYr = s => s.convYears > 0 ? s.convYears.toFixed(1)+'년' : '';
 
   document.getElementById('byeolji2Preview').innerHTML = `
-    <div class="a4-preview" id="byeolji2Doc">
-      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">[별지 제2호서식]</div>
-      <div style="font-weight:700;font-size:9pt;margin-bottom:8px">Ⅰ. 총괄표</div>
-      <div style="text-align:center;font-size:8pt;margin-bottom:2px">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
-      <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:8px 0 16px;font-weight:800">자 기 평 가 서</h2>
-      <div style="font-size:8pt;text-align:right;margin-bottom:6px">현장명: ${escHtml(pj.name)}</div>
+  <div class="a4-preview" id="byeolji2Doc">
+    <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">[별지 제2호서식]</div>
+    <div style="font-weight:700;font-size:9pt;margin-bottom:6px">Ⅰ. 총괄표</div>
+    <div style="font-size:8pt;margin-bottom:2px">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
+    <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:6px 0 12px;font-weight:800">자 기 평 가 서</h2>
+    <table style="border-collapse:collapse;width:100%;font-size:8pt">
+      <colgroup>
+        <col style="width:6%"><col style="width:9%"><col style="width:9%"><col style="width:17%">
+        <col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:38%">
+      </colgroup>
+      <thead>
+        <tr>
+          ${th('구분',2,2)}${th('평&nbsp;가&nbsp;항&nbsp;목',2,2)}${th('점수<br>기준',2)}
+          <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>${th('평점 산출 근거<br>(해당 사항만 기재)',2)}
+        </tr>
+        <tr>${th('신&nbsp;청&nbsp;자')}${th('지&nbsp;정&nbsp;권&nbsp;자')}</tr>
+      </thead>
+      <tbody>
+      <!-- 감리자(감리회사) 15행: C0+C1=colspan=2 -->
+      <tr>
+        ${lbl('감리자<br>(감리<br>회사)',15,2)}
+        ${it('재무상태 건실도 : 신용평가등급',2)}${sc(5)}${inp('c_fin',5)}${mt()}${eg('예) 회사채 신용평가등급 BB-')}
+      </tr>
+      <tr>${it('감리업무수행실적(감리비)',2)}${sc(12)}${inp('c_perf',12)}${mt()}${eg('예) 100(억원)')}</tr>
+      <tr>${it('행정제재',2)}${sc(9)}${inp('c_admin',9)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>
+        ${lbl('기술개발<br>및<br>투자실적',3)}
+        ${it('기술개발실적')}${sc(2)}${inp('c_td1',2)}${mt()}${eg('예) 특허 0건')}
+      </tr>
+      <tr>${it('기술개발투자실적')}${sc(2.5)}${inp('c_td2',2.5)}${mt()}${eg('')}</tr>
+      <tr>${it('교육훈련')}${sc(0.5)}${inp('c_td3',0.5)}${mt()}${eg('예) 70시간교육 0명, 35시간교육 0명')}</tr>
+      <tr>${it('신규감리원 배치',2)}${sc(2)}${inp('c_new',2)}${mt()}${eg('예) 건축 0명')}</tr>
+      <tr>${it('교체빈도',2)}${sc(7)}${inp('c_chg',7)}${mt()}${eg('예) 00(%)')}</tr>
+      <tr>
+        ${lbl('가점',3)}${it('감리원 추가배치, 총괄감리원 등급상향')}${sc('(1)')}${inp('c_b1',0)}${mt()}${eg('예) 건축 0명외 0명, 총괄감리원 특급건설기술자')}
+      </tr>
+      <tr>${it('지역가점')}${sc('(1)')}${inp('c_b2',0)}${mt()}${eg('예) 00도(道), 00개월')}</tr>
+      <tr>${it('설계용역수행가점')}${sc('(1)')}${inp('c_b3',0)}${mt()}${eg('예) 현상 00(점)')}</tr>
+      <tr>
+        <td colspan="2" style="${SR}">계</td><td style="${SR}">40</td>
+        <td id="b2_c_sum" style="${SV}"></td>${mt()}${mt()}
+      </tr>
+      <tr>
+        ${lbl('적격<br>여부',3)}${it('감리원배치계획')}${sc('적·부')}${inp('c_q1','적')}${mt()}${eg('예) 예정공점표와 감리원배치 적합')}
+      </tr>
+      <tr>${it('업무중첩도')}${sc('적·부')}${inp('c_q2','적')}${mt()}${eg('예) 중복배치 없음')}</tr>
+      <tr>${it('감리원 추가의무배치')}${sc('적·부')}${inp('c_q3','적')}${mt()}${eg('예) 건축감리원 0명 추가 배치')}</tr>
 
-      <table style="border-collapse:collapse;width:100%;font-size:8.5pt">
-        <thead>
-          <tr>
-            ${th('구분')}${th('평 가 항 목')}${th('점수기준')}${th('평점<br>신청자')}${th('평점<br>지정권자')}${th('평점 신청근거<br>(해당 사항만 기재)')}
-          </tr>
-        </thead>
-        <tbody>
-          <!-- 감리자(감리회사) -->
-          ${coSectionRows}
+      <!-- 감리원 outer(rowspan=30) + 총괄감리원 8행 -->
+      <tr>
+        <td rowspan="30" style="text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px;writing-mode:vertical-rl;letter-spacing:4px">감리원</td>
+        ${lbl('총괄<br>감리원',8)}${it('등급',2)}${sc(6)}${inp('ch_g',chief.gradeScore.toFixed(1))}${mt()}${eg(pGr('chief'))}
+      </tr>
+      <tr>${lbl('경력<br>및<br>실적',2)}${it('경력 및 실적')}${sc('18<br>(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief))}</tr>
+      <tr>${it('(면접(발표))')}${sc('(3)')}${inp('ch_i',0)}${mt()}${eg('* ( )는 면접을 실시하는 경우 배점')}</tr>
+      <tr>${it('감리업무 수행계획서',2)}${sc(3)}${inp('ch_p',3)}${mt()}${eg('')}</tr>
+      <tr>${lbl('가점')}${it('자격가점')}${sc('(0.2)')}${inp('ch_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
+      <tr>${lbl('감점',2)}${it('행정제재')}${sc('(-2)')}${inp('ch_ad',0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>${it('교체빈도')}${sc('(-1)')}${inp('ch_r',0)}${mt()}${eg('예) 00(건)')}</tr>
+      <tr>
+        <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
+        <td id="b2_ch_sum" style="${SV}"></td>${mt()}${mt()}
+      </tr>
 
-          <!-- 총괄감리원 -->
-          <tr>
-            <td rowspan="8" style="text-align:center;font-weight:700;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb;background:#f5f5f5">총괄<br>감리원</td>
-            ${tdL('등급')}${tdC(6)}${tdC(chief.gradeScore.toFixed(1),true)}${tdC('')}${tdL(personnel['chief'].info.name ? '예) ' + (personnel['chief'].info.appliedGrade||'특급') + '건설기술자' : '')}
-          </tr>
-          <tr>
-            ${tdL('경력 및 실적')}${tdC('18<br>(15)')}${tdC(chief.expScore.toFixed(1),true)}${tdC('')}${tdL(chief.convYears>0 ? convYr('chief') : '')}
-          </tr>
-          <tr>${tdL('&nbsp;&nbsp;(면접(발표))')}${tdC('(3)')}${tdC('')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('감리업무수행계획서')}${tdC(3)}${inputTd('planScore','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('가점: 자격가점')}${tdC('(0.2)')}${inputTd('chiefQual','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('감점: 행정제재')}${tdC('(-2)')}${inputTd('chiefAdmin','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('감점: 교체빈도')}${tdC('(-1)')}${inputTd('chiefRep','')}${tdC('')}${tdL('')}</tr>
-          <tr>
-            <td colspan="2" style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">소 계</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">27</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;color:#000;border:1px solid #bbb">${(chief.gradeScore+chief.expScore).toFixed(1)}</td>
-            <td style="border:1px solid #bbb"></td><td style="border:1px solid #bbb"></td>
-          </tr>
+      <!-- 분야별 감리원 16행 -->
+      <tr>
+        ${lbl('분야별<br>감리원',16)}
+        ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g',arch.gradeScore.toFixed(1))}${mt()}${eg(pGr('arch'))}
+      </tr>
+      <tr>${it('토목')}${sc(2)}${inp('fc_g', personnel['civil']?.info?.name ? civil.gradeScore.toFixed(1) : '2')}${mt()}${eg(pGr('civil'))}</tr>
+      <tr>${it('기타설비')}${sc(2)}${inp('fm_g',mech.gradeScore.toFixed(1))}${mt()}${eg(pGr('mech'))}</tr>
+      <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e',arch.expScore.toFixed(1))}${mt()}${eg(pYr(arch))}</tr>
+      <tr>${it('토목')}${sc(7)}${inp('fc_e', personnel['civil']?.info?.name ? civil.expScore.toFixed(1) : '7')}${mt()}${eg(pYr(civil))}</tr>
+      <tr>${it('기타설비')}${sc(7)}${inp('fm_e',mech.expScore.toFixed(1))}${mt()}${eg(pYr(mech))}</tr>
+      <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
+      <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(0.1)')}${inp('fm_qb',0)}${mt()}${eg('')}</tr>
+      <tr>${lbl('감점<br>행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>${it('토목')}${sc('(-1)')}${inp('fc_ad',0)}${mt()}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-1)')}${inp('fm_ad',0)}${mt()}${eg('')}</tr>
+      <tr>${lbl('감점<br>교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${mt()}${eg('예) 00(건)')}</tr>
+      <tr>${it('토목')}${sc('(-0.5)')}${inp('fc_r',0)}${mt()}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-0.5)')}${inp('fm_r',0)}${mt()}${eg('')}</tr>
+      <tr>
+        <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
+        <td id="b2_f_sum" style="${SV}"></td>${mt()}${mt()}
+      </tr>
 
-          <!-- 분야별감리원 -->
-          <tr>
-            <td rowspan="16" style="text-align:center;font-weight:700;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb;background:#f5f5f5">감<br>리<br>원<br><br>분<br>야<br>별</td>
-            ${tdL('등급&emsp;건축')}${tdC(2)}${tdC(arch.gradeScore.toFixed(1),true)}${tdC('')}${tdL(personnel['arch'].info.name?'예) '+((personnel['arch'].info.appliedGrade||'특급')+'건설기술자'):'')}
-          </tr>
-          <tr>${tdL('경력 및 실적&emsp;건축')}${tdC(7)}${tdC(arch.expScore.toFixed(1),true)}${tdC('')}${tdL(arch.convYears>0?convYr('arch'):'')}</tr>
-          <tr>${tdL('자격가점&emsp;건축')}${tdC('(0.1)')}${inputTd('archQual','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('행정제재&emsp;건축')}${tdC('(-1)')}${inputTd('archAdmin','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('교체빈도&emsp;건축')}${tdC('(-0.5)')}${inputTd('archRep','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('등급&emsp;토목')}${tdC(2)}${tdC(civil.gradeScore.toFixed(1),true)}${tdC('')}${tdL(personnel['civil'].info.name?'예) '+((personnel['civil'].info.appliedGrade||'특급')+'건설기술자'):'')}</tr>
-          <tr>${tdL('경력 및 실적&emsp;토목')}${tdC(7)}${tdC(civil.expScore.toFixed(1),true)}${tdC('')}${tdL(civil.convYears>0?convYr('civil'):'')}</tr>
-          <tr>${tdL('자격가점&emsp;토목')}${tdC('(0.1)')}${inputTd('civilQual','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('행정제재&emsp;토목')}${tdC('(-1)')}${inputTd('civilAdmin','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('교체빈도&emsp;토목')}${tdC('(-0.5)')}${inputTd('civilRep','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('등급&emsp;기타설비')}${tdC(2)}${tdC(mech.gradeScore.toFixed(1),true)}${tdC('')}${tdL(personnel['mech'].info.name?'예) '+((personnel['mech'].info.appliedGrade||'특급')+'건설기술자'):'')}</tr>
-          <tr>${tdL('경력 및 실적&emsp;기타설비')}${tdC(7)}${tdC(mech.expScore.toFixed(1),true)}${tdC('')}${tdL(mech.convYears>0?convYr('mech'):'')}</tr>
-          <tr>${tdL('자격가점&emsp;기타설비')}${tdC('(0.1)')}${inputTd('mechQual','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('행정제재&emsp;기타설비')}${tdC('(-1)')}${inputTd('mechAdmin','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('교체빈도&emsp;기타설비')}${tdC('(-0.5)')}${inputTd('mechRep','')}${tdC('')}${tdL('')}</tr>
-          <tr>
-            <td colspan="2" style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">소 계</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">27</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;color:#000;border:1px solid #bbb">${(arch.gradeScore+arch.expScore+civil.gradeScore+civil.expScore+mech.gradeScore+mech.expScore).toFixed(1)}</td>
-            <td style="border:1px solid #bbb"></td><td style="border:1px solid #bbb"></td>
-          </tr>
+      <!-- 비상주감리원 5행 -->
+      <tr>
+        ${lbl('비상주<br>감리원',5)}${it('등급',2)}${sc(2)}${inp('n_g',nonr.gradeScore.toFixed(1))}${mt()}${eg(pi['nonres']?.info?.name?'예) '+(pi['nonres'].info.appliedGrade||'고급')+'건설기술자, 현장배치 0개소':'')}
+      </tr>
+      <tr>${it('경력 및 실적',2)}${sc(4)}${inp('n_e', personnel['nonres']?.info?.name ? nonr.expScore.toFixed(1) : '4')}${mt()}${eg(pYr(nonr))}</tr>
+      <tr>${lbl('감점',2)}${it('행정제재')}${sc('(-1)')}${inp('n_ad',0)}${mt()}${eg('예) 업무정지 00(월)')}</tr>
+      <tr>${it('교체빈도')}${sc('(-1)')}${inp('n_r',0)}${mt()}${eg('예) 00(건)')}</tr>
+      <tr>
+        <td colspan="2" style="${SR}">소 계</td><td style="${SR}">6</td>
+        <td id="b2_n_sum" style="${SV}"></td>${mt()}${mt()}
+      </tr>
 
-          <!-- 비상주감리원 -->
-          <tr>
-            <td rowspan="5" style="text-align:center;font-weight:700;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb;background:#f5f5f5">비상주<br>감리원</td>
-            ${tdL('등급')}${tdC(2)}${tdC(nonr.gradeScore.toFixed(1),true)}${tdC('')}${tdL(personnel['nonres'].info.name?'예) '+((personnel['nonres'].info.appliedGrade||'고급')+'건설기술자, 현장배치 0개소'):'')}
-          </tr>
-          <tr>${tdL('경력 및 실적')}${tdC(4)}${tdC(nonr.expScore.toFixed(1),true)}${tdC('')}${tdL(nonr.convYears>0?convYr('nonres'):'')}</tr>
-          <tr>${tdL('감점: 행정제재')}${tdC('(-1)')}${inputTd('nonrAdmin','')}${tdC('')}${tdL('')}</tr>
-          <tr>${tdL('감점: 교체빈도')}${tdC('(-1)')}${inputTd('nonrRep','')}${tdC('')}${tdL('')}</tr>
-          <tr>
-            <td colspan="2" style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">소 계</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;padding:5px;border:1px solid #bbb;background:#eee">6</td>
-            <td style="text-align:center;font-weight:700;font-size:8.5pt;color:#000;border:1px solid #bbb">${(nonr.gradeScore+nonr.expScore).toFixed(1)}</td>
-            <td style="border:1px solid #bbb"></td><td style="border:1px solid #bbb"></td>
-          </tr>
+      <!-- 감리원 계 -->
+      <tr>
+        <td colspan="3" style="${SR}">계</td><td style="${SR}">60</td>
+        <td id="b2_mon_sum" style="${SV}"></td>${mt()}${mt()}
+      </tr>
 
-          <!-- 총계 -->
-          <tr>
-            <td colspan="2" style="text-align:center;font-weight:800;font-size:10pt;padding:7px;border:1px solid #999;background:#d9d9d9">총&emsp;계</td>
-            <td style="text-align:center;font-weight:800;font-size:10pt;padding:7px;border:1px solid #999;background:#d9d9d9">100</td>
-            <td style="text-align:center;font-weight:700;font-size:10pt;color:#000;border:1px solid #999;background:#eef6fb">${(chief.gradeScore+chief.expScore+arch.gradeScore+arch.expScore+civil.gradeScore+civil.expScore+mech.gradeScore+mech.expScore+nonr.gradeScore+nonr.expScore).toFixed(1)}<span style="font-size:8pt">/60점</span></td>
-            <td style="border:1px solid #999;background:#d9d9d9"></td>
-            <td style="border:1px solid #999;background:#d9d9d9"></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div style="font-size:8pt;line-height:1.7;margin:14px 0 6px">
-        상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출함을 확인하고, 제출된 신청자 평점 중 "허위·거짓 등"의 방법으로 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰한 등의 불이익을 받을 수 있음을 확인합니다.
-      </div>
-      <div style="text-align:right;font-size:9.5pt;margin:10px 20px 6px 0">
-        년 &emsp;월 &emsp;일
-      </div>
-      <div style="text-align:right;font-size:9.5pt;margin:4px 20px 0 0">
-        입찰자(대표자) &emsp;&emsp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
-      </div>
-      <div style="text-align:right;font-size:7pt;color:#666;margin-top:10px">구비서류 : 감리원배치계획서 1부.</div>
-      <div style="text-align:right;font-size:7.5pt;color:#666;margin-top:2px">210㎜×297㎜[백상지(80g/㎡)]</div>
-    </div>`;
+      <!-- 총계 -->
+      <tr>
+        <td colspan="4" style="text-align:center;font-weight:800;font-size:9.5pt;padding:6px;border:1px solid #999;background:#d9d9d9">총&emsp;계</td>
+        <td style="text-align:center;font-weight:800;font-size:9.5pt;padding:6px;border:1px solid #999;background:#d9d9d9">100</td>
+        <td id="b2_total" style="${SV};font-size:9.5pt"></td>
+        <td style="border:1px solid #999;background:#d9d9d9"></td>
+        <td style="border:1px solid #999;background:#d9d9d9"></td>
+      </tr>
+      </tbody>
+    </table>
+    <div style="font-size:7.5pt;line-height:1.7;margin:12px 0 6px">
+      상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출함을 확인하고, 제출된 신청자 평점 중 "허위·거짓 등"의 방법으로 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰한 등의 불이익을 받을 수 있음을 확인합니다.
+    </div>
+    <div style="text-align:right;font-size:9pt;margin:8px 20px 4px 0">${getSubmitDateStr()}</div>
+    <div style="text-align:right;font-size:9pt;margin:4px 20px 0 0">
+      입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
+    </div>
+    <div style="text-align:right;font-size:7pt;color:#666;margin-top:8px">구비서류 : 감리원배치계획서 1부.</div>
+    <div style="text-align:right;font-size:7.5pt;color:#666;margin-top:2px">210㎜×297㎜[백상지(80g/㎡)]</div>
+  </div>`;
+  setTimeout(calcB2, 50);
 }
 
 function renderByeolji2() {
@@ -3763,8 +3943,8 @@ function renderInputSheet() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
-  const today = new Date();
-  const y = today.getFullYear(), mo = String(today.getMonth()+1).padStart(2,' '), d = String(today.getDate()).padStart(2,' ');
+  const _sd = getSubmitDateStr(), _sdm = _sd.match(/(\d{4})년\s*(\d+)월\s*(\d+)일/) || [];
+  const y = _sdm[1]||new Date().getFullYear(), mo = _sdm[2]?String(_sdm[2]).padStart(2,' '):String(new Date().getMonth()+1).padStart(2,' '), d = _sdm[3]?String(_sdm[3]).padStart(2,' '):String(new Date().getDate()).padStart(2,' ');
   const bidAmount = document.getElementById('bidAmount').value || '';
   const bidPrice = document.getElementById('bidPrice').value || '';
   const allR = getAllRoles();
@@ -3897,8 +4077,7 @@ function scrollToSection(tabId, sectionId) {
 // ══════════════════════════════════════════════════════
 function renderByeolchum1() {
   const pj = getProjectData(), co = getCompanyData();
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  const dateStr = getSubmitDateStr();
   const authority = pj.submitTo || pj.authority || '○○시장';
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
@@ -3924,8 +4103,7 @@ function renderByeolchum1() {
 // ══════════════════════════════════════════════════════
 function renderSayongIngam() {
   const pj = getProjectData(), co = getCompanyData();
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  const dateStr = getSubmitDateStr();
   document.getElementById('sayongIngamPreview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
       <h2 style="text-align:center;font-size:28px;letter-spacing:16px;margin:40px 0 50px;">사 용 인 감 계</h2>
@@ -3992,35 +4170,80 @@ function renderDocImagePreview() {
 function renderDelegation() {
   const co = getCompanyData();
   const pj = getProjectData();
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,' ')}월 ${String(today.getDate()).padStart(2,' ')}일`;
+  const dateStr = getSubmitDateStr();
   const dlName = document.getElementById('dl_name')?.value || '';
   const dlPosition = document.getElementById('dl_position')?.value || '';
   const dlIdNo = document.getElementById('dl_idNo')?.value || '';
   const dlScope = document.getElementById('dl_scope')?.value || '';
+  const dlPersonalAddress = document.getElementById('dl_personalAddress')?.value || '';
+  const dlEmployedSince = document.getElementById('dl_employedSince')?.value || '';
+  const dlPurpose = document.getElementById('dl_purpose')?.value || '감리입찰업무';
+
+  // 재직기간 포맷
+  let employedStr = '';
+  if (dlEmployedSince) {
+    const m = dlEmployedSince.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) employedStr = `${m[1]}년 ${m[2].padStart(2,'0')}월 ${m[3].padStart(2,'0')}일부터 현재까지 재직 중임`;
+    else employedStr = dlEmployedSince + '부터 현재까지 재직 중임';
+  }
+
+  const thS = 'style="padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center;font-size:14px"';
+  const tdS = 'style="padding:10px 14px;border:1px solid #999;font-size:14px"';
+
+  const thC = 'style="padding:7px 10px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center;font-size:13px;white-space:nowrap"';
+  const tdC = 'style="padding:7px 10px;border:1px solid #999;font-size:13px"';
+  const sigBlock = `<div style="text-align:right;margin-right:30px;line-height:2;font-size:13px;">
+    <div>주&emsp;&emsp;소 : ${escHtml(co.address||'')}</div>
+    <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
+    <div>대 표 이 사 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+  </div>`;
+
   document.getElementById('delegationPreview').innerHTML = `
-    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:14px;line-height:2.2;color:#000;">
-      <h2 style="text-align:center;font-size:26px;letter-spacing:12px;margin:40px 0 50px;font-weight:800">위&ensp;임&ensp;장</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:30px;">
-        <tr><td style="width:25%;padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">수임자 성명</td>
-            <td style="padding:10px 14px;border:1px solid #999">${escHtml(dlName)}</td>
-            <td style="width:25%;padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">주민등록번호</td>
-            <td style="padding:10px 14px;border:1px solid #999">${escHtml(dlIdNo)}</td></tr>
-        <tr><td style="padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">직 위</td>
-            <td colspan="3" style="padding:10px 14px;border:1px solid #999">${escHtml(dlPosition)}</td></tr>
-        <tr><td style="padding:10px 14px;border:1px solid #999;background:#f5f5f5;font-weight:700;text-align:center">위임 사항</td>
-            <td colspan="3" style="padding:10px 14px;border:1px solid #999">${escHtml(dlScope)}</td></tr>
+    <div class="a4-page" style="padding:40px 50px;font-family:'Batang','바탕',serif;font-size:13px;line-height:1.8;color:#000;display:flex;flex-direction:column;gap:0;">
+
+      <!-- ① 위임장 -->
+      <h2 style="text-align:center;font-size:24px;letter-spacing:10px;margin:0 0 18px;font-weight:800">위&ensp;임&ensp;장</h2>
+      <div style="text-align:center;font-size:13px;line-height:1.7;margin-bottom:12px;">
+        다음의 재직자에게 「${escHtml(pj.name || '주택건설공사')}」에 관련한 권한 일체를 위임합니다.
+      </div>
+      <div style="text-align:right;font-size:12px;margin-bottom:6px;">${dateStr}</div>
+      <div style="font-weight:700;margin-bottom:8px;font-size:13px;">${escHtml(pj.submitTo || pj.authority || '')} 귀하</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+        <tr><td ${thC} style="width:22%">수임자 성명</td>
+            <td ${tdC}>${escHtml(dlName)}</td>
+            <td ${thC} style="width:22%">주민등록번호</td>
+            <td ${tdC}>${escHtml(dlIdNo)}</td></tr>
+        <tr><td ${thC}>직&emsp;&emsp;위</td>
+            <td colspan="3" ${tdC}>${escHtml(dlPosition)}</td></tr>
+        <tr><td ${thC}>위 임 사 항</td>
+            <td colspan="3" ${tdC}>${escHtml(dlScope)}</td></tr>
       </table>
-      <div style="text-indent:2em;text-align:justify;margin:30px 0 20px;">
-        상기인에게 「${escHtml(pj.name || '주택건설공사')}」 감리자 지정 입찰에 관한 일체의 권한을 위임합니다.
-      </div>
-      <div style="text-align:center;font-size:15px;margin:50px 0 60px;">${dateStr}</div>
-      <div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:6px;">위임자 (대표이사)</div>
-      <div style="text-align:right;margin-right:40px;line-height:2.4;">
-        <div>상&emsp;&emsp;호 : ${escHtml(co.name||'')}</div>
-        <div>주&emsp;&emsp;소 : ${escHtml(co.address||'')}</div>
-        <div>대 표 이 사 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
-      </div>
+
+      <!-- 구분선 -->
+      <hr style="border:none;border-top:2px dashed #999;margin:20px 0;">
+
+      <!-- ② 재직증명서 -->
+      <h2 style="text-align:center;font-size:24px;letter-spacing:10px;margin:0 0 16px;font-weight:800">재 직 증 명 서</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+        <tr><td ${thC} style="width:18%">주&ensp;&ensp;소</td>
+            <td colspan="3" ${tdC}>${escHtml(dlPersonalAddress)}</td></tr>
+        <tr><td ${thC}>직&ensp;&ensp;위</td>
+            <td colspan="3" ${tdC}>${escHtml(dlPosition)}</td></tr>
+        <tr><td ${thC}>성&ensp;&ensp;명</td>
+            <td ${tdC}>${escHtml(dlName)}</td>
+            <td ${thC} style="width:18%">주민등록번호</td>
+            <td ${tdC}>${escHtml(dlIdNo)}</td></tr>
+        <tr><td ${thC}>재 직 기 간</td>
+            <td colspan="3" ${tdC}>${escHtml(employedStr)}</td></tr>
+        <tr><td ${thC}>용&ensp;&ensp;도</td>
+            <td ${tdC}>${escHtml(dlPurpose)}</td>
+            <td ${thC}>제&ensp;출&ensp;처</td>
+            <td ${tdC}>${escHtml(pj.submitTo || pj.authority || '')}</td></tr>
+      </table>
+      <div style="text-align:center;font-size:13px;font-weight:bold;margin:10px 0 8px;">위의 내용이 사실임을 증명합니다.</div>
+      <div style="text-align:center;font-size:13px;margin-bottom:14px;">${dateStr}</div>
+      ${sigBlock}
+
     </div>`;
   renderDocImagePreview();
 }
@@ -4039,46 +4262,69 @@ function removePerfRow(i) { perfRecords.splice(i,1); renderPerfTable(); triggerA
 function renderPerfTable() {
   const tbody = document.getElementById('perfTableBody');
   if(!tbody) return;
-  tbody.innerHTML = perfRecords.map((r,i) => `<tr>
+  // 모집공고일 파싱
+  const annRaw = document.getElementById('pj_submitDate')?.value || '';
+  const annParts = annRaw.split(/[.\-\/]/);
+  const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
+  let totalCalcWon = 0;
+  tbody.innerHTML = perfRecords.map((r,i) => {
+    const calc = calcPerfRecord(r, annDate);
+    const calcDisp = calc ? calc.calcAmount.toFixed(2) : '-';
+    const calcTip = calc ? `총${calc.totalDays}일 / 3년이내${calc.recentDays}일 / 비율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
+    if(calc) totalCalcWon += calc.calcWon;
+    return `<tr>
     <td style="text-align:center;border:1px solid #ccc;padding:4px">${i+1}</td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="number" value="${r.suspendDays||0}" onchange="perfRecords[${i}].suspendDays=+this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><select onchange="perfRecords[${i}].type=this.value" style="width:100%;border:none;padding:4px;font-size:12px">
-      <option value="주택건설" ${r.type==='주택건설'?'selected':''}>주택건설</option>
-      <option value="비주택건축" ${r.type==='비주택건축'?'selected':''}>비주택건축</option>
-      <option value="토목" ${r.type==='토목'?'selected':''}>토목</option>
-      <option value="설비" ${r.type==='설비'?'selected':''}>설비</option>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" value="${r.suspendDays||0}" onchange="perfRecords[${i}].suspendDays=+this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><select onchange="perfRecords[${i}].type=this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px">
+      <option value="주택건설" ${r.type==='주택건설'?'selected':''}>주택건설(100%)</option>
+      <option value="비주택건축" ${r.type==='비주택건축'?'selected':''}>비주택건축(80%)</option>
     </select></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:4px;text-align:center;background:#f0f9ff;font-size:12px;font-weight:700" title="${calcTip}">${calcDisp}</td>
     <td style="border:1px solid #ccc;padding:2px;text-align:center"><button onclick="removePerfRow(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-weight:bold;">✕</button></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
+  // 합계행
+  const totalDisp = (totalCalcWon/100000000).toFixed(2);
+  tbody.innerHTML += `<tr style="background:#e8f4fb;font-weight:700">
+    <td colspan="7" style="border:1px solid #ccc;padding:6px;text-align:right">합 계 (3년이내 환산금액)</td>
+    <td style="border:1px solid #ccc;padding:6px;text-align:center;color:#1d4ed8">${totalDisp}억</td>
+    <td style="border:1px solid #ccc"></td>
+  </tr>`;
+  // 모집공고일 미설정 경고
+  if(!annRaw) {
+    tbody.innerHTML += `<tr><td colspan="9" style="padding:6px;color:#dc2626;font-size:12px;border:1px solid #ccc">⚠ 데이터 입력 탭의 "제출일(모집공고일)"을 입력해야 정확한 3년 기준 계산이 됩니다.</td></tr>`;
+  }
 }
-function calcPerfRecord(r) {
-  const parseD = s => { const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
+function calcPerfRecord(r, announcementDate) {
+  const parseD = s => { if(!s) return null; const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
   const s = parseD(r.startDate), e = parseD(r.endDate);
   if(!s||!e) return null;
-  const totalDays = Math.round((e-s)/(86400000));
-  const suspend = r.suspendDays||0;
-  const netDays = totalDays - suspend;
-  // 최근 3년 기준일 (오늘 기준)
-  const now = new Date();
-  const y3ago = new Date(now.getFullYear()-3, now.getMonth(), now.getDate());
-  const recentStart = s < y3ago ? y3ago : s;
-  const recentEnd = e > now ? now : e;
-  const recentDays = Math.max(0, Math.round((recentEnd-recentStart)/86400000));
-  const recentSuspend = 0; // 중지기간 비율 적용 가능하나 단순화
-  const applicableDays = totalDays;
-  const appliedDays = recentDays - recentSuspend;
-  const periodRate = applicableDays > 0 ? appliedDays / applicableDays : 0;
-  const typeRateMap = { '주택건설':1.0, '비주택건축':0.8, '토목':0.6, '설비':0.6 };
-  const typeRate = typeRateMap[r.type] || 0.8;
-  const isHousing = r.type === '주택건설';
-  const converted = r.amount * periodRate * typeRate;
-  return { totalDays, suspend, netDays, recentDays, recentSuspend, applicableDays, appliedDays,
-    periodRate, typeRate, isHousing, amount: r.amount, converted, name: r.name,
-    startDate: r.startDate, endDate: r.endDate, type: r.type };
+  const totalDays = Math.round((e-s)/86400000);
+  if(totalDays<=0) return null;
+  // 모집공고일 기준
+  const annDate = announcementDate || new Date();
+  // 3년 이내 기준일
+  const cutoff = new Date(annDate.getFullYear()-3, annDate.getMonth(), annDate.getDate());
+  // 3년 이내 시작일 = max(착공일, 기준일)
+  const effStart = s < cutoff ? cutoff : s;
+  // 준공 여부에 따라 종료일 결정
+  const isCompleted = e <= annDate;
+  const effEnd = isCompleted ? e : new Date(annDate.getTime()-86400000); // 수행중: 공고일 전날
+  const recentDays = Math.max(0, Math.round((effEnd-effStart)/86400000));
+  // 수행금액 = 감리금액 × (3년이내 수행일수 / 총공사기간일수) [소수점이하 절사]
+  // 비주택건축(건축법·건설기술진흥법 건축공사) = 80% 인정
+  const typeRate = (r.type === '비주택건축') ? 0.8 : 1.0;
+  const ratio = recentDays / totalDays;
+  // amount는 억원 단위: 원 단위 변환 후 절사 후 다시 억원으로
+  const amountWon = (r.amount || 0) * 100000000;
+  const calcWon = Math.floor(amountWon * ratio * typeRate);
+  const calcAmount = calcWon / 100000000; // 억원
+  return { totalDays, recentDays, ratio, typeRate, isCompleted, calcAmount, calcWon,
+    name: r.name, startDate: r.startDate, endDate: r.endDate, type: r.type, amount: r.amount };
 }
 function handlePerfPdfDrop(e) { if(e.dataTransfer&&e.dataTransfer.files) handlePerfPdf(e.dataTransfer.files[0]); }
 async function handlePerfPdf(file) {
@@ -4204,11 +4450,11 @@ function renderByeolchum2() {
 function renderByeolchum3() {
   syncPersonInfo();
   const co = getCompanyData();
-  const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5"';
-  const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt"';
+  const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5;color:#000"';
+  const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt;color:#000"';
   let html = '';
   // 평가대상 감리원 (chief, arch/civil/mech, nonres)
-  const evalRoles = [...ROLES.filter(r => !r.isNew), ...nonEvalList];
+  const evalRoles = [...ROLES, ...nonEvalList];
   evalRoles.forEach(role => {
     const p = personnel[role.id];
     if(!p.info.name) return;
@@ -4238,7 +4484,7 @@ function renderByeolchum3() {
       const convDays = Math.round((c.days||0)*rate);
       html += `<tr>
         ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="writing-mode:vertical-lr;letter-spacing:3px;font-weight:700;font-size:9pt;line-height:1.4;padding:8px 4px">${escHtml(placementLabel)}<br>＜${escHtml(fieldLabel)}＞<br>${escHtml(p.info.name)}</td>` : ''}
-        <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.siteName||'')}</td>
+        <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
         <td ${tdS} style="font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
         <td ${tdS}>${c.days||0}</td>
         <td ${tdS}>${rate.toFixed(1)}</td>
@@ -4254,8 +4500,8 @@ function renderByeolchum3() {
     </tr></tbody></table></div>`;
   });
   // 별첨4 신규감리원
-  const newRoles = ROLES.filter(r => r.isNew);
-  const hasNew = newRoles.some(r => personnel[r.id].info.name);
+  const newRoles = newEvalList;
+  const hasNew = newRoles.some(r => personnel[r.id] && personnel[r.id].info.name);
   html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
     <div style="font-size:12pt;margin-bottom:2px;">[별첨 4]</div>
     <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○신규감리원</div>`;
@@ -4578,6 +4824,72 @@ async function openLawSearch(query) {
       `<p style="color:#666;margin:0;">국가법령정보센터: <a href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(lawName)}" target="_blank" style="color:#0066cc;">www.law.go.kr 열기 →</a></p>`;
   }
 }
+
+// ══════════════════════════════════════════════════════
+//  음성인식 (스페이스바 토글, 포커스 입력 필드에 삽입)
+// ══════════════════════════════════════════════════════
+(function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+
+  let rec = null;
+  let lastInput = null; // 마지막으로 포커스된 input/textarea
+
+  // 플로팅 상태 표시 배지
+  const badge = document.createElement('div');
+  badge.id = 'voice-badge';
+  badge.textContent = '🎤 음성입력 중...';
+  Object.assign(badge.style, {
+    display: 'none', position: 'fixed', bottom: '20px', left: '50%',
+    transform: 'translateX(-50%)', background: '#ef4444', color: '#fff',
+    padding: '8px 20px', borderRadius: '20px', fontWeight: '600',
+    fontSize: '14px', zIndex: '9999', boxShadow: '0 2px 8px rgba(0,0,0,.3)',
+    pointerEvents: 'none'
+  });
+  document.body.appendChild(badge);
+
+  // 포커스 추적
+  document.addEventListener('focusin', e => {
+    if (e.target.matches('input, textarea')) lastInput = e.target;
+  });
+
+  function startRec() {
+    if (rec) return;
+    rec = new SpeechRecognition();
+    rec.lang = 'ko-KR';
+    rec.continuous = false;
+    rec.interimResults = false;
+    badge.style.display = 'block';
+
+    rec.onresult = e => {
+      const text = e.results[0][0].transcript;
+      const el = lastInput || document.activeElement;
+      if (el && el.matches('input, textarea')) {
+        const s = el.selectionStart ?? el.value.length;
+        const f = el.selectionEnd ?? el.value.length;
+        el.value = el.value.slice(0, s) + text + el.value.slice(f);
+        el.selectionStart = el.selectionEnd = s + text.length;
+        el.dispatchEvent(new Event('change'));
+        el.dispatchEvent(new Event('input'));
+      }
+    };
+    rec.onerror = rec.onend = () => { rec = null; badge.style.display = 'none'; };
+    rec.start();
+  }
+
+  function stopRec() {
+    if (rec) { rec.stop(); rec = null; badge.style.display = 'none'; }
+  }
+
+  // 스페이스바: input/textarea/button 외 요소에 포커스일 때 토글
+  document.addEventListener('keydown', e => {
+    if (e.code !== 'Space') return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return;
+    e.preventDefault();
+    rec ? stopRec() : startRec();
+  });
+})();
 </script>
 </body>
 </html>
