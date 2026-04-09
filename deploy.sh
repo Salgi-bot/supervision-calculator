@@ -1,6 +1,6 @@
 #!/bin/bash
 # 주택건설공사 — GitHub Pages 배포 스크립트
-REPO="/Users/salgi/감리경력환산시스템"
+REPO="/Users/salgi/주택건설공사"
 FILE="index.html"
 GH_URL="https://salgi-bot.github.io/supervision-calculator/"
 LOG="/tmp/deploy_verify.log"
