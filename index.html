@@ -1449,20 +1449,21 @@ const ROLES = [
   { id: 'nonres', label: '비상주감리원',     field: '건축', placement: '비상주', icon: '📋', rowLabel: '비상주' },
 ];
 
-function makeEmptyPerson(role) {
+function makeEmptyPerson(role, isDash = false) {
+  const d = isDash ? '-' : '';
   return {
     info: {
-      name: '', birthdate: '', field: role.field, placement: role.placement,
+      name: d, birthdate: d, field: role.field, placement: role.placement,
       grade: '특급', cmGrade: '없음', cert: '', appliedGrade: '특급',
-      regNo: '', issueDate: '', company: '', memo: ''
+      regNo: d, issueDate: '', company: '', memo: ''
     },
     careers: []
   };
 }
 
-// App state
+// App state — civil2는 기본값 '-' 적용
 let personnel = {};
-ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2'); });
 let currentPersonId = 'chief';
 
 // 비평가감리원 동적 관리
@@ -1482,7 +1483,7 @@ function addNonEvalPerson() {
   const idx = nonEvalList.length + 1;
   const entry = { id, label: '비평가(' + idx + ')', field: '건축', placement: '비평가', icon: '👤', rowLabel: '비평가(' + idx + ')' };
   nonEvalList.push(entry);
-  personnel[id] = makeEmptyPerson(entry);
+  personnel[id] = makeEmptyPerson(entry, true); // 성명·생년월일·자격번호 기본값 '-'
   renderPersonCards();
   triggerAutoSave();
   showStatus('비평가감리원(' + idx + ') 추가됨');
@@ -1606,12 +1607,31 @@ function loadAutoSave() {
     }
     if (data.personnel) {
       personnel = data.personnel;
-      ROLES.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+      ROLES.forEach(r => {
+        if (!personnel[r.id]) {
+          personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2');
+        } else if (r.id === 'civil2') {
+          // 기존 저장값이 빈 문자열이면 '-' 로 마이그레이션
+          const info = personnel[r.id].info;
+          if (!info.name)      info.name      = '-';
+          if (!info.birthdate) info.birthdate = '-';
+          if (!info.regNo)     info.regNo     = '-';
+        }
+      });
     }
     if (data.nonEvalList) {
       nonEvalList = data.nonEvalList;
       nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
-      nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+      nonEvalList.forEach(r => {
+        if (!personnel[r.id]) {
+          personnel[r.id] = makeEmptyPerson(r, true);
+        } else {
+          const info = personnel[r.id].info;
+          if (!info.name)      info.name      = '-';
+          if (!info.birthdate) info.birthdate = '-';
+          if (!info.regNo)     info.regNo     = '-';
+        }
+      });
     }
     if (data.newEvalList) {
       newEvalList = data.newEvalList;
