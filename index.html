@@ -1594,6 +1594,9 @@ function doAutoSave() {
     b2EgState: b2EgState,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
+    deployState: deployState,
+    deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
+    deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
     savedAt: new Date().toISOString(),
   };
   try {
@@ -1675,6 +1678,9 @@ function loadAutoSave() {
     if (data.bidPrice) { const el = document.getElementById('bidPrice'); if (el) el.value = data.bidPrice; }
     if (data.b2NumState) b2NumState = data.b2NumState;
     if (data.b2EgState) b2EgState = data.b2EgState;
+    if (data.deployState) deployState = data.deployState;
+    if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
+    if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     loadPersonToForm(currentPersonId);
     const names = getAllRoles().filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
     if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
@@ -2314,6 +2320,9 @@ function saveAllJSON() {
     personnel: personnel,
     perfRecords: perfRecords,
     docImages: docImages,
+    deployState: deployState,
+    deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
+    deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
   };
   const pjName = data.project.name || '감리자지정';
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2372,6 +2381,10 @@ function loadV2Data(data) {
   if (data.perfRecords) { perfRecords = data.perfRecords; renderPerfTable(); }
   // Doc images
   if (data.docImages) { docImages = data.docImages; renderDocImageList(); renderDocImagePreview(); }
+  // 배치계획표 상태
+  if (data.deployState) deployState = data.deployState;
+  if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
+  if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
   loadPersonToForm(currentPersonId);
   renderCareerTable();
   calcConstructionDays();
