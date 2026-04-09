@@ -4045,6 +4045,28 @@ function parseYM(s) {
   if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return null;
   return { y, m };
 }
+// 4자리 YYMM 지원: 2601 → {y:2026, m:1}, 기존 YYYY.MM도 처리
+function parseYMShort(s) {
+  if (!s) return null;
+  const clean = String(s).replace(/\s/g, '');
+  if (/^\d{4}$/.test(clean)) {
+    const yy = parseInt(clean.substring(0,2)), mm = parseInt(clean.substring(2,4));
+    if (mm >= 1 && mm <= 12) return { y: 2000 + yy, m: mm };
+    return null;
+  }
+  return parseYM(clean);
+}
+function lastDay(y, m) { return new Date(y, m, 0).getDate(); }
+function fmtYMD(y, m, d) { return String(y).slice(-2)+'.'+String(m).padStart(2,'0')+'.'+String(d).padStart(2,'0'); }
+// 배치기간 자동 잠금 규칙 (기본 5역할만, 추가 감리원은 수동)
+function getDeployAutoRules(r) {
+  if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true,  lockEnd:true  };
+  if (r.id === 'civil')                                   return { lockStart:true,  lockEnd:false };
+  if (r.id === 'mech')                                    return { lockStart:false, lockEnd:true  };
+  return { lockStart:false, lockEnd:false };
+}
+// 환산비 기본값 (중급=1.0 기준 / 한국건설엔지니어링협회 2026년도 건설사업관리 기술인 노임 기준)
+const CONV_RATE_DEFAULTS = { '특급':1.50, '고급':1.20, '중급':1.00, '초급':0.75 };
 
 // 주택건설공사 감리자 지정기준 별표4 — 공사비(억원) → 법정 인·월수
 // (국토교통부 고시 제2024-529호 기준, 직선보간 적용)
@@ -4084,30 +4106,51 @@ function renderDeploySettings() {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || settingsEl.contains(document.activeElement)) return;
   const pj = getProjectData();
-  const defStart = pj.startDate ? pj.startDate.substring(0,7) : '';
-  const defEnd   = pj.endDate   ? pj.endDate.substring(0,7)   : '';
-  const roles = getAllRoles().filter(r => personnel[r.id].info.name);
+  const projStart = parseYM(pj.startDate);
+  const projEnd   = parseYM(pj.endDate);
+  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
+  if (!roles.length) {
+    settingsEl.innerHTML = '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
+    return;
+  }
+  const ISTY = 'width:56px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
+  const ISTY_LOCK = ISTY + ';background:#f0f0f0;color:#888;cursor:default';
+  const NSTY = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   settingsEl.innerHTML = roles.map(r => {
-    const ds = deployState[r.id] || {};
     const p  = personnel[r.id];
-    const defaultNote = r.placement === '비상주' ? '15%이내' : '';
-    return `<div style="display:flex;align-items:center;gap:8px">
-      <span style="min-width:130px;font-size:12px;font-weight:600">${escHtml(p.info.name)} <span style="font-weight:400;color:#666">(${r.placement})</span></span>
-      <input type="text" placeholder="${defStart}" value="${ds.startYM||''}" style="width:68px;font-size:11px"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()">
-      <span style="font-size:11px">~</span>
-      <input type="text" placeholder="${defEnd}" value="${ds.endYM||''}" style="width:68px;font-size:11px"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()">
-      <input type="text" placeholder="${defaultNote||'비고'}" value="${ds.note!==undefined?ds.note:''}" style="width:80px;font-size:11px"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].note=this.value;renderDeployTable()">
+    const ds = deployState[r.id] || {};
+    const grade    = p.info.appliedGrade || p.info.grade || '중급';
+    const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
+    const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
+    const auto     = getDeployAutoRules(r);
+    const startDisp = auto.lockStart
+      ? (projStart ? `${projStart.y}.${String(projStart.m).padStart(2,'0')}` : '')
+      : (ds.startYM || '');
+    const endDisp   = auto.lockEnd
+      ? (projEnd ? `${projEnd.y}.${String(projEnd.m).padStart(2,'0')}` : '')
+      : (ds.endYM || '');
+    return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0">
+      <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
+      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(${r.placement}·${grade})</span>
+      ${auto.lockStart
+        ? `<input type="text" value="${startDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
+        : `<input type="text" value="${startDisp}" placeholder="2601" maxlength="7" style="${ISTY}"
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()">`}
+      <span style="font-size:10px;color:#666">~</span>
+      ${auto.lockEnd
+        ? `<input type="text" value="${endDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
+        : `<input type="text" value="${endDisp}" placeholder="2612" maxlength="7" style="${ISTY}"
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()">`}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
+      <input type="number" value="${convRate}" step="0.01" min="0.1" max="9.99" style="${NSTY}"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;renderDeployTable()">
     </div>`;
-  }).join('') || '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
+  }).join('');
 }
 
 function renderDeployTable() {
   syncPersonInfo();
   const pj = getProjectData();
-  const co = getCompanyData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   const lawMonths = document.getElementById('deployLawMonths')?.value || '';
 
@@ -4128,46 +4171,57 @@ function renderDeployTable() {
   }
   const totalM = allMonths.length;
 
-  // 연도 그룹 (헤더 2행)
+  // 연도 그룹
   const yearGroups = [];
   allMonths.forEach(({ y }) => {
     if (!yearGroups.length || yearGroups.at(-1).y !== y) yearGroups.push({ y, count: 1 });
     else yearGroups.at(-1).count++;
   });
-  const TH_BASE = 'border:1px solid #aaa;text-align:center;vertical-align:middle;font-size:7.5pt;padding:2px 1px';
-  const TH_HDR  = `${TH_BASE};background:#6bcbcf;color:#000;font-weight:700`;
-  const TH_YR   = `${TH_BASE};background:#5db8c0;color:#fff;font-weight:700`;
-  const TH_MO   = `${TH_BASE};background:#8dd5db;font-size:6.5pt;padding:1px 0`;
+
+  // 흑백 계열 색상
+  const TH_BASE = 'border:1px solid #888;text-align:center;vertical-align:middle;font-size:7.5pt;padding:2px 1px';
+  const TH_HDR  = `${TH_BASE};background:#333;color:#fff;font-weight:700`;
+  const TH_YR   = `${TH_BASE};background:#555;color:#fff;font-weight:700`;
+  const TH_MO   = `${TH_BASE};background:#888;color:#fff;font-size:6.5pt;padding:1px 0`;
   const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}</th>`).join('');
   const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
 
   // 감리원 행 생성
-  const roles = getAllRoles().filter(r => personnel[r.id].info.name);
+  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
   let rows = '';
-  let totalPM = 0, nonresPM = 0;
+  let totalConvPM = 0, nonresPM = 0;
 
   roles.forEach(r => {
-    const p  = personnel[r.id];
-    const ds = deployState[r.id] || {};
-    const rs = (ds.startYM ? parseYM(ds.startYM) : null) || start;
-    const re = (ds.endYM   ? parseYM(ds.endYM)   : null) || end;
-    const note = ds.note !== undefined ? ds.note : (r.placement === '비상주' ? '15%이내' : '');
+    const p    = personnel[r.id];
+    const ds   = deployState[r.id] || {};
+    const auto = getDeployAutoRules(r);
+    const rs   = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
+    const re   = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
+
+    // 환산비
+    const grade    = p.info.appliedGrade || p.info.grade || '중급';
+    const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
+    const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
 
     let months = 0;
     const gantt = allMonths.map(({ y, m }) => {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
       if (inside) months++;
-      const bg = inside ? (r.placement === '총괄' ? '#5db8c0' : '#a8dde3') : '#fff';
-      return `<td style="background:${bg};border:1px solid #ccc;padding:0;height:16px"></td>`;
+      return `<td style="background:${inside ? '#aaa' : '#fff'};border:1px solid #ccc;padding:0;height:16px"></td>`;
     }).join('');
 
-    totalPM  += months;
+    const convPM = parseFloat((months * convRate).toFixed(2));
+    totalConvPM += convPM;
     if (r.placement === '비상주') nonresPM += months;
+
+    // 비고: 배치기간 자동 생성 (수동 입력 시 우선)
+    const autoNote = `${fmtYMD(rs.y, rs.m, 1)}~${fmtYMD(re.y, re.m, lastDay(re.y, re.m))}`;
+    const note = (ds.note !== undefined && ds.note !== '') ? ds.note : autoNote;
 
     const structLabel = r.placement === '총괄' ? '총괄' :
                         r.placement === '비상주' ? '비상주' :
                         r.isNew ? '신규' : '분야별';
-    const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle';
+    const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle;color:#111';
     rows += `<tr>
       <td style="${TD}">${structLabel}</td>
       <td style="${TD}">${escHtml(p.info.field)}</td>
@@ -4175,37 +4229,37 @@ function renderDeployTable() {
       <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
       ${gantt}
       <td style="${TD}">${months}</td>
-      <td style="${TD}">${months}</td>
-      <td style="${TD};font-size:7.5pt">${escHtml(note)}</td>
+      <td style="${TD}">${convPM % 1 === 0 ? convPM : convPM.toFixed(2)}</td>
+      <td style="${TD};font-size:6.5pt">${escHtml(note)}</td>
     </tr>`;
   });
 
   // 총배치 인월수 행
-  const blankGantt = allMonths.map(() => `<td style="background:#b0dce3;border:1px solid #bbb"></td>`).join('');
-  const TD_TOT = 'border:1px solid #aaa;text-align:center;font-size:8pt;font-weight:700;background:#9ad1d8;padding:3px';
+  const blankGantt = allMonths.map(() => `<td style="background:#ddd;border:1px solid #bbb"></td>`).join('');
+  const TD_TOT = 'border:1px solid #888;text-align:center;font-size:8pt;font-weight:700;background:#444;color:#fff;padding:3px';
+  const convTotal = parseFloat(totalConvPM.toFixed(2));
   rows += `<tr>
     <td colspan="4" style="${TD_TOT}">총배치 인월수</td>
     ${blankGantt}
     <td style="${TD_TOT}"></td>
-    <td style="${TD_TOT}">${totalPM}</td>
+    <td style="${TD_TOT}">${convTotal}</td>
     <td style="${TD_TOT}"></td>
   </tr>`;
 
-  const nonresRate = totalPM > 0 ? (nonresPM / totalPM * 100).toFixed(1) : '0.0';
+  const nonresRate = (nonresPM > 0 && totalConvPM > 0) ? (nonresPM / totalConvPM * 100).toFixed(1) : '0.0';
   const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
 
   document.getElementById('deployTablePreview').innerHTML = `
   <div class="a4-preview" id="deployDoc" style="overflow-x:auto">
     <div style="text-align:right;font-size:8.5pt;color:#555;margin-bottom:6px">[별첨 ${escHtml(annexNo)}]</div>
-    <div style="display:flex;justify-content:center;align-items:baseline;gap:30px;margin-bottom:14px">
-      <span style="font-size:14pt;font-weight:800;letter-spacing:3px">&lt;감&nbsp;리&nbsp;원&nbsp;배&nbsp;치&nbsp;계&nbsp;획&nbsp;표&gt;</span>
-      <span style="font-size:9pt;color:#555">(예시)</span>
+    <div style="text-align:center;margin-bottom:14px">
+      <span style="font-size:14pt;font-weight:800;letter-spacing:3px;color:#111">&lt;감&nbsp;리&nbsp;원&nbsp;배&nbsp;치&nbsp;계&nbsp;획&nbsp;표&gt;</span>
     </div>
     <table style="border-collapse:collapse;width:100%;table-layout:fixed">
       <colgroup>
         <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
         ${allMonths.map(() => `<col style="width:${colW}px">`).join('')}
-        <col style="width:28px"><col style="width:38px"><col style="width:38px">
+        <col style="width:28px"><col style="width:38px"><col style="width:55px">
       </colgroup>
       <thead>
         <tr>
@@ -4223,11 +4277,11 @@ function renderDeployTable() {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <div style="border:1px solid #888;margin-top:14px;padding:10px 14px;font-size:9pt;line-height:2">
+    <div style="border:1px solid #888;margin-top:14px;padding:10px 14px;font-size:9pt;line-height:2;color:#111">
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')}</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
-      <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${totalPM}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp) || lp <= 0) return ''; return totalPM >= lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 (' + (totalPM - lp).toFixed(1) + '인·월)</span>'; })()}</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)${parseFloat(nonresRate) > 15 ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 15% 초과</span>' : ''}</div>
+      <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)${parseFloat(nonresRate)>15 ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 15% 초과</span>' : ''}</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
