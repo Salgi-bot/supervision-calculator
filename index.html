@@ -1399,6 +1399,7 @@ tbody tr:hover td { background: var(--ci-light); }
         <option value="simple">간략 버전</option>
         <option value="detail">상세 버전</option>
         <option value="both">간략 + 상세</option>
+        <option value="calc">계산근거 확인</option>
       </select>
       <button class="btn" onclick="printTab('tab12')">인쇄 / PDF 저장</button>
     </div>
@@ -4855,7 +4856,7 @@ function renderPerfTable() {
   tbody.innerHTML = perfRecords.map((r,i) => {
     const calc = calcPerfRecord(r, annDate);
     const calcDisp = calc ? calc.calcAmount.toFixed(2) : '-';
-    const calcTip = calc ? `총${calc.totalDays}일 / 3년이내${calc.recentDays}일 / 비율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
+    const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
     if(calc) totalCalcWon += calc.calcWon;
     return `<tr>
     <td style="text-align:center;border:1px solid #ccc;padding:4px">${i+1}</td>
@@ -4890,6 +4891,8 @@ function calcPerfRecord(r, announcementDate) {
   if(!s||!e) return null;
   const totalDays = Math.round((e-s)/86400000);
   if(totalDays<=0) return null;
+  const suspend = Math.max(0, r.suspendDays || 0);
+  const applicableDays = Math.max(0, totalDays - suspend); // 해당일수 = 총감리일수 - 중지일수
   // 모집공고일 기준
   const annDate = announcementDate || new Date();
   // 3년 이내 기준일
@@ -4900,15 +4903,18 @@ function calcPerfRecord(r, announcementDate) {
   const isCompleted = e <= annDate;
   const effEnd = isCompleted ? e : new Date(annDate.getTime()-86400000); // 수행중: 공고일 전날
   const recentDays = Math.max(0, Math.round((effEnd-effStart)/86400000));
-  // 수행금액 = 감리금액 × (3년이내 수행일수 / 총공사기간일수) [소수점이하 절사]
-  // 비주택건축(건축법·건설기술진흥법 건축공사) = 80% 인정
+  // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분
+  const recentSuspend = totalDays > 0 ? Math.round(suspend * recentDays / totalDays) : 0;
+  const appliedDays = Math.max(0, recentDays - recentSuspend); // 적용일수
+  // 적용기간요율 = 적용일수 / 해당일수
   const typeRate = (r.type === '비주택건축') ? 0.8 : 1.0;
-  const ratio = recentDays / totalDays;
+  const ratio = applicableDays > 0 ? appliedDays / applicableDays : 0;
   // amount는 억원 단위: 원 단위 변환 후 절사 후 다시 억원으로
   const amountWon = (r.amount || 0) * 100000000;
   const calcWon = Math.floor(amountWon * ratio * typeRate);
   const calcAmount = calcWon / 100000000; // 억원
-  return { totalDays, recentDays, ratio, typeRate, isCompleted, calcAmount, calcWon,
+  return { totalDays, suspend, applicableDays, recentDays, recentSuspend, appliedDays,
+    ratio, typeRate, isCompleted, calcAmount, calcWon,
     name: r.name, startDate: r.startDate, endDate: r.endDate, type: r.type, amount: r.amount };
 }
 function handlePerfPdfDrop(e) { if(e.dataTransfer&&e.dataTransfer.files) handlePerfPdf(e.dataTransfer.files[0]); }
@@ -4952,9 +4958,13 @@ async function handlePerfPdf(file) {
 
 function renderByeolchum2() {
   const mode = document.getElementById('perfOutputMode')?.value || 'simple';
-  const calcs = perfRecords.map(calcPerfRecord).filter(Boolean);
-  const totalAmount = calcs.reduce((s,c) => s + c.amount, 0);
-  const totalConverted = calcs.reduce((s,c) => s + c.converted, 0);
+  // 모집공고일 파싱
+  const annRaw = document.getElementById('pj_submitDate')?.value || '';
+  const annParts = annRaw.split(/[.\-\/]/);
+  const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
+  const calcs = perfRecords.map(r => calcPerfRecord(r, annDate)).filter(Boolean);
+  const totalAmount = calcs.reduce((s,c) => s + (c.amount||0), 0);
+  const totalConverted = calcs.reduce((s,c) => s + c.calcAmount, 0);
   let html = '';
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
@@ -4972,14 +4982,17 @@ function renderByeolchum2() {
           <th ${thS}>환산<br>비율</th><th ${thS}>공사종<br>류요율</th></tr>
         </thead><tbody>`;
     calcs.forEach((c,i) => {
+      const isHousing = c.type === '주택건설';
       html += `<tr><td ${tdS}>${i+1}</td><td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.name)}</td>
         <td ${tdS}>${c.startDate}</td><td ${tdS}>${c.endDate}</td>
-        <td ${tdS}>${c.isHousing ? '-' : ''}</td><td ${tdS}>${c.isHousing ? '' : c.amount.toFixed(2)}</td>
-        <td ${tdS}>${(c.periodRate*100).toFixed(2)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
-        <td ${tdS}>${c.converted.toFixed(2)}</td></tr>`;
+        <td ${tdS}>${isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${isHousing ? '-' : c.amount.toFixed(2)}</td>
+        <td ${tdS}>${(c.ratio*100).toFixed(2)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
+        <td ${tdS}>${c.calcAmount.toFixed(2)}</td></tr>`;
     });
     html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="2" ${tdS}></td>
-      <td ${tdS}>-</td><td ${tdS}>${totalAmount.toFixed(2)}</td><td ${tdS}></td><td ${tdS}></td>
+      <td ${tdS}>${calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td ${tdS}>${calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td ${tdS}></td><td ${tdS}></td>
       <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
       <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
         ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
@@ -5005,18 +5018,22 @@ function renderByeolchum2() {
           <th ${thS}>주택건설<br>공사</th><th ${thS}>건축공사</th><th ${thS}>건축<br>공사</th><th ${thS}>공사종류<br>요율</th></tr>
         </thead><tbody>`;
     calcs.forEach((c,i) => {
+      const isHousing = c.type === '주택건설';
       html += `<tr><td ${tdS}>${i+1}</td><td ${tdS} style="text-align:left;padding-left:4px;font-size:7.5pt">${escHtml(c.name)}</td>
         <td ${tdS} style="font-size:7pt">${c.startDate}<br>~ ${c.endDate}</td><td ${tdS}>${c.suspend}</td>
         <td ${tdS}>${c.totalDays}</td><td ${tdS}>${c.suspend}</td>
         <td ${tdS}>${c.recentDays}</td><td ${tdS}>${c.recentSuspend}</td>
         <td ${tdS}>${c.applicableDays}</td><td ${tdS}>${c.appliedDays}</td>
-        <td ${tdS}>${(c.periodRate*100).toFixed(2)}%</td>
-        <td ${tdS}>${c.isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${c.isHousing ? '-' : c.amount.toFixed(2)}</td>
+        <td ${tdS}>${(c.ratio*100).toFixed(2)}%</td>
+        <td ${tdS}>${isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${isHousing ? '-' : c.amount.toFixed(2)}</td>
         <td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
-        <td ${tdS}>${c.converted.toFixed(2)}</td></tr>`;
+        <td ${tdS}>${c.calcAmount.toFixed(2)}</td></tr>`;
     });
     html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="7" ${tdS}></td>
-      <td ${tdS}></td><td ${tdS}>-</td><td ${tdS}>${totalAmount.toFixed(2)}</td><td colspan="2" ${tdS}></td>
+      <td ${tdS}></td>
+      <td ${tdS}>${calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td ${tdS}>${calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td colspan="2" ${tdS}></td>
       <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
       <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
         ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
@@ -5025,6 +5042,76 @@ function renderByeolchum2() {
         ※ 적용일수 : 최근3년간 해당일수 - 최근3년간 해당중지일수<br>
         ※ 적용기간요율 : 적용일수 ÷ 해당일수
       </div></div>`;
+  }
+  // 계산근거 확인 페이지 (배치계획표 스타일)
+  if(mode==='calc'||mode==='both') {
+    const thC = 'style="border:1px solid #444;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#dbeafe;color:#1e3a5f"';
+    const tdC = 'style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt"';
+    const tdCL = 'style="border:1px solid #888;padding:4px 6px;text-align:left;font-size:8pt"';
+    const annStr = annRaw || annDate.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/ /g,'');
+    html += `<div class="a4-page" style="padding:36px 24px;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#111;">
+      <div style="font-size:11pt;font-weight:bold;margin-bottom:2px;">감리업무 수행실적 — 계산근거 확인표</div>
+      <div style="font-size:8.5pt;color:#555;margin-bottom:10px;">기준일(모집공고일): ${annStr}&emsp;|&emsp;3년 기준: ${new Date(annDate.getFullYear()-3,annDate.getMonth(),annDate.getDate()).toLocaleDateString('ko-KR')}</div>
+      <table style="border-collapse:collapse;width:100%;">
+        <thead>
+          <tr>
+            <th ${thC} style="width:24px">번</th>
+            <th ${thC} style="min-width:110px">용 역 명</th>
+            <th ${thC}>착공일</th>
+            <th ${thC}>준공(예정)일</th>
+            <th ${thC}>총감리<br>일수</th>
+            <th ${thC}>중지<br>일수</th>
+            <th ${thC}>해당<br>일수<br><span style="font-weight:400;font-size:7pt">①-②</span></th>
+            <th ${thC}>3년이내<br>해당일수<br><span style="font-weight:400;font-size:7pt">③</span></th>
+            <th ${thC}>3년이내<br>중지일수<br><span style="font-weight:400;font-size:7pt">④</span></th>
+            <th ${thC}>적용<br>일수<br><span style="font-weight:400;font-size:7pt">③-④</span></th>
+            <th ${thC}>적용기간<br>요율<br><span style="font-weight:400;font-size:7pt">⑤/해당일</span></th>
+            <th ${thC}>공사비<br>(억원)</th>
+            <th ${thC}>공사종류<br>요율</th>
+            <th ${thC}>환산금액<br>(억원)</th>
+            <th ${thC}>준공<br>여부</th>
+          </tr>
+        </thead><tbody>`;
+    calcs.forEach((c,i) => {
+      const ratioDisp = (c.ratio*100).toFixed(2)+'%';
+      const typeDisp = c.typeRate===1.0 ? '100% (주택)' : '80% (건축)';
+      const compDisp = c.isCompleted ? '준공' : '수행중';
+      const compStyle = c.isCompleted ? '' : 'color:#d97706;font-weight:700';
+      html += `<tr ${i%2===1?'style="background:#f8fafc"':''}>
+        <td ${tdC}>${i+1}</td>
+        <td ${tdCL}>${escHtml(c.name)}</td>
+        <td ${tdC}>${c.startDate}</td>
+        <td ${tdC}>${c.endDate}</td>
+        <td ${tdC}>${c.totalDays}</td>
+        <td ${tdC}>${c.suspend}</td>
+        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;background:#eff6ff;font-weight:700">${c.applicableDays}</td>
+        <td ${tdC}>${c.recentDays}</td>
+        <td ${tdC}>${c.recentSuspend}</td>
+        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;background:#eff6ff;font-weight:700">${c.appliedDays}</td>
+        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;color:#1d4ed8">${ratioDisp}</td>
+        <td ${tdC}>${(c.amount||0).toFixed(2)}</td>
+        <td ${tdC}>${typeDisp}</td>
+        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;color:#15803d">${c.calcAmount.toFixed(2)}</td>
+        <td ${tdC} style="${compStyle}">${compDisp}</td>
+      </tr>`;
+    });
+    html += `<tr style="background:#dbeafe;font-weight:700">
+      <td colspan="2" ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;background:#dbeafe">합 계</td>
+      <td colspan="11" ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;background:#dbeafe"></td>
+      <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:9pt;font-weight:700;color:#15803d;background:#dbeafe">${totalConverted.toFixed(2)}</td>
+      <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;background:#dbeafe"></td>
+    </tr></tbody></table>
+      <div style="font-size:7.5pt;margin-top:14px;line-height:2;color:#444;border-top:1px solid #ccc;padding-top:8px;">
+        <b>계산식</b><br>
+        ① 총감리일수 = 준공(예정)일 - 착공일<br>
+        ② 중지일수 = 공사중지 기간 (입력값)<br>
+        ③ 3년이내 해당일수 = min(준공일, 공고일전날) - max(착공일, 3년전기준일) [수행중인 경우 공고일 전날 기준]<br>
+        ④ 3년이내 중지일수 = 중지일수 × (3년이내 해당일수 / 총감리일수) [비율배분]<br>
+        ⑤ 적용일수 = 3년이내 해당일수 - 3년이내 중지일수<br>
+        적용기간요율 = 적용일수 ÷ 해당일수(①-②)<br>
+        환산금액 = 공사비 × 적용기간요율 × 공사종류요율 [원단위 절사 후 억원 환산]
+      </div>
+    </div>`;
   }
   document.getElementById('byeolchum2Preview').innerHTML = html || '<div class="card" style="padding:20px;text-align:center;color:var(--gray4)">수행실적 데이터를 입력하세요.</div>';
 }
