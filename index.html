@@ -4093,21 +4093,23 @@ const LEGAL_PM_TABLE = [
   [150, 56], [200, 73.8], [300, 109.9], [500, 163.2],
   [1000, 277], [2000, 472], [3000, 645.2]
 ];
+// 소수점 4째자리에서 올림 (천장함수, 결과는 소수점 3자리)
+function ceilAt3(v) { return Math.ceil(v * 1000) / 1000; }
 function calcLegalMonths(costStr) {
   if (!costStr) return null;
   const costThousand = parseFloat(String(costStr).replace(/,/g, ''));
   if (isNaN(costThousand) || costThousand <= 0) return null;
-  const c = costThousand / 100000; // 천원 → 억원
+  const c = costThousand / 100000; // 천원 → 억원 (전체 정밀도 유지)
   const T = LEGAL_PM_TABLE;
   if (c <= T[0][0]) return T[0][1];
   if (c >= T[T.length - 1][0]) {
     const [x1, y1] = T[T.length - 2], [x2, y2] = T[T.length - 1];
-    return parseFloat((y2 + (c - x2) * (y2 - y1) / (x2 - x1)).toFixed(1));
+    return ceilAt3(y2 + (c - x2) * (y2 - y1) / (x2 - x1));
   }
   for (let i = 1; i < T.length; i++) {
     if (c <= T[i][0]) {
       const [x1, y1] = T[i - 1], [x2, y2] = T[i];
-      return parseFloat((y1 + (c - x1) * (y2 - y1) / (x2 - x1)).toFixed(1));
+      return ceilAt3(y1 + (c - x1) * (y2 - y1) / (x2 - x1));
     }
   }
   return null;
@@ -4319,24 +4321,25 @@ function renderCalcResult() {
     return;
   }
 
-  const costBil = costThousand / 100000;
+  const costBilFull = costThousand / 100000; // 억원 전체 정밀도 유지
+  const costBilDisp = costBilFull.toFixed(4); // 표시용 (소수 4자리)
   const T = LEGAL_PM_TABLE;
   let legalPM, calcDetail;
-
-  if (costBil <= T[0][0]) {
+  if (costBilFull <= T[0][0]) {
     legalPM = T[0][1];
-    calcDetail = `총공사비 ${costBil.toFixed(1)}억원 ≤ ${T[0][0]}억원 → 최솟값 ${T[0][1]}인·월 적용`;
-  } else if (costBil >= T[T.length-1][0]) {
+    calcDetail = `총공사비 ${costBilDisp}억원 ≤ ${T[0][0]}억원 → 최솟값 ${T[0][1]}인·월 적용`;
+  } else if (costBilFull >= T[T.length-1][0]) {
     const [x1,y1] = T[T.length-2], [x2,y2] = T[T.length-1];
-    legalPM = parseFloat((y2+(costBil-x2)*(y2-y1)/(x2-x1)).toFixed(1));
-    calcDetail = `${x2}억원 이상 — ${x1}억↔${x2}억 기울기 연장 보간\n= ${y2} + (${costBil.toFixed(1)} - ${x2}) / (${x2} - ${x1}) × (${y2} - ${y1}) = ${legalPM}인·월`;
+    legalPM = ceilAt3(y2+(costBilFull-x2)*(y2-y1)/(x2-x1));
+    calcDetail = `${x2}억원 이상 — ${x1}억↔${x2}억 기울기 연장 보간\n= ${y2} + (${costBilDisp} - ${x2}) / (${x2} - ${x1}) × (${y2} - ${y1})\n= ${legalPM}인·월 (소수 4째자리 올림)`;
   } else {
     for (let i=1; i<T.length; i++) {
-      if (costBil <= T[i][0]) {
+      if (costBilFull <= T[i][0]) {
         const [x1,y1] = T[i-1], [x2,y2] = T[i];
         const slope = (y2-y1)/(x2-x1);
-        legalPM = parseFloat((y1+(costBil-x1)*slope).toFixed(1));
-        calcDetail = `구간 [${x1}억원: ${y1}인·월] ~ [${x2}억원: ${y2}인·월] 직선보간\n= ${y1} + (${costBil.toFixed(1)} - ${x1}) ÷ (${x2} - ${x1}) × (${y2} - ${y1})\n= ${y1} + ${((costBil-x1)/(x2-x1)).toFixed(4)} × ${y2-y1} = ${legalPM} 인·월`;
+        const raw = y1+(costBilFull-x1)*slope;
+        legalPM = ceilAt3(raw);
+        calcDetail = `구간 [${x1}억원: ${y1}인·월] ~ [${x2}억원: ${y2}인·월] 직선보간\n= ${y1} + (${costBilDisp} - ${x1}) ÷ (${x2} - ${x1}) × (${y2} - ${y1})\n= ${y1} + ${((costBilFull-x1)/(x2-x1)).toFixed(6)} × ${y2-y1} = ${raw.toFixed(6)}\n→ 소수 4째자리 올림 = ${legalPM} 인·월`;
         break;
       }
     }
@@ -4397,7 +4400,7 @@ function renderCalcResult() {
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:14px;font-size:9pt">
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700;width:28%">① 총공사비 (감리대상)</td>
-          <td style="border:1px solid #ccc;padding:6px 10px">${costBil.toFixed(2)}억원&ensp;(${Number(costThousand).toLocaleString()} 천원)</td></tr>
+          <td style="border:1px solid #ccc;padding:6px 10px">${costBilFull.toFixed(4)}억원&ensp;(${Number(costThousand).toLocaleString()} 천원)</td></tr>
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700">② 법정 인·월수 보간</td>
           <td style="border:1px solid #ccc;padding:6px 10px;white-space:pre-line;line-height:1.8">${calcDetail}</td></tr>
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700">③ 법정 감리인·월수</td>
