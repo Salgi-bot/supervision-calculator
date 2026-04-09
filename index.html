@@ -3299,9 +3299,13 @@ function parseAnnouncementText(rawText) {
   }
 
   // ── 감리비용 ──
-  m = joined.match(/(?:감리대상\s*)?공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/);
+  // 1순위: "감리대상 공사비" 명시적 매칭
+  m = joined.match(/감리대상\s*공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/);
   if (m) result.supervisionCost = m[1];
-  if (!result.supervisionCost) { m = joined.match(/공사비\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
+  // 2순위: "대상공사비" 패턴
+  if (!result.supervisionCost) { m = joined.match(/대상\s*공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
+  // 3순위: 폴백 — 일반 "공사비" (총공사비 등 제외)
+  if (!result.supervisionCost) { m = joined.match(/(?<!총|기본|도급)공사비\s*[:：]\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
   m = joined.match(/(?:감리대가|감리용역대가|감리비)\s*(?:기준)?\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원)/);
   if (m) result.supervisionFee = m[1];
   m = joined.match(/기초금액\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원)/);
