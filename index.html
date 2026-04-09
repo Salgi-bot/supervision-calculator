@@ -4992,8 +4992,7 @@ async function openLawSearch(query) {
   if (!SpeechRecognition) return;
 
   let rec = null;
-  let lastInput = null;    // 마지막으로 포커스된 input/textarea
-  let isSpaceHeld = false; // 스페이스바 누름 상태
+  let lastInput = null; // 마지막으로 포커스된 input/textarea
 
   // 플로팅 상태 표시 배지
   const badge = document.createElement('div');
@@ -5017,15 +5016,12 @@ async function openLawSearch(query) {
     if (rec) return;
     rec = new SpeechRecognition();
     rec.lang = 'ko-KR';
-    rec.continuous = true;     // 스페이스 누르는 동안 계속 인식
+    rec.continuous = false;
     rec.interimResults = false;
     badge.style.display = 'block';
 
     rec.onresult = e => {
-      // 새로 완성된 마지막 결과만 처리
-      const result = e.results[e.results.length - 1];
-      if (!result.isFinal) return;
-      const text = result[0].transcript;
+      const text = e.results[0][0].transcript;
       const el = lastInput || document.activeElement;
       if (el && el.matches('input, textarea')) {
         const s = el.selectionStart ?? el.value.length;
@@ -5036,32 +5032,20 @@ async function openLawSearch(query) {
         el.dispatchEvent(new Event('input'));
       }
     };
-    rec.onerror = () => { rec = null; badge.style.display = 'none'; };
-    rec.onend = () => {
-      rec = null;
-      if (isSpaceHeld) {
-        // 스페이스바 여전히 눌려 있으면 즉시 재시작
-        setTimeout(startRec, 80);
-      } else {
-        badge.style.display = 'none';
-      }
-    };
+    rec.onerror = rec.onend = () => { rec = null; badge.style.display = 'none'; };
     rec.start();
   }
 
   function stopRec() {
-    isSpaceHeld = false;
-    if (rec) { rec.stop(); rec = null; }
-    badge.style.display = 'none';
+    if (rec) { rec.stop(); rec = null; badge.style.display = 'none'; }
   }
 
-  // 스페이스바 push-to-talk
+  // 스페이스바 누르는 동안 음성 입력 (push-to-talk)
   document.addEventListener('keydown', e => {
     if (e.code !== 'Space' || e.repeat) return;
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return;
     e.preventDefault();
-    isSpaceHeld = true;
     startRec();
   });
   document.addEventListener('keyup', e => {
