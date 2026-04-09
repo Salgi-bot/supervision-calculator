@@ -3815,7 +3815,7 @@ function renderByeolji2Cover() {
   const LBL = 'text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px';
   const IT  = 'text-align:left;font-size:8pt;padding:3px 6px;border:1px solid #bbb;vertical-align:middle';
   const SC  = 'text-align:center;font-size:8pt;padding:3px;border:1px solid #bbb;vertical-align:middle';
-  const EG  = 'text-align:left;font-size:7.5pt;padding:3px 5px;border:1px solid #bbb;color:#444;vertical-align:middle';
+  const EG  = 'text-align:center;font-size:7.5pt;padding:3px 5px;border:1px solid #bbb;color:#444;vertical-align:middle';
   const SR  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
   const SV  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
 
@@ -3824,7 +3824,7 @@ function renderByeolji2Cover() {
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444"></td>`; };
+  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb"></td>`;
   const inp = (id,val) => { const stored=b2NumState[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="b2NumState['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
@@ -3853,7 +3853,7 @@ function renderByeolji2Cover() {
       <!-- 감리자(감리회사) 15행: C0+C1=colspan=2 -->
       <tr>
         ${lbl('감리자<br>(감리<br>회사)',15,2)}
-        ${it('재무상태 건실도 : 신용평가등급',2)}${sc(5)}${inp('c_fin',5)}${mt()}${eg('예) 회사채 신용평가등급 BB-')}
+        ${it('재무상태 건실도')}${it('신용평가등급')}${sc(5)}${inp('c_fin',5)}${mt()}${eg('예) 회사채 신용평가등급 BB-')}
       </tr>
       <tr>${it('감리업무수행실적(감리비)',2)}${sc(12)}${inp('c_perf',12)}${mt()}${eg('예) 100(억원)')}</tr>
       <tr>${it('행정제재',2)}${sc(9)}${inp('c_admin',9)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
@@ -3901,10 +3901,10 @@ function renderByeolji2Cover() {
         ${lbl('분야별<br>감리원',16)}
         ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g',arch.gradeScore.toFixed(1))}${mt()}${eg(pGr('arch'))}
       </tr>
-      <tr>${it('토목')}${sc(2)}${inp('fc_g', personnel['civil']?.info?.name ? civil.gradeScore.toFixed(1) : '2')}${mt()}${eg(pGr('civil'))}</tr>
+      <tr>${it('토목')}${sc(2)}${inp('fc_g', (personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0) ? civil.gradeScore.toFixed(1) : '2')}${mt()}${eg(pGr('civil'))}</tr>
       <tr>${it('기타설비')}${sc(2)}${inp('fm_g',mech.gradeScore.toFixed(1))}${mt()}${eg(pGr('mech'))}</tr>
       <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e',arch.expScore.toFixed(1))}${mt()}${eg(pYr(arch))}</tr>
-      <tr>${it('토목')}${sc(7)}${inp('fc_e', personnel['civil']?.info?.name ? civil.expScore.toFixed(1) : '7')}${mt()}${eg(pYr(civil))}</tr>
+      <tr>${it('토목')}${sc(7)}${inp('fc_e', (personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0) ? civil.expScore.toFixed(1) : '7')}${mt()}${eg(pYr(civil))}</tr>
       <tr>${it('기타설비')}${sc(7)}${inp('fm_e',mech.expScore.toFixed(1))}${mt()}${eg(pYr(mech))}</tr>
       <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
@@ -3924,7 +3924,7 @@ function renderByeolji2Cover() {
       <tr>
         ${lbl('비상주<br>감리원',5)}${it('등급',2)}${sc(2)}${inp('n_g',nonr.gradeScore.toFixed(1))}${mt()}${eg(pi['nonres']?.info?.name?'예) '+(pi['nonres'].info.appliedGrade||'고급')+'건설기술자, 현장배치 0개소':'')}
       </tr>
-      <tr>${it('경력 및 실적',2)}${sc(4)}${inp('n_e', personnel['nonres']?.info?.name ? nonr.expScore.toFixed(1) : '4')}${mt()}${eg(pYr(nonr))}</tr>
+      <tr>${it('경력 및 실적',2)}${sc(4)}${inp('n_e', (personnel['nonres']?.info?.name && (personnel['nonres']?.careers||[]).length>0) ? nonr.expScore.toFixed(1) : '4')}${mt()}${eg(pYr(nonr))}</tr>
       <tr>${lbl('감점',2)}${it('행정제재')}${sc('(-1)')}${inp('n_ad',0)}${mt()}${eg('예) 업무정지 00(월)')}</tr>
       <tr>${it('교체빈도')}${sc('(-1)')}${inp('n_r',0)}${mt()}${eg('예) 00(건)')}</tr>
       <tr>
@@ -3955,8 +3955,10 @@ function renderByeolji2Cover() {
     <div style="text-align:right;font-size:9pt;margin:4px 20px 0 0">
       입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
     </div>
-    <div style="text-align:right;font-size:7pt;color:#666;margin-top:8px">구비서류 : 감리원배치계획서 1부.</div>
-    <div style="text-align:right;font-size:7.5pt;color:#666;margin-top:2px">210㎜×297㎜[백상지(80g/㎡)]</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px">
+      <span>구비서류 : 감리원배치계획서 1부.</span>
+      <span>210㎜×297㎜[백상지(80g/㎡)]</span>
+    </div>
   </div>`;
   setTimeout(calcB2, 50);
 }
