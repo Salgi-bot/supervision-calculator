@@ -619,6 +619,7 @@ tbody tr:hover td { background: var(--ci-light); }
   <div>
     <h1>주택건설공사</h1>
     <div class="sub">주택건설공사 감리자지정기준 (국토교통부 고시 제2024-529호)</div>
+    <div id="last-generated" style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <button id="hb-const-btn" onclick="openConstEditor()" title="계산 기준값 편집 (법령 개정 시 업데이트)" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">⚙️ 기준값</button>
@@ -3432,6 +3433,22 @@ function renderCover() {
 }
 
 function renderByeolji1() {
+  // 헤더 날짜·차수 업데이트
+  (() => {
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const today = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    let stored = JSON.parse(localStorage.getItem('byeolji1_revision') || '{}');
+    if (stored.date === today) {
+      stored.count = (stored.count || 0) + 1;
+    } else {
+      stored = { date: today, count: 1 };
+    }
+    localStorage.setItem('byeolji1_revision', JSON.stringify(stored));
+    const el = document.getElementById('last-generated');
+    if (el) el.textContent = `마지막 생성: ${today} ${timeStr} · 당일 ${stored.count}차`;
+  })();
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
@@ -3481,7 +3498,7 @@ function renderByeolji1() {
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc">
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:6px">[별지 제1호서식]</div>
-      <div style="display:flex;justify-content:space-between;font-size:8pt;color:#555;margin-bottom:4px"><span>■ 주택건설공사 감리자지정기준 (국토교통부 고시 제2024-529호)</span><span>${(()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;})()}</span></div>
+      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">■ 주택건설공사 감리자지정기준 (국토교통부 고시 제2024-529호)</div>
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:16px 0 20px;font-weight:800">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:8px">(앞 쪽)</div>
 
@@ -3496,9 +3513,9 @@ function renderByeolji1() {
           </tr>
         </tbody>
       </table>
-      <!-- 사업계획내용: 10|12|22|22|17|17 (위치 colspan=2→44) -->
+      <!-- 사업계획내용: 10|12|32|22|17|17 (위치 colspan=2→54) -->
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed;margin-top:-1px">
-        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:22%"><col style="width:22%"><col style="width:17%"><col style="width:17%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:22%"><col style="width:17%"><col style="width:17%"></colgroup>
         <tbody>
           <tr>
             <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
@@ -3534,7 +3551,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%">
-        <colgroup><col style="width:10%"><col style="width:18%"><col style="width:12%"><col style="width:14%"><col style="width:22%"><col style="width:24%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:32%"><col style="width:12%"><col style="width:12%"><col style="width:17%"><col style="width:17%"></colgroup>
         <tbody>
           <tr>
             ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
@@ -3552,16 +3569,16 @@ function renderByeolji1() {
       <!-- 3. 감리원 -->
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">3. 감리원</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 소속회사를 기재함</div>
-      <table style="font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
+      <table style="font-size:9pt;border-collapse:collapse;width:100%">
         <thead>
           <tr>
-            <th ${thStyle} style="width:10%">구&ensp;분</th>
-            <th ${thStyle} style="width:10%">분&ensp;야</th>
-            <th ${thStyle} style="width:14%">성&ensp;명</th>
-            <th ${thStyle} style="width:16%">생년월일</th>
-            <th ${thStyle} style="width:12%">등&ensp;급</th>
+            <th ${thStyle} style="width:9%">구&ensp;분</th>
+            <th ${thStyle} style="width:9%">분&ensp;야</th>
+            <th ${thStyle} style="width:12%">성&ensp;명</th>
+            <th ${thStyle} style="width:13%">생년월일</th>
+            <th ${thStyle} style="width:9%">등&ensp;급</th>
             <th ${thStyle} style="width:18%">자격번호</th>
-            <th ${thStyle} style="width:20%">소속회사</th>
+            <th ${thStyle} style="width:30%">소속회사</th>
           </tr>
         </thead>
         <tbody>${personnelRows}</tbody>
