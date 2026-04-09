@@ -1555,6 +1555,8 @@ function onSizeClassChange() {
     localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
     _refreshAfterToggle();
   }
+  // 세대수 변경 시 자동계산 필드 초기화 (재계산 반영)
+  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e'].forEach(k => delete b2NumState[k]);
   if (document.getElementById('tab5')?.classList.contains('active')) renderByeolji2Cover();
 }
 function toggleCivil2() {
@@ -3930,6 +3932,20 @@ function renderByeolji2Cover() {
   const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
   const pYr = s => s.convYears > 0 ? ( Math.floor(s.convYears*10)/10 ).toFixed(1)+'년' : '';
 
+  // 300세대 미만: 건축 값 0, 토목·기타설비가 건축 점수 50%씩 가산
+  const is300미만 = document.getElementById('pj_sizeClass')?.value === '300미만';
+  const fcBase    = !!(personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0);
+  const faGrade   = is300미만 ? 0 : arch.gradeScore;
+  const faExp     = is300미만 ? 0 : arch.expScore;
+  const fcGradeB  = fcBase ? civil.gradeScore : 2;
+  const fmGradeB  = mech.gradeScore;
+  const fcExpB    = fcBase ? civil.expScore : 7;
+  const fmExpB    = mech.expScore;
+  const fcGrade   = is300미만 ? fcGradeB + arch.gradeScore * 0.5 : fcGradeB;
+  const fmGrade   = is300미만 ? fmGradeB + arch.gradeScore * 0.5 : fmGradeB;
+  const fcExp     = is300미만 ? fcExpB   + arch.expScore   * 0.5 : fcExpB;
+  const fmExp     = is300미만 ? fmExpB   + arch.expScore   * 0.5 : fmExpB;
+
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc">
     <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">[별지 제2호서식]</div>
@@ -3998,13 +4014,13 @@ function renderByeolji2Cover() {
       <!-- 분야별 감리원 16행 -->
       <tr>
         ${lbl('분야별<br>감리원',16)}
-        ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g',arch.gradeScore.toFixed(1))}${mt()}${eg(pGr('arch'))}
+        ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g', faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
       </tr>
-      <tr>${it('토목')}${sc(2)}${inp('fc_g', (personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0) ? civil.gradeScore.toFixed(1) : '2')}${mt()}${eg(pGr('civil'))}</tr>
-      <tr>${it('기타설비')}${sc(2)}${inp('fm_g',mech.gradeScore.toFixed(1))}${mt()}${eg(pGr('mech'))}</tr>
-      <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e',arch.expScore.toFixed(1))}${mt()}${eg(pYr(arch))}</tr>
-      <tr>${it('토목')}${sc(7)}${inp('fc_e', (personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0) ? civil.expScore.toFixed(1) : '7')}${mt()}${eg(pYr(civil))}</tr>
-      <tr>${it('기타설비')}${sc(7)}${inp('fm_e',mech.expScore.toFixed(1))}${mt()}${eg(pYr(mech))}</tr>
+      <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'))}</tr>
+      <tr>${it('기타설비')}${sc(2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'))}</tr>
+      <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e', faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
+      <tr>${it('토목')}${sc(7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil))}</tr>
+      <tr>${it('기타설비')}${sc(7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech))}</tr>
       <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc('(0.1)')}${inp('fm_qb',0)}${mt()}${eg('')}</tr>
