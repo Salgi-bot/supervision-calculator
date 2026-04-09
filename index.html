@@ -1519,21 +1519,33 @@ function removeNewPerson(id) {
   triggerAutoSave();
 }
 
-// 건축 상주 포함 여부 (300세대 미만은 제외 가능)
-let archEnabled = JSON.parse(localStorage.getItem('archEnabled') ?? 'true');
+// 건축 상주 / 토목(후) 포함 여부 토글
+let archEnabled  = JSON.parse(localStorage.getItem('archEnabled')  ?? 'true');
+let civil2Enabled = JSON.parse(localStorage.getItem('civil2Enabled') ?? 'false');
 function getAllRoles() {
-  return [...ROLES.filter(r => r.id !== 'arch' || archEnabled), ...nonEvalList, ...newEvalList];
+  return [...ROLES.filter(r => {
+    if (r.id === 'arch'   && !archEnabled)   return false;
+    if (r.id === 'civil2' && !civil2Enabled) return false;
+    return true;
+  }), ...nonEvalList, ...newEvalList];
 }
-function toggleArch() {
-  archEnabled = !archEnabled;
-  localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+function _refreshAfterToggle() {
   renderPersonCards();
   renderPersonSelector('personSelector');
   renderPersonSelector('personSelectorScore');
   renderDeploySettings();
   renderDeployTable();
-  // 별지1호가 활성화되어 있으면 즉시 갱신
   if (document.getElementById('tab4')?.classList.contains('active')) renderByeolji1();
+}
+function toggleArch() {
+  archEnabled = !archEnabled;
+  localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+  _refreshAfterToggle();
+}
+function toggleCivil2() {
+  civil2Enabled = !civil2Enabled;
+  localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+  _refreshAfterToggle();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1801,12 +1813,17 @@ function renderPersonCards() {
     const isNonEval = role.id.startsWith('noneval_');
     const isNewEval = role.id.startsWith('neweval_');
 
-    const isArch = role.id === 'arch';
-    const archOff = isArch && !archEnabled;
+    const isArch   = role.id === 'arch';
+    const isCivil2 = role.id === 'civil2';
+    const archOff   = isArch   && !archEnabled;
+    const civil2Off = isCivil2 && !civil2Enabled;
+    const cardDim = archOff || civil2Off;
+    const toggleBtn = (fn, enabled) =>
+      `<button onclick="${fn}()" style="margin-left:8px;font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid ${enabled?'#16a34a':'#dc2626'};background:${enabled?'#f0fdf4':'#fef2f2'};color:${enabled?'#166534':'#991b1b'};cursor:pointer;vertical-align:middle">${enabled?'포함 ON':'제외 OFF'}</button>`;
     return `
-    <div class="person-card ${hasData ? 'has-data' : ''}" style="${archOff ? 'opacity:0.45;' : ''}">
+    <div class="person-card ${hasData ? 'has-data' : ''}" style="${cardDim ? 'opacity:0.45;' : ''}">
       <div class="person-card-header">
-        <h3>${role.icon} ${role.label}${isArch ? `<button onclick="toggleArch()" style="margin-left:8px;font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid ${archEnabled?'#16a34a':'#dc2626'};background:${archEnabled?'#f0fdf4':'#fef2f2'};color:${archEnabled?'#166534':'#991b1b'};cursor:pointer;vertical-align:middle">${archEnabled?'포함 ON':'제외 OFF'}</button>` : ''}</h3>
+        <h3>${role.icon} ${role.label}${isArch ? toggleBtn('toggleArch', archEnabled) : ''}${isCivil2 ? toggleBtn('toggleCivil2', civil2Enabled) : ''}</h3>
         <span class="person-status ${hasData ? 'filled' : 'empty'}">${hasData ? (p.info.name || '입력됨') : '미입력'}</span>
       </div>
       <div class="person-card-body">
@@ -3505,7 +3522,7 @@ function renderByeolji1() {
     const structLabel = r.placement === '총괄' ? '총괄' :
                          r.placement === '비상주' ? '비상주' :
                          r.isNew ? '신규' : '분야별';
-    const fieldLabel = r.id === 'civil' ? '토목(전)' : r.id === 'civil2' ? '토목(후)' : (p.field || r.field);
+    const fieldLabel = getRoleFieldLabel(r) || (p.field || r.field);
     allPRows.push({ structLabel, field: fieldLabel,
       name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
       grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
@@ -4103,6 +4120,12 @@ function calcDeployMonths(rs, re) {
   total += ed / lastDay(re.y, re.m);
   return total;
 }
+// 역할별 분야 표시 레이블 — civil2 ON이면 토목(전)/(후), OFF면 토목
+function getRoleFieldLabel(r) {
+  if (r.id === 'civil')  return civil2Enabled ? '토목(전)' : '토목';
+  if (r.id === 'civil2') return '토목(후)';
+  return personnel[r.id]?.info?.field || r.field || '';
+}
 // 배치기간 자동 잠금 규칙 (기본 5역할만, 추가 감리원은 수동)
 function getDeployAutoRules(r) {
   if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true,  lockEnd:true  };
@@ -4303,7 +4326,7 @@ function renderDeployTable() {
     const monthsDisp = Number.isInteger(actualMonths) ? actualMonths : actualMonths.toFixed(3);
     rows += `<tr>
       <td style="${TD}">${structLabel}</td>
-      <td style="${TD}">${escHtml(p.info.field)}</td>
+      <td style="${TD}">${escHtml(getRoleFieldLabel(r))}</td>
       <td style="${TD}">${escHtml(p.info.name)}</td>
       <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
       ${gantt}
@@ -4450,7 +4473,7 @@ function renderCalcResult() {
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
     supervisorRows+=`<tr>
       <td style="${TD2}">${structLabel}</td>
-      <td style="${TD2}">${escHtml(p.info.field)}</td>
+      <td style="${TD2}">${escHtml(getRoleFieldLabel(r))}</td>
       <td style="${TD2}">${escHtml(p.info.name)}</td>
       <td style="${TD2}">${escHtml(grade)}</td>
       <td style="${TD2}">${convRate.toFixed(3)}</td>
