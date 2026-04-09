@@ -3536,7 +3536,7 @@ function renderByeolji1() {
             ${tdColHeader('규&emsp;모')}${tdColHeader('연&nbsp;면&nbsp;적')}${tdColHeader('착&nbsp;공&nbsp;일')}${tdColHeader('준&nbsp;공&nbsp;일')}
           </tr>
           <tr>
-            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml((pj.stories?pj.stories+'층 ':'')+(pj.blocks?pj.blocks+'동 ':'')+(pj.units?pj.units+'세대':''))}</td>
+            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml([pj.stories, pj.blocks, pj.units ? pj.units+'세대' : ''].filter(Boolean).join(' '))}</td>
             <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.area ? pj.area+' ㎡' : '')}</td>
             <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.startDate||'')}</td>
             <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.endDate||'')}</td>
