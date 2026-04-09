@@ -3487,12 +3487,19 @@ function renderByeolji1() {
 
       <!-- 1. 공사개요 -->
       <div style="font-weight:700;font-size:10pt;margin-bottom:4px">1. 공사개요</div>
+      <!-- 사업주체: 10|12|32|12|34 -->
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
-        <colgroup><col style="width:10%"><col style="width:10%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:28%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:12%"><col style="width:34%"></colgroup>
         <tbody>
           <tr>
-            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
+            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
           </tr>
+        </tbody>
+      </table>
+      <!-- 사업계획내용: 10|12|22|22|17|17 (위치 colspan=2→44) -->
+      <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed;margin-top:-1px">
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:22%"><col style="width:22%"><col style="width:17%"><col style="width:17%"></colgroup>
+        <tbody>
           <tr>
             <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
             ${tdLabel('위&emsp;&emsp;치')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.location)}</td>${tdLabel('대지면적')}<td style="padding:6px 8px;font-size:9.5pt;border:1px solid #bbb;text-align:center">${escHtml(pj.siteArea ? pj.siteArea + ' ㎡' : '')}</td>
@@ -3507,12 +3514,18 @@ function renderByeolji1() {
             <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.startDate||'')}</td>
             <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.endDate||'')}</td>
           </tr>
+        </tbody>
+      </table>
+      <!-- 설계자: 10|12|32|12|34 (주소 colspan=3→78) -->
+      <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed;margin-top:-1px">
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:12%"><col style="width:34%"></colgroup>
+        <tbody>
           <tr>
             <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
-            ${tdLabel('성&emsp;&emsp;명')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerName)}</td>${tdLabel('상&emsp;&emsp;호')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerCompany)}</td>
+            ${tdLabel('성&emsp;&emsp;명')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerName)}</td>${tdLabel('상&emsp;&emsp;호')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerCompany)}</td>
           </tr>
           <tr>
-            ${tdLabel('주&emsp;&emsp;소')}<td colspan="4" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
+            ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
           </tr>
         </tbody>
       </table>
@@ -3521,7 +3534,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%">
-        <colgroup><col style="width:10%"><col style="width:30%"><col style="width:12%"><col style="width:15%"><col style="width:13%"><col style="width:20%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:18%"><col style="width:12%"><col style="width:14%"><col style="width:22%"><col style="width:24%"></colgroup>
         <tbody>
           <tr>
             ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
@@ -3539,16 +3552,16 @@ function renderByeolji1() {
       <!-- 3. 감리원 -->
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">3. 감리원</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 소속회사를 기재함</div>
-      <table style="font-size:9pt;border-collapse:collapse;width:100%">
+      <table style="font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
         <thead>
           <tr>
-            <th ${thStyle} style="width:9%">구&ensp;분</th>
-            <th ${thStyle} style="width:9%">분&ensp;야</th>
-            <th ${thStyle} style="width:12%">성&ensp;명</th>
-            <th ${thStyle} style="width:13%">생년월일</th>
-            <th ${thStyle} style="width:9%">등&ensp;급</th>
+            <th ${thStyle} style="width:10%">구&ensp;분</th>
+            <th ${thStyle} style="width:10%">분&ensp;야</th>
+            <th ${thStyle} style="width:14%">성&ensp;명</th>
+            <th ${thStyle} style="width:16%">생년월일</th>
+            <th ${thStyle} style="width:12%">등&ensp;급</th>
             <th ${thStyle} style="width:18%">자격번호</th>
-            <th ${thStyle} style="width:30%">소속회사</th>
+            <th ${thStyle} style="width:20%">소속회사</th>
           </tr>
         </thead>
         <tbody>${personnelRows}</tbody>
