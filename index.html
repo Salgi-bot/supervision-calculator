@@ -4063,19 +4063,46 @@ function parseYM(s) {
   if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return null;
   return { y, m };
 }
-// 4자리 YYMM 지원: 2601 → {y:2026, m:1}, 기존 YYYY.MM도 처리
+// YYMM(4자리) / YYMMDD(6자리) / YYYYMMDD(8자리) / YYYY.MM.DD 지원
 function parseYMShort(s) {
   if (!s) return null;
-  const clean = String(s).replace(/\s/g, '');
-  if (/^\d{4}$/.test(clean)) {
-    const yy = parseInt(clean.substring(0,2)), mm = parseInt(clean.substring(2,4));
-    if (mm >= 1 && mm <= 12) return { y: 2000 + yy, m: mm };
+  const clean = String(s).replace(/[\s./-]/g, '');
+  if (/^\d{8}$/.test(clean)) { // YYYYMMDD
+    const yyyy=parseInt(clean.substring(0,4)), mm=parseInt(clean.substring(4,6)), dd=parseInt(clean.substring(6,8));
+    if (mm>=1&&mm<=12&&dd>=1&&dd<=31) return { y:yyyy, m:mm, d:dd };
     return null;
   }
-  return parseYM(clean);
+  if (/^\d{6}$/.test(clean)) { // YYMMDD
+    const yy=parseInt(clean.substring(0,2)), mm=parseInt(clean.substring(2,4)), dd=parseInt(clean.substring(4,6));
+    if (mm>=1&&mm<=12&&dd>=1&&dd<=31) return { y:2000+yy, m:mm, d:dd };
+    return null;
+  }
+  if (/^\d{4}$/.test(clean)) { // YYMM
+    const yy=parseInt(clean.substring(0,2)), mm=parseInt(clean.substring(2,4));
+    if (mm>=1&&mm<=12) return { y:2000+yy, m:mm };
+    return null;
+  }
+  return parseYM(clean); // YYYY.MM 등
 }
 function lastDay(y, m) { return new Date(y, m, 0).getDate(); }
 function fmtYMD(y, m, d) { return String(y).slice(-2)+'.'+String(m).padStart(2,'0')+'.'+String(d).padStart(2,'0'); }
+// 실제 일수 기반 인·월수 계산 (부분월 포함)
+function calcDeployMonths(rs, re) {
+  const sd = rs.d || 1;
+  const ed = re.d || lastDay(re.y, re.m);
+  if (rs.y === re.y && rs.m === re.m) {
+    return (ed - sd + 1) / lastDay(rs.y, rs.m);
+  }
+  let total = (lastDay(rs.y, rs.m) - sd + 1) / lastDay(rs.y, rs.m);
+  let cy = rs.y, cm = rs.m + 1;
+  if (cm > 12) { cm = 1; cy++; }
+  while (cy < re.y || (cy === re.y && cm < re.m)) {
+    total += 1.0;
+    if (++cm > 12) { cm = 1; cy++; }
+  }
+  total += ed / lastDay(re.y, re.m);
+  return total;
+}
 // 배치기간 자동 잠금 규칙 (기본 5역할만, 추가 감리원은 수동)
 function getDeployAutoRules(r) {
   if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true,  lockEnd:true  };
@@ -4157,12 +4184,14 @@ function renderDeploySettings() {
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(${r.placement}·${grade})</span>
       ${auto.lockStart
         ? `<input type="text" value="${startDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
-        : `<input type="text" value="${startDisp}" placeholder="2601" maxlength="7" style="${ISTY}"
+        : `<input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${ISTY}"
+             title="YYMMDD(260101) 또는 YYYY.MM.DD"
              oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()">`}
       <span style="font-size:10px;color:#666">~</span>
       ${auto.lockEnd
         ? `<input type="text" value="${endDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
-        : `<input type="text" value="${endDisp}" placeholder="2612" maxlength="7" style="${ISTY}"
+        : `<input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${ISTY}"
+             title="YYMMDD(281231) 또는 YYYY.MM.DD"
              oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()">`}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
       <input type="number" value="${convRate}" step="0.01" min="0.1" max="9.99" style="${NSTY}"
@@ -4221,12 +4250,11 @@ function renderDeployTable() {
     const auto = getDeployAutoRules(r);
     const rs = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
     const re = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
-    let m = 0;
-    if (rs && re) { let cy=rs.y, cm=rs.m; while(cy<re.y||(cy===re.y&&cm<=re.m)){m++;if(++cm>12){cm=1;cy++;}} }
+      const m_f = (rs && re) ? calcDeployMonths(rs, re) : 0;
     const grade = p.info.appliedGrade || p.info.grade || '중급';
     const defRate = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
-    residentConvTotal += floorAt3(m * cr);
+    residentConvTotal += floorAt3(m_f * cr);
   });
   const nonresMax = floorAt3(residentConvTotal * 15 / 85); // 비상주 인·월수 상한
 
@@ -4246,15 +4274,15 @@ function renderDeployTable() {
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
 
-    let months = 0;
+    // 간트: 월 단위 표시 (부분월도 칸 채움), 실제 인·월수는 일수 기반
     const gantt = allMonths.map(({ y, m }) => {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
-      if (inside) months++;
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:16px"></td>`;
     }).join('');
+    const actualMonths = calcDeployMonths(rs, re); // 실제 일수 기반 인·월수
 
     // 환산인·월수: 소수 4째자리 버림. 비상주는 15% 상한 적용
-    let convPM = floorAt3(months * convRate);
+    let convPM = floorAt3(actualMonths * convRate);
     if (r.placement === '비상주') {
       convPM = Math.min(convPM, nonresMax);
       convPM = floorAt3(convPM);
@@ -4262,21 +4290,24 @@ function renderDeployTable() {
     }
     totalConvPM += convPM;
 
-    // 비고: 배치기간 자동 생성 (수동 입력 시 우선) — 2줄 표시
-    const autoNote = `${fmtYMD(rs.y, rs.m, 1)}~\n${fmtYMD(re.y, re.m, lastDay(re.y, re.m))}`;
+    // 비고: 배치기간 자동 생성 (수동 입력 시 우선) — 2줄 표시 (실제 일 반영)
+    const startD = rs.d || 1;
+    const endD   = re.d || lastDay(re.y, re.m);
+    const autoNote = `${fmtYMD(rs.y, rs.m, startD)}~\n${fmtYMD(re.y, re.m, endD)}`;
     const note = (ds.note !== undefined && ds.note !== '') ? ds.note : autoNote;
 
     const structLabel = r.placement === '총괄' ? '총괄' :
                         r.placement === '비상주' ? '비상주' :
                         r.isNew ? '신규' : '분야별';
     const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle;color:#111';
+    const monthsDisp = Number.isInteger(actualMonths) ? actualMonths : actualMonths.toFixed(3);
     rows += `<tr>
       <td style="${TD}">${structLabel}</td>
       <td style="${TD}">${escHtml(p.info.field)}</td>
       <td style="${TD}">${escHtml(p.info.name)}</td>
       <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
       ${gantt}
-      <td style="${TD}">${months}</td>
+      <td style="${TD}">${monthsDisp}</td>
       <td style="${TD}">${convPM.toFixed(3)}</td>
       <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(note)}</td>
     </tr>`;
@@ -4386,11 +4417,10 @@ function renderCalcResult() {
     const auto = getDeployAutoRules(r);
     const rs = pjStart ? (auto.lockStart ? pjStart : (parseYMShort(ds.startYM)||pjStart)) : null;
     const re = pjEnd   ? (auto.lockEnd   ? pjEnd   : (parseYMShort(ds.endYM)  ||pjEnd  )) : null;
-    let m = 0;
-    if (rs && re) { let cy=rs.y, cm=rs.m; while(cy<re.y||(cy===re.y&&cm<=re.m)){m++;if(++cm>12){cm=1;cy++;}} }
+    const m_f2 = (rs && re) ? calcDeployMonths(rs, re) : 0;
     const grade = p.info.appliedGrade||p.info.grade||'중급';
     const cr = (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : (CONV_RATE_DEFAULTS[grade]??1.00);
-    resConvTotal2 += floorAt3(m * cr);
+    resConvTotal2 += floorAt3(m_f2 * cr);
   });
   const nonresMax2 = floorAt3(resConvTotal2 * 15 / 85);
 
@@ -4402,22 +4432,21 @@ function renderCalcResult() {
     const auto = getDeployAutoRules(r);
     const rs = pjStart ? (auto.lockStart ? pjStart : (parseYMShort(ds.startYM)||pjStart)) : null;
     const re = pjEnd   ? (auto.lockEnd   ? pjEnd   : (parseYMShort(ds.endYM)  ||pjEnd  )) : null;
-    let months = 0;
-    if (rs && re) {
-      let cy=rs.y, cm=rs.m;
-      while (cy<re.y||(cy===re.y&&cm<=re.m)){months++;if(++cm>12){cm=1;cy++;}}
-    }
+    const actualMonths2 = (rs && re) ? calcDeployMonths(rs, re) : 0;
     const grade   = p.info.appliedGrade||p.info.grade||'중급';
     const defRate = CONV_RATE_DEFAULTS[grade]??1.00;
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
-    let convPM = floorAt3(months * convRate);
+    let convPM = floorAt3(actualMonths2 * convRate);
     if (r.placement==='비상주') {
       convPM = floorAt3(Math.min(convPM, nonresMax2));
       nonresConv += convPM;
     }
     totalConv += convPM;
     const structLabel = r.placement==='총괄'?'총괄':r.placement==='비상주'?'비상주':r.isNew?'신규':'분야별';
-    const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,1)}~\n${fmtYMD(re.y,re.m,lastDay(re.y,re.m))}` : '—';
+    const sd2 = rs ? (rs.d || 1) : 1;
+    const ed2 = re ? (re.d || lastDay(re.y, re.m)) : 0;
+    const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,sd2)}~\n${fmtYMD(re.y,re.m,ed2)}` : '—';
+    const monthsDisp2 = Number.isInteger(actualMonths2) ? actualMonths2 : actualMonths2.toFixed(3);
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
     supervisorRows+=`<tr>
       <td style="${TD2}">${structLabel}</td>
@@ -4425,7 +4454,7 @@ function renderCalcResult() {
       <td style="${TD2}">${escHtml(p.info.name)}</td>
       <td style="${TD2}">${escHtml(grade)}</td>
       <td style="${TD2}">${convRate.toFixed(3)}</td>
-      <td style="${TD2}">${months}개월</td>
+      <td style="${TD2}">${monthsDisp2}개월</td>
       <td style="${TD2};font-weight:700">${convPM.toFixed(3)}</td>
       <td style="${TD2};font-size:7.5pt;white-space:pre-line">${autoNote}</td>
     </tr>`;
