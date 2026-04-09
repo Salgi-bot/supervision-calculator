@@ -4186,6 +4186,7 @@ function getDeployAutoRules(r) {
 const CONV_RATE_DEFAULTS = { '특급':1.139, '고급':1.074, '중급':1.000, '초급':0.821 };
 // 소수점 4째자리 버림 (환산인·월수용)
 function floorAt3(v) { return Math.floor(v * 1000) / 1000; }
+function floorAt2(v) { return Math.floor(v * 100) / 100; } // 억원 표기용 절사 (소수점 2자리)
 
 // 주택건설공사 감리비 지급기준 제3조②항 — 총공사비(억원) → 법정 감리인·월수
 // (20201208 개정, 2021.01.03 시행 / 직선보간, 3000억↑은 2000~3000억 기울기 연장)
@@ -4895,7 +4896,7 @@ function renderPerfTable() {
   let totalCalcWon = 0;
   tbody.innerHTML = perfRecords.map((r,i) => {
     const calc = calcPerfRecord(r, annDate);
-    const calcDisp = calc ? calc.calcAmount.toFixed(2) : '-';
+    const calcDisp = calc ? floorAt2(calc.calcAmount).toFixed(2) : '-';
     const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
     if(calc) totalCalcWon += calc.calcWon;
     return `<tr>
@@ -4914,7 +4915,7 @@ function renderPerfTable() {
   </tr>`;
   }).join('');
   // 합계행
-  const totalDisp = (totalCalcWon/100000000).toFixed(2);
+  const totalDisp = floorAt2(totalCalcWon/100000000).toFixed(2);
   tbody.innerHTML += `<tr style="background:#e8f4fb;font-weight:700">
     <td colspan="7" style="border:1px solid #ccc;padding:6px;text-align:right">합 계 (3년이내 환산금액)</td>
     <td style="border:1px solid #ccc;padding:6px;text-align:center;color:#1d4ed8">${totalDisp}억</td>
@@ -4942,9 +4943,9 @@ function calcPerfRecord(r, announcementDate) {
   // 준공 여부에 따라 종료일 결정
   const isCompleted = e <= annDate;
   const effEnd = isCompleted ? e : new Date(annDate.getTime()-86400000); // 수행중: 공고일 전날
-  const recentDays = Math.max(0, Math.round((effEnd-effStart)/86400000));
-  // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분
-  const recentSuspend = totalDays > 0 ? Math.round(suspend * recentDays / totalDays) : 0;
+  const recentDays = Math.max(0, Math.floor((effEnd-effStart)/86400000));
+  // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분 (올림 → 중지일수 최대화 → 적용일수 최소화 → 보수적 계산)
+  const recentSuspend = totalDays > 0 ? Math.ceil(suspend * recentDays / totalDays) : 0;
   const appliedDays = Math.max(0, recentDays - recentSuspend); // 적용일수
   // 적용기간요율 = 적용일수 / 해당일수
   const typeRate = (r.type === '비주택건축') ? 0.8 : 1.0;
@@ -5094,7 +5095,8 @@ function renderByeolchum2() {
   const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
   const calcs = perfRecords.map(r => calcPerfRecord(r, annDate)).filter(Boolean);
   const totalAmount = calcs.reduce((s,c) => s + (c.amount||0), 0);
-  const totalConverted = calcs.reduce((s,c) => s + c.calcAmount, 0);
+  // 합계는 원 단위(정수) 합산 후 억원 변환 → 절사 (float 누적 오차 방지)
+  const totalConverted = floorAt2(calcs.reduce((s,c) => s + c.calcWon, 0) / 100000000);
   let html = '';
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
@@ -5117,11 +5119,11 @@ function renderByeolchum2() {
         <td ${tdS}>${c.startDate}</td><td ${tdS}>${c.endDate}</td>
         <td ${tdS}>${isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${isHousing ? '-' : c.amount.toFixed(2)}</td>
         <td ${tdS}>${(c.ratio*100).toFixed(2)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
-        <td ${tdS}>${c.calcAmount.toFixed(2)}</td></tr>`;
+        <td ${tdS}>${floorAt2(c.calcAmount).toFixed(2)}</td></tr>`;
     });
     html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="2" ${tdS}></td>
-      <td ${tdS}>${calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
-      <td ${tdS}>${calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
+      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
       <td ${tdS}></td><td ${tdS}></td>
       <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
       <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
@@ -5157,12 +5159,12 @@ function renderByeolchum2() {
         <td ${tdS}>${(c.ratio*100).toFixed(2)}%</td>
         <td ${tdS}>${isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${isHousing ? '-' : c.amount.toFixed(2)}</td>
         <td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
-        <td ${tdS}>${c.calcAmount.toFixed(2)}</td></tr>`;
+        <td ${tdS}>${floorAt2(c.calcAmount).toFixed(2)}</td></tr>`;
     });
     html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="7" ${tdS}></td>
       <td ${tdS}></td>
-      <td ${tdS}>${calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
-      <td ${tdS}>${calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0).toFixed(2)}</td>
+      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
+      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
       <td colspan="2" ${tdS}></td>
       <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
       <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
@@ -5221,7 +5223,7 @@ function renderByeolchum2() {
         <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;color:#1d4ed8">${ratioDisp}</td>
         <td ${tdC}>${(c.amount||0).toFixed(2)}</td>
         <td ${tdC}>${typeDisp}</td>
-        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;color:#15803d">${c.calcAmount.toFixed(2)}</td>
+        <td ${tdC} style="border:1px solid #888;padding:4px 5px;text-align:center;font-size:8pt;font-weight:700;color:#15803d">${floorAt2(c.calcAmount).toFixed(2)}</td>
         <td ${tdC} style="${compStyle}">${compDisp}</td>
       </tr>`;
     });
