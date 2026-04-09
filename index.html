@@ -4302,8 +4302,8 @@ function renderDeployTable() {
   // 감리원 행 생성
   const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
 
-  // 1패스: 상주 감리원 환산인·월수 합계 → 비상주 상한 계산
-  // 법정: 비상주 ≤ 총 배치인·월수 × 15% → 비상주 ≤ 상주합계 × 15/85
+  // 1패스: 상주 감리원 환산인·월수 합계 (참고용)
+  // 제6조②(주택건설공사 감리비 지급기준): 비상주 ≤ 법정 감리인·월수(제3조②) × 15%
   let residentConvTotal = 0;
   roles.filter(r => r.placement !== '비상주').forEach(r => {
     const p = personnel[r.id];
@@ -4317,7 +4317,9 @@ function renderDeployTable() {
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
     residentConvTotal += floorAt3(m_f * cr);
   });
-  const nonresMax = floorAt3(residentConvTotal * 15 / 85); // 비상주 인·월수 상한
+  // 비상주 상한: 법정인월수 × 15% (제6조②)
+  const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
+  const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
 
   // 2패스: 행 생성
   let rows = '';
@@ -4386,7 +4388,7 @@ function renderDeployTable() {
     <td style="${TD_TOT}"></td>
   </tr>`;
 
-  const nonresRate = (nonresPM > 0 && totalConvPM > 0) ? (nonresPM / totalConvPM * 100).toFixed(1) : '0.0';
+  const nonresRate = (_lp4cap > 0 && nonresPM > 0) ? (nonresPM / _lp4cap * 100).toFixed(1) : '0.0';
   const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
 
   document.getElementById('deployTablePreview').innerHTML = `
@@ -4483,7 +4485,7 @@ function renderCalcResult() {
     const cr = (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : (CONV_RATE_DEFAULTS[grade]??1.00);
     resConvTotal2 += floorAt3(m_f2 * cr);
   });
-  const nonresMax2 = floorAt3(resConvTotal2 * 15 / 85);
+  const nonresMax2 = legalPM ? floorAt3(legalPM * 0.15) : 0; // 제6조②: 법정인월수 × 15%
 
   let supervisorRows = '', totalConv = 0, nonresConv = 0;
 
