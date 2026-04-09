@@ -513,7 +513,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
 }
 .a4-preview, .a4-preview * { color: #000 !important; }
 .a4-preview table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
-.a4-preview th, .a4-preview td { border: 1px solid #333; padding: 6px 8px; font-size: 10pt; }
+.a4-preview th, .a4-preview td { border: 1px solid #000 !important; padding: 6px 8px; font-size: 10pt; }
 .a4-preview th { background: #f0f0f0; font-weight: 700; text-align: center; }
 .a4-placeholder {
   text-align: center;
@@ -3569,7 +3569,7 @@ function renderByeolji1() {
             <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px;border:1px solid #bbb">등록번호<br>개설신고번호</td>${tdVal(co.regNo,'')}
           </tr>
           <tr>
-            ${tdLabel('주&emsp;소')}${tdVal(co.address,'')}
+            ${tdLabel('주&emsp;소')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #000">${escHtml(co.address||'').replace(/\n/g,'<br>')}</td>
             ${tdLabel('용역참여<br>지분율')}${tdVal(co.shareRatio ? co.shareRatio + '%' : '','')}
             ${tdLabel('전화번호')}${tdVal(co.phone,'')}
           </tr>
