@@ -1156,6 +1156,7 @@ tbody tr:hover td { background: var(--ci-light); }
         <label style="white-space:nowrap">법정 인·월수</label>
         <input type="text" id="deployLawMonths" placeholder="00.0" style="width:56px;font-size:12px" oninput="renderDeployTable()">
         <span style="font-size:11px;color:#666">인·월</span>
+        <button onclick="autoCalcLegalMonths()" style="font-size:11px;padding:2px 8px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;white-space:nowrap">공사비로 자동계산</button>
       </div>
       <button class="btn" onclick="printTab('tab6')" style="margin-left:auto">🖨 인쇄 / PDF 저장</button>
     </div>
@@ -4041,6 +4042,40 @@ function parseYM(s) {
   return { y, m };
 }
 
+// 주택건설공사 감리자 지정기준 별표4 — 공사비(억원) → 법정 인·월수
+// (국토교통부 고시 제2024-529호 기준, 직선보간 적용)
+const LEGAL_PM_TABLE = [
+  [5, 5], [10, 7], [20, 11], [30, 16], [50, 23],
+  [100, 38], [150, 51], [200, 63], [300, 83],
+  [500, 110], [700, 133], [1000, 155]
+];
+function calcLegalMonths(costStr) {
+  if (!costStr) return null;
+  const costThousand = parseFloat(String(costStr).replace(/,/g, ''));
+  if (isNaN(costThousand) || costThousand <= 0) return null;
+  const c = costThousand / 100000; // 천원 → 억원
+  const T = LEGAL_PM_TABLE;
+  if (c <= T[0][0]) return T[0][1];
+  if (c >= T[T.length - 1][0]) {
+    const [x1, y1] = T[T.length - 2], [x2, y2] = T[T.length - 1];
+    return parseFloat((y2 + (c - x2) * (y2 - y1) / (x2 - x1)).toFixed(1));
+  }
+  for (let i = 1; i < T.length; i++) {
+    if (c <= T[i][0]) {
+      const [x1, y1] = T[i - 1], [x2, y2] = T[i];
+      return parseFloat((y1 + (c - x1) * (y2 - y1) / (x2 - x1)).toFixed(1));
+    }
+  }
+  return null;
+}
+function autoCalcLegalMonths() {
+  const pj = getProjectData();
+  const pm = calcLegalMonths(pj.supervisionCost);
+  if (pm === null) { alert('1번 탭에서 감리대상 공사비를 먼저 입력하세요.'); return; }
+  document.getElementById('deployLawMonths').value = pm;
+  renderDeployTable();
+}
+
 function renderDeploySettings() {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || settingsEl.contains(document.activeElement)) return;
@@ -4187,8 +4222,8 @@ function renderDeployTable() {
     <div style="border:1px solid #888;margin-top:14px;padding:10px 14px;font-size:9pt;line-height:2">
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')}</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
-      <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${totalPM}&ensp;인·월</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)</div>
+      <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${totalPM}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp) || lp <= 0) return ''; return totalPM >= lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 (' + (totalPM - lp).toFixed(1) + '인·월)</span>'; })()}</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)${parseFloat(nonresRate) > 15 ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 15% 초과</span>' : ''}</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
