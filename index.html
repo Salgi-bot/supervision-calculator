@@ -4083,8 +4083,11 @@ function getDeployAutoRules(r) {
   if (r.id === 'civil2' || r.id === 'mech')              return { lockStart:false, lockEnd:true  }; // 후·설비: 종료=공사종료
   return { lockStart:false, lockEnd:false };
 }
-// 환산비 기본값 (중급=1.0 기준 / 한국건설엔지니어링협회 2026년도 건설사업관리 기술인 노임 기준)
-const CONV_RATE_DEFAULTS = { '특급':1.50, '고급':1.20, '중급':1.00, '초급':0.75 };
+// 환산비 기본값 — 한국건설엔지니어링협회 2026년도 건설사업관리기술인 노임 기준 (중급 350,580원 = 1.000)
+// 특급 399,247원 / 고급 376,400원 / 초급 287,724원 (실제 노임 비율, 제3조③항)
+const CONV_RATE_DEFAULTS = { '특급':1.139, '고급':1.074, '중급':1.000, '초급':0.821 };
+// 소수점 4째자리 버림 (환산인·월수용)
+function floorAt3(v) { return Math.floor(v * 1000) / 1000; }
 
 // 주택건설공사 감리비 지급기준 제3조②항 — 총공사비(억원) → 법정 감리인·월수
 // (20201208 개정, 2021.01.03 시행 / 직선보간, 3000억↑은 2000~3000억 기울기 연장)
@@ -4208,6 +4211,26 @@ function renderDeployTable() {
 
   // 감리원 행 생성
   const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
+
+  // 1패스: 상주 감리원 환산인·월수 합계 → 비상주 상한 계산
+  // 법정: 비상주 ≤ 총 배치인·월수 × 15% → 비상주 ≤ 상주합계 × 15/85
+  let residentConvTotal = 0;
+  roles.filter(r => r.placement !== '비상주').forEach(r => {
+    const p = personnel[r.id];
+    const ds = deployState[r.id] || {};
+    const auto = getDeployAutoRules(r);
+    const rs = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
+    const re = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
+    let m = 0;
+    if (rs && re) { let cy=rs.y, cm=rs.m; while(cy<re.y||(cy===re.y&&cm<=re.m)){m++;if(++cm>12){cm=1;cy++;}} }
+    const grade = p.info.appliedGrade || p.info.grade || '중급';
+    const defRate = CONV_RATE_DEFAULTS[grade] ?? 1.00;
+    const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
+    residentConvTotal += floorAt3(m * cr);
+  });
+  const nonresMax = floorAt3(residentConvTotal * 15 / 85); // 비상주 인·월수 상한
+
+  // 2패스: 행 생성
   let rows = '';
   let totalConvPM = 0, nonresPM = 0;
 
@@ -4230,9 +4253,14 @@ function renderDeployTable() {
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:16px"></td>`;
     }).join('');
 
-    const convPM = parseFloat((months * convRate).toFixed(2));
+    // 환산인·월수: 소수 4째자리 버림. 비상주는 15% 상한 적용
+    let convPM = floorAt3(months * convRate);
+    if (r.placement === '비상주') {
+      convPM = Math.min(convPM, nonresMax);
+      convPM = floorAt3(convPM);
+      nonresPM += convPM;
+    }
     totalConvPM += convPM;
-    if (r.placement === '비상주') nonresPM += months;
 
     // 비고: 배치기간 자동 생성 (수동 입력 시 우선) — 2줄 표시
     const autoNote = `${fmtYMD(rs.y, rs.m, 1)}~\n${fmtYMD(re.y, re.m, lastDay(re.y, re.m))}`;
@@ -4249,7 +4277,7 @@ function renderDeployTable() {
       <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
       ${gantt}
       <td style="${TD}">${months}</td>
-      <td style="${TD}">${convPM % 1 === 0 ? convPM : convPM.toFixed(2)}</td>
+      <td style="${TD}">${convPM.toFixed(3)}</td>
       <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(note)}</td>
     </tr>`;
   });
@@ -4257,12 +4285,12 @@ function renderDeployTable() {
   // 총배치 인월수 행
   const blankGantt = allMonths.map(() => `<td style="background:#f5f5f5;border:1px solid #ddd"></td>`).join('');
   const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
-  const convTotal = parseFloat(totalConvPM.toFixed(2));
+  const convTotal = floorAt3(totalConvPM);
   rows += `<tr>
     <td colspan="4" style="${TD_TOT}">총배치 인월수</td>
     ${blankGantt}
     <td style="${TD_TOT}"></td>
-    <td style="${TD_TOT}">${convTotal}</td>
+    <td style="${TD_TOT}">${convTotal.toFixed(3)}</td>
     <td style="${TD_TOT}"></td>
   </tr>`;
 
@@ -4298,7 +4326,7 @@ function renderDeployTable() {
       <tbody>${rows}</tbody>
     </table>
     <div style="border:1px solid #888;margin-top:14px;padding:10px 14px;font-size:9pt;line-height:2;color:#111">
-      <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')}</div>
+      <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')} 천원</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
       <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
       <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)${parseFloat(nonresRate)>15 ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 15% 초과</span>' : ''}</div>
@@ -4349,7 +4377,24 @@ function renderCalcResult() {
   const pjStart = parseYM(pj.startDate);
   const pjEnd   = parseYM(pj.endDate);
   const roles   = getAllRoles().filter(r => personnel[r.id]?.info?.name);
-  let supervisorRows = '', totalConv = 0, nonresMonths = 0;
+
+  // 1패스: 상주 합계 → 비상주 상한
+  let resConvTotal2 = 0;
+  roles.filter(r => r.placement !== '비상주').forEach(r => {
+    const p = personnel[r.id];
+    const ds = deployState[r.id] || {};
+    const auto = getDeployAutoRules(r);
+    const rs = pjStart ? (auto.lockStart ? pjStart : (parseYMShort(ds.startYM)||pjStart)) : null;
+    const re = pjEnd   ? (auto.lockEnd   ? pjEnd   : (parseYMShort(ds.endYM)  ||pjEnd  )) : null;
+    let m = 0;
+    if (rs && re) { let cy=rs.y, cm=rs.m; while(cy<re.y||(cy===re.y&&cm<=re.m)){m++;if(++cm>12){cm=1;cy++;}} }
+    const grade = p.info.appliedGrade||p.info.grade||'중급';
+    const cr = (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : (CONV_RATE_DEFAULTS[grade]??1.00);
+    resConvTotal2 += floorAt3(m * cr);
+  });
+  const nonresMax2 = floorAt3(resConvTotal2 * 15 / 85);
+
+  let supervisorRows = '', totalConv = 0, nonresConv = 0;
 
   roles.forEach(r => {
     const p  = personnel[r.id];
@@ -4365,9 +4410,12 @@ function renderCalcResult() {
     const grade   = p.info.appliedGrade||p.info.grade||'중급';
     const defRate = CONV_RATE_DEFAULTS[grade]??1.00;
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
-    const convPM  = parseFloat((months*convRate).toFixed(2));
+    let convPM = floorAt3(months * convRate);
+    if (r.placement==='비상주') {
+      convPM = floorAt3(Math.min(convPM, nonresMax2));
+      nonresConv += convPM;
+    }
     totalConv += convPM;
-    if (r.placement==='비상주') nonresMonths += months;
     const structLabel = r.placement==='총괄'?'총괄':r.placement==='비상주'?'비상주':r.isNew?'신규':'분야별';
     const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,1)}~\n${fmtYMD(re.y,re.m,lastDay(re.y,re.m))}` : '—';
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
@@ -4376,19 +4424,19 @@ function renderCalcResult() {
       <td style="${TD2}">${escHtml(p.info.field)}</td>
       <td style="${TD2}">${escHtml(p.info.name)}</td>
       <td style="${TD2}">${escHtml(grade)}</td>
-      <td style="${TD2}">${convRate.toFixed(2)}</td>
+      <td style="${TD2}">${convRate.toFixed(3)}</td>
       <td style="${TD2}">${months}개월</td>
-      <td style="${TD2};font-weight:700">${convPM}</td>
+      <td style="${TD2};font-weight:700">${convPM.toFixed(3)}</td>
       <td style="${TD2};font-size:7.5pt;white-space:pre-line">${autoNote}</td>
     </tr>`;
   });
 
   const lawMonthsInput = parseFloat(document.getElementById('deployLawMonths')?.value)||legalPM;
-  const totalConvFixed = parseFloat(totalConv.toFixed(2));
+  const totalConvFixed = floorAt3(totalConv);
   const isOk = totalConvFixed >= lawMonthsInput;
   const okSty  = 'padding:2px 10px;border-radius:3px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0';
   const ngSty  = 'padding:2px 10px;border-radius:3px;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca';
-  const nonresRate = totalConvFixed>0 ? (nonresMonths/totalConvFixed*100).toFixed(1) : '0.0';
+  const nonresRate = totalConvFixed>0 ? (nonresConv/totalConvFixed*100).toFixed(1) : '0.0';
   const nonresOk = parseFloat(nonresRate)<=15;
   const TH2='border:1px solid #ccc;padding:5px 8px;font-size:8.5pt;background:#f5f5f5;font-weight:700;text-align:center';
 
@@ -4420,7 +4468,7 @@ function renderCalcResult() {
       <tfoot>
         <tr style="background:#f5f5f5;font-weight:700">
           <td colspan="6" style="border:1px solid #ccc;padding:5px 10px;font-size:9pt;text-align:right">합 계</td>
-          <td style="border:1px solid #ccc;padding:5px 8px;font-size:9pt;text-align:center">${totalConvFixed} 인·월</td>
+          <td style="border:1px solid #ccc;padding:5px 8px;font-size:9pt;text-align:center">${totalConvFixed.toFixed(3)} 인·월</td>
           <td style="border:1px solid #ccc"></td>
         </tr>
       </tfoot>
@@ -4429,12 +4477,12 @@ function renderCalcResult() {
     <table style="border-collapse:collapse;width:100%;font-size:9pt">
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700;width:28%">⑤ 충족 여부</td>
           <td style="border:1px solid #ccc;padding:6px 10px">
-            법정 ${lawMonthsInput}인·월&ensp;/&ensp;투입 ${totalConvFixed}인·월
-            <span style="margin-left:10px;${isOk?okSty:ngSty}">${isOk?'✓ 충족':'✗ 미달 ('+(totalConvFixed-lawMonthsInput).toFixed(1)+'인·월)'}</span>
+            법정 ${lawMonthsInput}인·월&ensp;/&ensp;투입 ${totalConvFixed.toFixed(3)}인·월
+            <span style="margin-left:10px;${isOk?okSty:ngSty}">${isOk?'✓ 충족':'✗ 미달 ('+(totalConvFixed-lawMonthsInput).toFixed(3)+'인·월)'}</span>
           </td></tr>
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700">⑥ 비상주 배치율</td>
           <td style="border:1px solid #ccc;padding:6px 10px">
-            비상주 ${nonresMonths}인·월&ensp;/&ensp;총 투입 ${totalConvFixed}인·월 = ${nonresRate}%
+            비상주 ${nonresConv.toFixed(3)}인·월&ensp;/&ensp;총 투입 ${totalConvFixed.toFixed(3)}인·월 = ${nonresRate}%
             <span style="margin-left:10px;${nonresOk?okSty:ngSty}">${nonresOk?'✓ 15% 이내':'✗ 15% 초과'}</span>
           </td></tr>
     </table>
@@ -4442,7 +4490,7 @@ function renderCalcResult() {
     <div style="font-size:7.5pt;color:#666;margin-top:12px;line-height:1.7">
       ※ 근거법령: 주택건설공사 감리비 지급기준 제3조②항 (국토교통부, 2021.01.03 시행)<br>
       ※ 환산비 기준: 한국건설엔지니어링협회 공표 건설사업관리기술인 노임 (2026년도 기준), 중급 임금 = 1.0<br>
-      &emsp;→ 특급 1.50 | 고급 1.20 | 중급 1.00 | 초급 0.75 (배치계획표 탭에서 직접 수정 가능)<br>
+      &emsp;→ 특급 1.139 | 고급 1.074 | 중급 1.000 | 초급 0.821 (배치계획표 탭에서 직접 수정 가능)<br>
       ※ 환산인·월수 = 투입기간(개월) × 환산비
     </div>
   </div>`;
