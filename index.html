@@ -1848,8 +1848,8 @@ function renderPersonCards() {
     const p = personnel[role.id];
     const hasData = p.info.name || p.careers.length > 0;
     const totalDays = p.careers.reduce((s, c) => s + (c.days || 0), 0);
-    const totalConv = p.careers.reduce((s, c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
-    const convYears = (totalConv / 365).toFixed(1);
+    const totalConv = p.careers.reduce((s, c) => s + Math.floor((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
+    const convYears = ( Math.floor(totalConv/365*10)/10 ).toFixed(1);
     const isNonEval = role.id.startsWith('noneval_');
     const isNewEval = role.id.startsWith('neweval_');
 
@@ -2028,7 +2028,7 @@ function renderCareerTable() {
   tbody.innerHTML = '';
   rows.forEach((r, i) => {
     const rate = getRate(r.conType, r.workType, r.resident);
-    const conv = Math.round(r.days * rate);
+    const conv = Math.floor(r.days * rate);
     const tr = document.createElement('tr');
     tr.className = getRowClass(rate);
     tr.innerHTML = `
@@ -2096,7 +2096,7 @@ function calcAll() {
   const rows = getRows();
   rows.forEach(r => {
     r.rate = getRate(r.conType, r.workType, r.resident);
-    r.convDays = Math.round(r.days * r.rate);
+    r.convDays = Math.floor(r.days * r.rate);
   });
   renderCareerTable();
   renderResults();
@@ -2107,7 +2107,7 @@ function calcAll() {
 function updateInputSummary() {
   const rows = getRows();
   const totalDays = rows.reduce((s,r) => s + r.days, 0);
-  const totalConv = rows.reduce((s,r) => s + Math.round(r.days * getRate(r.conType, r.workType, r.resident)), 0);
+  const totalConv = rows.reduce((s,r) => s + Math.floor(r.days * getRate(r.conType, r.workType, r.resident)), 0);
   const el = document.getElementById('inputSummary');
   el.style.display = rows.length ? 'block' : 'none';
   document.getElementById('inputSummaryContent').innerHTML = `
@@ -2115,7 +2115,7 @@ function updateInputSummary() {
       <div class="summary-item"><div class="label">경력 수</div><div class="val">${rows.length}건</div></div>
       <div class="summary-item"><div class="label">인정일수</div><div class="val">${totalDays.toLocaleString()}일</div></div>
       <div class="summary-item"><div class="label">환산일수</div><div class="val">${totalConv.toLocaleString()}일</div></div>
-      <div class="summary-item"><div class="label">환산경력</div><div class="val">${(totalConv/365).toFixed(2)}년</div></div>
+      <div class="summary-item"><div class="label">환산경력</div><div class="val">${floorAt2(totalConv/365).toFixed(2)}년</div></div>
     </div>`;
 }
 
@@ -2130,7 +2130,7 @@ function renderResults() {
   let totalDays = 0, totalConv = 0;
   rows.forEach((r, i) => {
     const rate = getRate(r.conType, r.workType, r.resident);
-    const conv = Math.round(r.days * rate);
+    const conv = Math.floor(r.days * rate);
     totalDays += r.days; totalConv += conv;
     const tr = document.createElement('tr');
     tr.className = getRowClass(rate);
@@ -2145,7 +2145,7 @@ function renderResults() {
     tbody.appendChild(tr);
   });
   const trT = document.createElement('tr'); trT.className = 'total-row';
-  trT.innerHTML = `<td colspan="5" class="text-right fw-bold">합 계</td><td class="text-right">${totalDays.toLocaleString()}</td><td>—</td><td class="text-right">${totalConv.toLocaleString()}</td><td>${(totalConv/365).toFixed(2)}년</td>`;
+  trT.innerHTML = `<td colspan="5" class="text-right fw-bold">합 계</td><td class="text-right">${totalDays.toLocaleString()}</td><td>—</td><td class="text-right">${totalConv.toLocaleString()}</td><td>${floorAt2(totalConv/365).toFixed(2)}년</td>`;
   tbody.appendChild(trT);
 
   const info = personnel[currentPersonId].info;
@@ -2157,11 +2157,11 @@ function renderResults() {
     <div class="summary-item"><div class="label">배치</div><div class="val">${info.placement}</div></div>
     <div class="summary-item"><div class="label">인정일수</div><div class="val">${totalDays.toLocaleString()}일</div></div>
     <div class="summary-item"><div class="label">환산일수</div><div class="val">${totalConv.toLocaleString()}일</div></div>
-    <div class="summary-item"><div class="label">환산경력</div><div class="val" style="color:#e65c00">${(totalConv/365).toFixed(2)}년</div></div>`;
+    <div class="summary-item"><div class="label">환산경력</div><div class="val" style="color:#e65c00">${floorAt2(totalConv/365).toFixed(2)}년</div></div>`;
 
   renderRateSummary(totalConv);
   document.getElementById('convDays').value = totalConv;
-  document.getElementById('convYears').value = (totalConv / 365).toFixed(2);
+  document.getElementById('convYears').value = floorAt2(totalConv / 365).toFixed(2);
 }
 
 function renderRateSummary(grandTotal) {
@@ -2172,7 +2172,7 @@ function renderRateSummary(grandTotal) {
     const key = (rate*100).toFixed(0) + '%';
     if (!rateGroups[key]) rateGroups[key] = { days: 0, conv: 0 };
     rateGroups[key].days += r.days;
-    rateGroups[key].conv += Math.round(r.days * rate);
+    rateGroups[key].conv += Math.floor(r.days * rate);
   });
   const card = document.getElementById('rateSummaryCard');
   card.style.display = 'block';
@@ -2194,9 +2194,9 @@ function loadScoreForPerson(roleId) {
   document.getElementById('scorePersonLabel').textContent = role.label;
   document.getElementById('scorePlacement').value = p.info.placement || role.placement;
   // Calc conversion
-  const totalConv = p.careers.reduce((s,c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
+  const totalConv = p.careers.reduce((s,c) => s + Math.floor((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
   document.getElementById('convDays').value = totalConv;
-  document.getElementById('convYears').value = (totalConv / 365).toFixed(2);
+  document.getElementById('convYears').value = floorAt2(totalConv / 365).toFixed(2);
   // Sync project size
   const pjSize = document.getElementById('pj_sizeClass');
   if (pjSize) document.getElementById('projectSize').value = pjSize.value;
@@ -2235,7 +2235,7 @@ function calcScore() {
   const eTbl = getExpScores();
   function calcExpScore(key) {
     const tbl = eTbl[key] || [];
-    for (const e of tbl) { if (convYears >= e.min) return { score: e.score, label: `${convYears.toFixed(2)}년 (${e.label}) → ${e.score}점` }; }
+    for (const e of tbl) { if (convYears >= e.min) return { score: e.score, label: `${floorAt2(convYears).toFixed(2)}년 (${e.label}) → ${e.score}점` }; }
     return { score: 0, label: '기준 없음' };
   }
   if (placement === '신규') {
@@ -2271,7 +2271,7 @@ function calcScore() {
       <tbody>
         <tr><td class="fw-bold">대상자</td><td class="text-left">${name} (${field} ${grade} / ${placement})</td><td>—</td></tr>
         <tr><td class="fw-bold">공사규모</td><td class="text-left">${projectSize}</td><td>—</td></tr>
-        <tr><td class="fw-bold">환산경력</td><td class="text-left">${convDays.toLocaleString()}일 (${convYears.toFixed(2)}년)</td><td>—</td></tr>
+        <tr><td class="fw-bold">환산경력</td><td class="text-left">${convDays.toLocaleString()}일 (${floorAt2(convYears).toFixed(2)}년)</td><td>—</td></tr>
         <tr><td class="fw-bold">등급 (${maxGrade}점)</td><td class="text-left">${gradeLabel}</td><td style="color:var(--ci)">${gradeScore.toFixed(1)}</td></tr>
         <tr><td class="fw-bold">경력 (${maxExp}점)</td><td class="text-left">${expLabel}</td><td style="color:var(--ci)">${expScore.toFixed(1)}</td></tr>
         <tr style="background:${isPerfect?'var(--ci)':'#e8f4fb'};color:${isPerfect?'#fff':'var(--ci)'}">
@@ -2427,7 +2427,7 @@ function saveExcel() {
     let td = 0, tc = 0;
     rows.forEach((r, i) => {
       const rate = getRate(r.conType, r.workType, r.resident);
-      const conv = Math.round(r.days * rate);
+      const conv = Math.floor(r.days * rate);
       td += r.days; tc += conv;
       sheetData.push([i+1, r.site, r.conType, r.workType, r.resident, r.days, (rate*100)+'%', conv]);
     });
@@ -3726,7 +3726,7 @@ function calcPersonScore(roleId) {
   const grade = p.info.appliedGrade || p.info.grade || '특급';
   const placement = p.info.placement || role.placement;
   const careers = p.careers || [];
-  const totalConv = careers.reduce((s,c) => s + Math.round((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
+  const totalConv = careers.reduce((s,c) => s + Math.floor((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
   const convYears = totalConv / 365;
 
   let gradeScore = 0, expScore = 0, maxGrade = 0, maxExp = 0;
@@ -3774,7 +3774,7 @@ function buildByeolji2Html(roleId) {
   let totalDays = 0, totalConv = 0;
   careers.forEach((c, i) => {
     const rate = getRate(c.conType, c.workType, c.resident);
-    const conv = Math.round((c.days||0) * rate);
+    const conv = Math.floor((c.days||0) * rate);
     totalDays += (c.days||0);
     totalConv += conv;
     careerRows += `<tr>
@@ -3826,7 +3826,7 @@ function buildByeolji2Html(roleId) {
             <td style="text-align:center;font-weight:600">나. 경력</td>
             <td style="text-align:center">${sc.maxExp}점</td>
             <td style="text-align:center;font-weight:700;color:#000">${sc.expScore.toFixed(1)}점</td>
-            <td style="text-align:center;font-size:9pt">환산 ${sc.convYears.toFixed(2)}년 (${sc.totalConv.toLocaleString()}일)</td>
+            <td style="text-align:center;font-size:9pt">환산 ${sc.floorAt2(convYears).toFixed(2)}년 (${sc.totalConv.toLocaleString()}일)</td>
           </tr>
           <tr style="background:#e8f4fb;font-weight:700">
             <td style="text-align:center">합 계</td>
@@ -3928,7 +3928,7 @@ function renderByeolji2Cover() {
   const inp = (id,val) => { const stored=b2NumState[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="b2NumState['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
   const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
-  const pYr = s => s.convYears > 0 ? s.convYears.toFixed(1)+'년' : '';
+  const pYr = s => s.convYears > 0 ? ( Math.floor(s.convYears*10)/10 ).toFixed(1)+'년' : '';
 
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc">
@@ -5263,8 +5263,8 @@ function renderByeolchum3() {
     const p = personnel[role.id];
     if(!p.info.name) return;
     const careers = p.careers || [];
-    const totalConvDays = careers.reduce((s,c) => s + Math.round((c.days||0)*getRate(c.conType,c.workType,c.resident)), 0);
-    const convYears = (totalConvDays/365).toFixed(1);
+    const totalConvDays = careers.reduce((s,c) => s + Math.floor((c.days||0)*getRate(c.conType,c.workType,c.resident)), 0);
+    const convYears = ( Math.floor(totalConvDays/365*10)/10 ).toFixed(1);
     const score = calcPersonScore(role.id);
     const placementLabel = role.placement === '총괄' ? '총괄감리원' : role.placement === '비상주' ? '비상주감리원' : '분야별감리원';
     const fieldLabel = role.field;
@@ -5285,7 +5285,7 @@ function renderByeolchum3() {
     const rowCount = Math.max(careers.length, 1);
     careers.forEach((c, ci) => {
       const rate = getRate(c.conType, c.workType, c.resident);
-      const convDays = Math.round((c.days||0)*rate);
+      const convDays = Math.floor((c.days||0)*rate);
       html += `<tr>
         ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="writing-mode:vertical-lr;letter-spacing:3px;font-weight:700;font-size:9pt;line-height:1.4;padding:8px 4px">${escHtml(placementLabel)}<br>＜${escHtml(fieldLabel)}＞<br>${escHtml(p.info.name)}</td>` : ''}
         <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
