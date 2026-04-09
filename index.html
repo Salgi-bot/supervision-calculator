@@ -1443,7 +1443,8 @@ const RESIDENT_TYPES = ['상주','비상주'];
 const ROLES = [
   { id: 'chief',  label: '총괄감리원',      field: '건축', placement: '총괄',   icon: '👑', rowLabel: '총괄' },
   { id: 'arch',   label: '건축감리원',       field: '건축', placement: '분야별', icon: '🏛', rowLabel: '분야별' },
-  { id: 'civil',  label: '토목감리원',       field: '토목', placement: '분야별', icon: '🛤', rowLabel: '분야별' },
+  { id: 'civil',  label: '토목감리원(전)',     field: '토목', placement: '분야별', icon: '🛤', rowLabel: '분야별' },
+  { id: 'civil2', label: '토목감리원(후)',    field: '토목', placement: '분야별', icon: '🛤', rowLabel: '분야별' },
   { id: 'mech',   label: '기타설비감리원',   field: '설비', placement: '분야별', icon: '⚙', rowLabel: '분야별' },
   { id: 'nonres', label: '비상주감리원',     field: '건축', placement: '비상주', icon: '📋', rowLabel: '비상주' },
 ];
@@ -1531,6 +1532,8 @@ function toggleArch() {
   renderPersonSelector('personSelectorScore');
   renderDeploySettings();
   renderDeployTable();
+  // 별지1호가 활성화되어 있으면 즉시 갱신
+  if (document.getElementById('tab4')?.classList.contains('active')) renderByeolji1();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1787,7 +1790,8 @@ function switchTab(visualIdx) {
 // ══════════════════════════════════════════════════════
 function renderPersonCards() {
   const grid = document.getElementById('personGrid');
-  const allRoles = getAllRoles();
+  // 항상 전체 ROLES 표시 (arch OFF여도 카드 유지 → 재활성화 가능)
+  const allRoles = [...ROLES, ...nonEvalList, ...newEvalList];
   grid.innerHTML = allRoles.map(role => {
     const p = personnel[role.id];
     const hasData = p.info.name || p.careers.length > 0;
@@ -3501,13 +3505,10 @@ function renderByeolji1() {
     const structLabel = r.placement === '총괄' ? '총괄' :
                          r.placement === '비상주' ? '비상주' :
                          r.isNew ? '신규' : '분야별';
-    allPRows.push({ structLabel, field: r.id === 'civil' ? '토목(전)' : (p.field || r.field),
+    const fieldLabel = r.id === 'civil' ? '토목(전)' : r.id === 'civil2' ? '토목(후)' : (p.field || r.field);
+    allPRows.push({ structLabel, field: fieldLabel,
       name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
       grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
-    if (r.id === 'civil') {
-      allPRows.push({ structLabel: '분야별', field: '토목(후)',
-        name: '-', birthdate: '-', grade: p.appliedGrade || p.grade, regNo: '-', company: p.company || co.name });
-    }
   });
   // 구분·소속회사 rowspan 계산
   const pStructSpan = allPRows.map((row, i) => {
@@ -4078,8 +4079,8 @@ function fmtYMD(y, m, d) { return String(y).slice(-2)+'.'+String(m).padStart(2,'
 // 배치기간 자동 잠금 규칙 (기본 5역할만, 추가 감리원은 수동)
 function getDeployAutoRules(r) {
   if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true,  lockEnd:true  };
-  if (r.id === 'civil')                                   return { lockStart:true,  lockEnd:false };
-  if (r.id === 'mech')                                    return { lockStart:false, lockEnd:true  };
+  if (r.id === 'civil')                                   return { lockStart:true,  lockEnd:false }; // 전: 시작=공사시작
+  if (r.id === 'civil2' || r.id === 'mech')              return { lockStart:false, lockEnd:true  }; // 후·설비: 종료=공사종료
   return { lockStart:false, lockEnd:false };
 }
 // 환산비 기본값 (중급=1.0 기준 / 한국건설엔지니어링협회 2026년도 건설사업관리 기술인 노임 기준)
@@ -4231,8 +4232,8 @@ function renderDeployTable() {
     totalConvPM += convPM;
     if (r.placement === '비상주') nonresPM += months;
 
-    // 비고: 배치기간 자동 생성 (수동 입력 시 우선)
-    const autoNote = `${fmtYMD(rs.y, rs.m, 1)}~${fmtYMD(re.y, re.m, lastDay(re.y, re.m))}`;
+    // 비고: 배치기간 자동 생성 (수동 입력 시 우선) — 2줄 표시
+    const autoNote = `${fmtYMD(rs.y, rs.m, 1)}~\n${fmtYMD(re.y, re.m, lastDay(re.y, re.m))}`;
     const note = (ds.note !== undefined && ds.note !== '') ? ds.note : autoNote;
 
     const structLabel = r.placement === '총괄' ? '총괄' :
@@ -4247,7 +4248,7 @@ function renderDeployTable() {
       ${gantt}
       <td style="${TD}">${months}</td>
       <td style="${TD}">${convPM % 1 === 0 ? convPM : convPM.toFixed(2)}</td>
-      <td style="${TD};font-size:6.5pt">${escHtml(note)}</td>
+      <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(note)}</td>
     </tr>`;
   });
 
@@ -4365,7 +4366,7 @@ function renderCalcResult() {
     totalConv += convPM;
     if (r.placement==='비상주') nonresMonths += months;
     const structLabel = r.placement==='총괄'?'총괄':r.placement==='비상주'?'비상주':r.isNew?'신규':'분야별';
-    const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,1)}~${fmtYMD(re.y,re.m,lastDay(re.y,re.m))}` : '—';
+    const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,1)}~\n${fmtYMD(re.y,re.m,lastDay(re.y,re.m))}` : '—';
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
     supervisorRows+=`<tr>
       <td style="${TD2}">${structLabel}</td>
@@ -4375,7 +4376,7 @@ function renderCalcResult() {
       <td style="${TD2}">${convRate.toFixed(2)}</td>
       <td style="${TD2}">${months}개월</td>
       <td style="${TD2};font-weight:700">${convPM}</td>
-      <td style="${TD2};font-size:7.5pt">${autoNote}</td>
+      <td style="${TD2};font-size:7.5pt;white-space:pre-line">${autoNote}</td>
     </tr>`;
   });
 
@@ -4437,7 +4438,9 @@ function renderCalcResult() {
 
     <div style="font-size:7.5pt;color:#666;margin-top:12px;line-height:1.7">
       ※ 근거법령: 주택건설공사 감리비 지급기준 제3조②항 (국토교통부, 2021.01.03 시행)<br>
-      ※ 환산비: 한국건설기술관리협회 공표 건설사업관리기술인 등급별 임금 中 중급 임금 = 1.0 기준
+      ※ 환산비 기준: 한국건설엔지니어링협회 공표 건설사업관리기술인 노임 (2026년도 기준), 중급 임금 = 1.0<br>
+      &emsp;→ 특급 1.50 | 고급 1.20 | 중급 1.00 | 초급 0.75 (배치계획표 탭에서 직접 수정 가능)<br>
+      ※ 환산인·월수 = 투입기간(개월) × 환산비
     </div>
   </div>`;
 }
