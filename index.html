@@ -737,7 +737,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <div class="form-group">
         <label>공사규모 구분</label>
-        <select id="pj_sizeClass">
+        <select id="pj_sizeClass" onchange="syncProjectData();onSizeClassChange()">
           <option value="1500이상">1,500세대 이상</option>
           <option value="1000이상">1,000세대 이상 ~ 1,500세대 미만</option>
           <option value="800이상">800세대 이상 ~ 1,000세대 미만</option>
@@ -1542,6 +1542,17 @@ function toggleArch() {
   archEnabled = !archEnabled;
   localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
   _refreshAfterToggle();
+}
+// 공사규모(세대수) 변경 시 분야별건축감리원 자동 ON/OFF
+function onSizeClassChange() {
+  const val = document.getElementById('pj_sizeClass')?.value || '';
+  const wantArch = (val !== '300미만');
+  if (archEnabled !== wantArch) {
+    archEnabled = wantArch;
+    localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+    _refreshAfterToggle();
+  }
+  if (document.getElementById('tab5')?.classList.contains('active')) renderByeolji2Cover();
 }
 function toggleCivil2() {
   civil2Enabled = !civil2Enabled;
@@ -3541,6 +3552,7 @@ function renderByeolji1() {
     const dash = r.isNew;
     const structLabel = r.placement === '총괄' ? '총괄' :
                          r.placement === '비상주' ? '비상주' :
+                         r.placement === '비평가' ? '비평가' :
                          r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r) || (p.field || r.field);
     allPRows.push({ structLabel, field: fieldLabel,
@@ -3895,7 +3907,7 @@ function renderByeolji2Cover() {
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
+  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb"></td>`;
   const inp = (id,val) => { const stored=b2NumState[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="b2NumState['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
@@ -4321,9 +4333,9 @@ function renderDeployTable() {
   const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
   const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
 
-  // 2패스: 행 생성
-  let rows = '';
+  // 2패스: 행 데이터 수집 후 rowspan 계산으로 중복 분야 합치기
   let totalConvPM = 0, nonresPM = 0;
+  const rowDataArr = [];
 
   roles.forEach(r => {
     const p    = personnel[r.id];
@@ -4332,19 +4344,16 @@ function renderDeployTable() {
     const rs   = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
     const re   = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
 
-    // 환산비
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
 
-    // 간트: 월 단위 표시 (부분월도 칸 채움), 실제 인·월수는 일수 기반
     const gantt = allMonths.map(({ y, m }) => {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:16px"></td>`;
     }).join('');
-    const actualMonths = calcDeployMonths(rs, re); // 실제 일수 기반 인·월수
+    const actualMonths = calcDeployMonths(rs, re);
 
-    // 환산인·월수: 소수 4째자리 버림. 비상주는 15% 상한 적용
     let convPM = floorAt3(actualMonths * convRate);
     if (r.placement === '비상주') {
       convPM = Math.min(convPM, nonresMax);
@@ -4353,7 +4362,6 @@ function renderDeployTable() {
     }
     totalConvPM += convPM;
 
-    // 비고: 배치기간 자동 생성 (수동 입력 시 우선) — 2줄 표시 (실제 일 반영)
     const startD = rs.d || 1;
     const endD   = re.d || lastDay(re.y, re.m);
     const autoNote = `${fmtYMD(rs.y, rs.m, startD)}~\n${fmtYMD(re.y, re.m, endD)}`;
@@ -4361,18 +4369,37 @@ function renderDeployTable() {
 
     const structLabel = r.placement === '총괄' ? '총괄' :
                         r.placement === '비상주' ? '비상주' :
+                        r.placement === '비평가' ? '비평가' :
                         r.isNew ? '신규' : '분야별';
-    const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle;color:#111';
+    const fieldLabel = getRoleFieldLabel(r);
     const monthsDisp = Number.isInteger(actualMonths) ? actualMonths : actualMonths.toFixed(3);
+    rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
+      grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convPM, note });
+  });
+
+  // (구분+분야)가 연속으로 같으면 rowspan 합치기
+  const cellSpans = rowDataArr.map((d, i) => {
+    if (i > 0 && rowDataArr[i-1].structLabel === d.structLabel && rowDataArr[i-1].fieldLabel === d.fieldLabel) return 0;
+    let s = 1;
+    while (i+s < rowDataArr.length &&
+           rowDataArr[i+s].structLabel === d.structLabel &&
+           rowDataArr[i+s].fieldLabel  === d.fieldLabel) s++;
+    return s;
+  });
+
+  const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle;color:#111';
+  let rows = '';
+  rowDataArr.forEach((d, i) => {
+    const sp = cellSpans[i];
+    const rs = sp > 1 ? ` rowspan="${sp}"` : '';
     rows += `<tr>
-      <td style="${TD}">${structLabel}</td>
-      <td style="${TD}">${escHtml(getRoleFieldLabel(r))}</td>
-      <td style="${TD}">${escHtml(p.info.name)}</td>
-      <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
-      ${gantt}
-      <td style="${TD}">${monthsDisp}</td>
-      <td style="${TD}">${convPM.toFixed(3)}</td>
-      <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(note)}</td>
+      ${sp > 0 ? `<td style="${TD}"${rs}>${d.structLabel}</td><td style="${TD}"${rs}>${escHtml(d.fieldLabel)}</td>` : ''}
+      <td style="${TD}">${escHtml(d.name)}</td>
+      <td style="${TD}">${escHtml(d.grade)}</td>
+      ${d.gantt}
+      <td style="${TD}">${d.monthsDisp}</td>
+      <td style="${TD}">${d.convPM.toFixed(3)}</td>
+      <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(d.note)}</td>
     </tr>`;
   });
 
