@@ -3580,7 +3580,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">3. 감리원</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 소속회사를 기재함</div>
       <table style="font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
-        <colgroup><col style="width:14%"><col style="width:13%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:25%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:13%"><col style="width:8%"><col style="width:15%"><col style="width:30%"></colgroup>
         <thead>
           <tr>
             <th ${thStyle} style="width:9%">구&ensp;분</th>
@@ -4922,13 +4922,17 @@ async function openLawSearch(query) {
     if (rec) { rec.stop(); rec = null; badge.style.display = 'none'; }
   }
 
-  // 스페이스바: input/textarea/button 외 요소에 포커스일 때 토글
+  // 스페이스바 누르는 동안 음성 입력 (push-to-talk)
   document.addEventListener('keydown', e => {
-    if (e.code !== 'Space') return;
+    if (e.code !== 'Space' || e.repeat) return;
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return;
     e.preventDefault();
-    rec ? stopRec() : startRec();
+    startRec();
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code !== 'Space') return;
+    stopRec();
   });
 })();
 </script>
