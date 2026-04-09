@@ -3460,34 +3460,44 @@ function renderByeolji1() {
 
   // 감리원 행 생성 (구분|분야|성명|생년월일|등급|자격번호|소속회사)
   const td = s => `<td style="text-align:center;padding:5px 4px;font-size:9pt">${escHtml(s)}</td>`;
-  let personnelRows = '';
+  // 행 데이터 수집
+  const allPRows = [];
   getAllRoles().forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
-    const structLabel = r.placement === '총괄' ? '총괄감리원' :
-                         r.placement === '비상주' ? '비상주감리원' :
-                         r.isNew ? '신규감리원' : '분야별감리원';
-    personnelRows += `<tr>
-      <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">${structLabel}</td>
-      ${td(r.id === 'civil' ? '토목(전)' : (p.field || r.field))}
-      ${td(dash ? '-' : p.name)}
-      ${td(dash ? '-' : p.birthdate)}
-      ${td(p.appliedGrade || p.grade)}
-      ${td(dash ? '-' : p.regNo)}
-      ${td(p.company || co.name)}
-    </tr>`;
-    // 토목은 전/후 2명으로 구성: 토목(후)는 등급만 동일, 성명·생년·자격번호 '-'
+    const structLabel = r.placement === '총괄' ? '총괄' :
+                         r.placement === '비상주' ? '비상주' :
+                         r.isNew ? '신규' : '분야별';
+    allPRows.push({ structLabel, field: r.id === 'civil' ? '토목(전)' : (p.field || r.field),
+      name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
+      grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
     if (r.id === 'civil') {
-      personnelRows += `<tr>
-        <td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px">분야별감리원</td>
-        ${td('토목(후)')}
-        ${td('-')}
-        ${td('-')}
-        ${td(p.appliedGrade || p.grade)}
-        ${td('-')}
-        ${td(p.company || co.name)}
-      </tr>`;
+      allPRows.push({ structLabel: '분야별', field: '토목(후)',
+        name: '-', birthdate: '-', grade: p.appliedGrade || p.grade, regNo: '-', company: p.company || co.name });
     }
+  });
+  // 구분·소속회사 rowspan 계산
+  const pStructSpan = allPRows.map((row, i) => {
+    if (i > 0 && allPRows[i-1].structLabel === row.structLabel) return 0;
+    let s = 1; while (i+s < allPRows.length && allPRows[i+s].structLabel === row.structLabel) s++; return s;
+  });
+  const pCompanySpan = allPRows.map((row, i) => {
+    if (i > 0 && allPRows[i-1].company === row.company) return 0;
+    let s = 1; while (i+s < allPRows.length && allPRows[i+s].company === row.company) s++; return s;
+  });
+  let personnelRows = '';
+  allPRows.forEach((row, i) => {
+    personnelRows += '<tr>';
+    if (pStructSpan[i] > 0) {
+      const rs = pStructSpan[i] > 1 ? ` rowspan="${pStructSpan[i]}"` : '';
+      personnelRows += `<td style="text-align:center;font-weight:600;font-size:9pt;padding:5px 4px"${rs}>${escHtml(row.structLabel)}</td>`;
+    }
+    personnelRows += td(row.field) + td(row.name) + td(row.birthdate) + td(row.grade) + td(row.regNo);
+    if (pCompanySpan[i] > 0) {
+      const rs = pCompanySpan[i] > 1 ? ` rowspan="${pCompanySpan[i]}"` : '';
+      personnelRows += `<td style="text-align:center;padding:5px 4px;font-size:9pt"${rs}>${escHtml(row.company)}</td>`;
+    }
+    personnelRows += '</tr>';
   });
 
   const thStyle = 'style="text-align:center;background:#e8e8e8;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #999"';
@@ -3504,9 +3514,9 @@ function renderByeolji1() {
 
       <!-- 1. 공사개요 -->
       <div style="font-weight:700;font-size:10pt;margin-bottom:4px">1. 공사개요</div>
-      <!-- 사업주체: 10|12|32|12|34 -->
+      <!-- 사업주체: 10|12|33|15|30 -->
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
-        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:12%"><col style="width:34%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:30%"></colgroup>
         <tbody>
           <tr>
             ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
@@ -3515,7 +3525,7 @@ function renderByeolji1() {
       </table>
       <!-- 사업계획내용: 10|12|32|22|17|17 (위치 colspan=2→54) -->
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed;margin-top:-1px">
-        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:12%"><col style="width:17%"><col style="width:17%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
         <tbody>
           <tr>
             <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
@@ -3533,9 +3543,9 @@ function renderByeolji1() {
           </tr>
         </tbody>
       </table>
-      <!-- 설계자: 10|12|32|12|34 (주소 colspan=3→78) -->
+      <!-- 설계자: 10|12|33|15|30 (주소 colspan=3→78) -->
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed;margin-top:-1px">
-        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:32%"><col style="width:12%"><col style="width:34%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:30%"></colgroup>
         <tbody>
           <tr>
             <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
@@ -3551,7 +3561,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
-        <colgroup><col style="width:10%"><col style="width:32%"><col style="width:12%"><col style="width:12%"><col style="width:17%"><col style="width:17%"></colgroup>
+        <colgroup><col style="width:10%"><col style="width:36%"><col style="width:12%"><col style="width:12%"><col style="width:15%"><col style="width:15%"></colgroup>
         <tbody>
           <tr>
             ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
@@ -3570,6 +3580,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">3. 감리원</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 소속회사를 기재함</div>
       <table style="font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
+        <colgroup><col style="width:14%"><col style="width:13%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:25%"></colgroup>
         <thead>
           <tr>
             <th ${thStyle} style="width:9%">구&ensp;분</th>
