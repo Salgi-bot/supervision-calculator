@@ -4951,30 +4951,120 @@ async function handlePerfPdf(file) {
     showStatus('수행실적 PDF 분석 중...');
     const ab = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data:ab}).promise;
-    let allText = '';
+
+    // ── 1. 전체 텍스트 항목 수집 (y좌표 포함) ──
+    const allItems = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
-      const tc = await page.getTextContent();
-      allText += tc.items.map(i=>i.str).join(' ') + '\n';
+      const tc   = await page.getTextContent();
+      const vp   = page.getViewport({ scale: 1 });
+      tc.items.forEach(item => {
+        const s = item.str.trim();
+        if (!s) return;
+        allItems.push({
+          str: s,
+          x:   Math.round(item.transform[4]),
+          y:   Math.round(vp.height - item.transform[5]) // 위→아래 정렬용 flip
+        });
+      });
+      allItems.push({ str: '||PAGE||', x: 0, y: (allItems.at(-1)?.y ?? 0) + 200 });
     }
-    const lines = allText.split('\n').map(l=>l.trim()).filter(Boolean);
+
+    // ── 2. y좌표 기준으로 행 재조립 (±4px 같은 행) ──
+    const rowMap = new Map();
+    allItems.forEach(item => {
+      const key = Math.round(item.y / 4) * 4;
+      if (!rowMap.has(key)) rowMap.set(key, []);
+      rowMap.get(key).push(item);
+    });
+    const tableRows = [...rowMap.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, items]) => items.sort((a, b) => a.x - b.x).map(i => i.str).join(' '));
+    const allFlat = tableRows.join('\n');
+
+    // ── 3. 문서 유형 감지 ──
+    const isKacem = /건설엔지니어링|KACEM|kacem|용역비.{0,4}백만원/.test(allFlat);
+    const isArch  = /건축사사무소|공사감리업무|감리용역\s*수행기간/.test(allFlat);
+
     let found = 0;
-    const dateRe = /(20\d{2})[.\-\/\s]*(0?\d|1[0-2])[.\-\/\s]*(0?\d|[12]\d|3[01])/g;
-    const amountRe = /([\d,]+(?:\.\d+)?)\s*(?:억|백만)/;
-    lines.forEach(line => {
-      const dates = [...line.matchAll(dateRe)];
-      if (dates.length >= 2) {
-        const sd = `${dates[0][1]}.${dates[0][2].padStart(2,'0')}.${dates[0][3].padStart(2,'0')}`;
-        const ed = `${dates[1][1]}.${dates[1][2].padStart(2,'0')}.${dates[1][3].padStart(2,'0')}`;
-        const am = line.match(amountRe);
-        const amount = am ? parseFloat(am[1].replace(/,/g,'')) : 0;
-        const nameMatch = line.match(/([가-힣a-zA-Z0-9\s]{4,30}(?:공사|용역|감리|건설))/);
-        const name = nameMatch ? nameMatch[1].trim() : line.substring(0, 30).trim();
-        addPerfRow({ name, startDate:sd, endDate:ed, suspendDays:0, type:'주택건설', amount });
+    const fmtDate = s => s.replace(/[.\-]/g, '.'); // 통일: YYYY.MM.DD
+
+    // ── 4A. 엔지니어링협회 (건설엔지니어링 실적 확인서) ──
+    // 날짜: YYYY-MM-DD~YYYY-MM-DD  금액: 백만원 단위 정수 (헤더에만 "백만원" 표기)
+    if (isKacem) {
+      // 전체 플랫 텍스트에서 날짜쌍 스캔
+      const flat = allFlat.replace(/\n/g, ' ');
+      const pairRe = /(20\d{2}-\d{2}-\d{2})\s*[~～]\s*(20\d{2}-\d{2}-\d{2})/g;
+      let m;
+      while ((m = pairRe.exec(flat)) !== null) {
+        const sd = fmtDate(m[1]);
+        const ed = fmtDate(m[2]);
+        // 날짜쌍 앞 400자: 용역명 + 용역종류 추출
+        const before = flat.slice(Math.max(0, m.index - 400), m.index);
+        // 용역종류에서 공사종류 판별
+        const typeM  = before.match(/감리\s*\(([^)]+)\)\s*$/);
+        const typeStr = typeM ? typeM[1] : '';
+        const type = /공동주택|주택/.test(typeStr) ? '주택건설' : '비주택건축';
+        // 용역명: 감리(종류) 앞의 마지막 한국어 문장
+        const namePart = before.slice(0, typeM ? before.lastIndexOf(typeM[0]) : before.length);
+        const nameM = namePart.match(/([가-힣A-Za-z0-9\s·,.\-]+(?:공사|용역|감리|단지|아파트|빌딩|센터|타운|동))\s*$/);
+        const name = nameM ? nameM[1].replace(/\s+/g,' ').trim() : '';
+        // 날짜쌍 뒤 300자: 금액 (백만원 단위 1~5자리 정수, ㎡/㎥ 붙은 숫자 제외)
+        const after = flat.slice(m.index + m[0].length, m.index + m[0].length + 300);
+        const nums = [...after.matchAll(/\b(\d{1,4}(?:,\d{3})*)\b(?!\s*㎡)/g)]
+          .map(n => parseFloat(n[1].replace(/,/g,'')));
+        // 가장 마지막 합리적 금액 (10~9999 백만원)
+        const amtArr = nums.filter(n => n >= 10 && n <= 9999);
+        const amountBaekMan = amtArr.length ? amtArr.at(-1) : 0;
+        const amount = Math.round(amountBaekMan) / 100; // 백만원 → 억원
+        addPerfRow({ name, startDate: sd, endDate: ed, suspendDays: 0, type, amount });
         found++;
       }
-    });
-    if (found) showStatus(`수행실적 ${found}건 추출 완료`);
+    }
+
+    // ── 4B. 건축사협회 (법인 건축사사무소 공사감리업무 실적 증명서) ──
+    // 날짜: YYYY.MM.DD  금액: 원 단위 (용역금액 필드)
+    else if (isArch) {
+      // "감리용역 수행기간" 레이블 기준으로 각 실적 블록 파싱
+      const periodRe = /감리용역\s*수행기간\s*(20\d{2}[.\-]\d{2}[.\-]\d{2})\s*[~～]\s*(20\d{2}[.\-]\d{2}[.\-]\d{2})/g;
+      let m;
+      while ((m = periodRe.exec(allFlat)) !== null) {
+        const sd = fmtDate(m[1]);
+        const ed = fmtDate(m[2]);
+        // 이 블록의 앞 600자에서 용역명/금액/주용도 추출
+        const before = allFlat.slice(Math.max(0, m.index - 600), m.index);
+        // 용역명
+        const nameM = before.match(/용\s*역\s*명\s+([^\n]{4,80})/);
+        const name  = nameM ? nameM[1].replace(/\s+/g,' ').trim() : '';
+        // 용역금액 (원 단위)
+        const amM = before.match(/용역금액\s+([\d,]+)/);
+        const amountWon = amM ? parseFloat(amM[1].replace(/,/g,'')) : 0;
+        const amount = Math.round(amountWon) / 100000000; // 원 → 억원
+        // 주용도로 공사종류 판별
+        const useM = before.match(/주\s*용\s*도\s+([^\n]+)/);
+        const useStr = useM ? useM[1] : '';
+        const type = /공동주택|아파트|주택/.test(useStr) ? '주택건설' : '비주택건축';
+        addPerfRow({ name, startDate: sd, endDate: ed, suspendDays: 0, type, amount });
+        found++;
+      }
+    }
+
+    // ── 4C. 범용 폴백 ──
+    else {
+      const dateRe = /(20\d{2})[.\-](0\d|1[0-2])[.\-](\d{2})/g;
+      tableRows.forEach(line => {
+        const dates = [...line.matchAll(dateRe)];
+        if (dates.length < 2) return;
+        const sd = `${dates[0][1]}.${dates[0][2]}.${dates[0][3]}`;
+        const ed = `${dates[1][1]}.${dates[1][2]}.${dates[1][3]}`;
+        const nameM = line.match(/([가-힣]{2,}(?:공사|용역|감리|건설))/);
+        addPerfRow({ name: nameM?nameM[1]:'', startDate:sd, endDate:ed, suspendDays:0, type:'비주택건축', amount:0 });
+        found++;
+      });
+    }
+
+    renderPerfTable();
+    if (found) showStatus(`수행실적 ${found}건 추출 완료 — 금액·공사종류를 확인해주세요`);
     else showStatus('PDF에서 수행실적 데이터를 찾지 못했습니다. 수동 입력해주세요.');
     document.getElementById('perfPdfInput').value = '';
   } catch(e) {
