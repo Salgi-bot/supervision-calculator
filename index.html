@@ -4180,9 +4180,9 @@ function renderDeployTable() {
 
   // 흑백 계열 색상
   const TH_BASE = 'border:1px solid #888;text-align:center;vertical-align:middle;font-size:7.5pt;padding:2px 1px';
-  const TH_HDR  = `${TH_BASE};background:#333;color:#fff;font-weight:700`;
-  const TH_YR   = `${TH_BASE};background:#555;color:#fff;font-weight:700`;
-  const TH_MO   = `${TH_BASE};background:#888;color:#fff;font-size:6.5pt;padding:1px 0`;
+  const TH_HDR  = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
+  const TH_YR   = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
+  const TH_MO   = `${TH_BASE};background:#fff;color:#000;font-size:6.5pt;padding:1px 0`;
   const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}</th>`).join('');
   const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
 
@@ -4207,7 +4207,7 @@ function renderDeployTable() {
     const gantt = allMonths.map(({ y, m }) => {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
       if (inside) months++;
-      return `<td style="background:${inside ? '#aaa' : '#fff'};border:1px solid #ccc;padding:0;height:16px"></td>`;
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:16px"></td>`;
     }).join('');
 
     const convPM = parseFloat((months * convRate).toFixed(2));
@@ -4235,8 +4235,8 @@ function renderDeployTable() {
   });
 
   // 총배치 인월수 행
-  const blankGantt = allMonths.map(() => `<td style="background:#ddd;border:1px solid #bbb"></td>`).join('');
-  const TD_TOT = 'border:1px solid #888;text-align:center;font-size:8pt;font-weight:700;background:#444;color:#fff;padding:3px';
+  const blankGantt = allMonths.map(() => `<td style="background:#f5f5f5;border:1px solid #ddd"></td>`).join('');
+  const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
   const convTotal = parseFloat(totalConvPM.toFixed(2));
   rows += `<tr>
     <td colspan="4" style="${TD_TOT}">총배치 인월수</td>
