@@ -1143,14 +1143,24 @@ tbody tr:hover td { background: var(--ci-light); }
   <div id="byeolji2Preview"></div>
 </div>
 
-<!-- ══════════ TAB 6: 부표 배치계획표 ══════════ -->
+<!-- ══════════ TAB 6: 감리원 배치계획표 ══════════ -->
 <div class="tab-content" id="tab6" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📅</span>부표 — 감리원 배치계획표</div>
-    <div class="info-note">감리원 배치계획표가 A4 양식으로 자동 생성됩니다.</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn" onclick="printTab('tab6')">인쇄 / PDF 저장</button>
+    <div class="card-title"><span class="icon">📅</span>감리원 배치계획표 [별첨]</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <label style="white-space:nowrap">별첨 번호</label>
+        <input type="text" id="deployAnnexNo" value="5" style="width:36px;font-size:12px" oninput="renderDeployTable()">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <label style="white-space:nowrap">법정 인·월수</label>
+        <input type="text" id="deployLawMonths" placeholder="00.0" style="width:56px;font-size:12px" oninput="renderDeployTable()">
+        <span style="font-size:11px;color:#666">인·월</span>
+      </div>
+      <button class="btn" onclick="printTab('tab6')" style="margin-left:auto">🖨 인쇄 / PDF 저장</button>
     </div>
+    <div style="font-size:11px;color:#666;margin-bottom:4px">▼ 각 감리원 투입기간 — 비워두면 공사기간 전체 자동 적용</div>
+    <div id="deployPersonSettings" style="display:flex;flex-direction:column;gap:4px"></div>
   </div>
   <div id="deployTablePreview"></div>
 </div>
@@ -1514,6 +1524,7 @@ const AUTOSAVE_KEY = 'hb_autosave_v1';
 let _autoSaveTimer = null;
 let b2NumState = {};  // 별지2호 신청자 점수 사용자 편집값
 let b2EgState = {};   // 별지2호 산출근거 사용자 편집값
+let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 
 function triggerAutoSave() {
   if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
@@ -1749,7 +1760,7 @@ function switchTab(visualIdx) {
   if (visualIdx === 2) renderByeolji1();
   if (visualIdx === 3) { syncPersonInfo(); renderByeolji2Cover(); }
   if (visualIdx === 4) renderByeolchum1();
-  if (visualIdx === 5) renderDeployTable();
+  if (visualIdx === 5) { renderDeploySettings(); renderDeployTable(); }
   if (visualIdx === 6) renderSayongIngam();
   if (visualIdx === 7) renderDelegation();
   if (visualIdx === 9) renderByeolchum3();
@@ -4022,66 +4033,171 @@ function renderInputSheet() {
     </div>`;
 }
 
+function parseYM(s) {
+  if (!s) return null;
+  const parts = s.replace(/[-\/]/g, '.').split('.');
+  const y = parseInt(parts[0]), m = parseInt(parts[1]);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return null;
+  return { y, m };
+}
+
+function renderDeploySettings() {
+  const settingsEl = document.getElementById('deployPersonSettings');
+  if (!settingsEl || settingsEl.contains(document.activeElement)) return;
+  const pj = getProjectData();
+  const defStart = pj.startDate ? pj.startDate.substring(0,7) : '';
+  const defEnd   = pj.endDate   ? pj.endDate.substring(0,7)   : '';
+  const roles = getAllRoles().filter(r => personnel[r.id].info.name);
+  settingsEl.innerHTML = roles.map(r => {
+    const ds = deployState[r.id] || {};
+    const p  = personnel[r.id];
+    const defaultNote = r.placement === '비상주' ? '15%이내' : '';
+    return `<div style="display:flex;align-items:center;gap:8px">
+      <span style="min-width:130px;font-size:12px;font-weight:600">${escHtml(p.info.name)} <span style="font-weight:400;color:#666">(${r.placement})</span></span>
+      <input type="text" placeholder="${defStart}" value="${ds.startYM||''}" style="width:68px;font-size:11px"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()">
+      <span style="font-size:11px">~</span>
+      <input type="text" placeholder="${defEnd}" value="${ds.endYM||''}" style="width:68px;font-size:11px"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()">
+      <input type="text" placeholder="${defaultNote||'비고'}" value="${ds.note!==undefined?ds.note:''}" style="width:80px;font-size:11px"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].note=this.value;renderDeployTable()">
+    </div>`;
+  }).join('') || '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
+}
+
 function renderDeployTable() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
-  const allR = getAllRoles();
-  let deployRows = '';
-  let grandGrade = 0, grandExp = 0, grandTotal = 0;
-  allR.forEach(r => {
-    const p = personnel[r.id];
-    const sc = calcPersonScore(r.id);
-    grandGrade += sc.gradeScore; grandExp += sc.expScore; grandTotal += sc.total;
-    deployRows += `<tr>
-      <td style="text-align:center;font-weight:600;font-size:9pt">${r.label}</td>
-      <td style="text-align:center">${escHtml(p.info.name)}</td>
-      <td style="text-align:center">${escHtml(p.info.field)}</td>
-      <td style="text-align:center">${escHtml(sc.grade)}</td>
-      <td style="text-align:center">${escHtml(p.info.regNo)}</td>
-      <td style="text-align:center">${r.placement === '비상주' ? '비상주' : '상주'}</td>
-      <td style="text-align:center">${sc.convYears.toFixed(2)}년</td>
-      <td style="text-align:center;color:#000;font-weight:600">${sc.gradeScore.toFixed(1)}</td>
-      <td style="text-align:center;color:#000;font-weight:600">${sc.expScore.toFixed(1)}</td>
-      <td style="text-align:center;font-weight:700;font-size:11pt">${sc.total.toFixed(1)}</td>
+  const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
+  const lawMonths = document.getElementById('deployLawMonths')?.value || '';
+
+  const start = parseYM(pj.startDate);
+  const end   = parseYM(pj.endDate);
+  if (!start || !end) {
+    document.getElementById('deployTablePreview').innerHTML =
+      '<div style="padding:30px;text-align:center;color:#888">1번 탭에서 공사기간(시작일·종료일)을 입력하면 간트차트가 자동 생성됩니다.</div>';
+    return;
+  }
+
+  // 전체 월 목록
+  const allMonths = [];
+  let cy = start.y, cm = start.m;
+  while (cy < end.y || (cy === end.y && cm <= end.m)) {
+    allMonths.push({ y: cy, m: cm });
+    if (++cm > 12) { cm = 1; cy++; }
+  }
+  const totalM = allMonths.length;
+
+  // 연도 그룹 (헤더 2행)
+  const yearGroups = [];
+  allMonths.forEach(({ y }) => {
+    if (!yearGroups.length || yearGroups.at(-1).y !== y) yearGroups.push({ y, count: 1 });
+    else yearGroups.at(-1).count++;
+  });
+  const TH_BASE = 'border:1px solid #aaa;text-align:center;vertical-align:middle;font-size:7.5pt;padding:2px 1px';
+  const TH_HDR  = `${TH_BASE};background:#6bcbcf;color:#000;font-weight:700`;
+  const TH_YR   = `${TH_BASE};background:#5db8c0;color:#fff;font-weight:700`;
+  const TH_MO   = `${TH_BASE};background:#8dd5db;font-size:6.5pt;padding:1px 0`;
+  const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}</th>`).join('');
+  const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
+
+  // 감리원 행 생성
+  const roles = getAllRoles().filter(r => personnel[r.id].info.name);
+  let rows = '';
+  let totalPM = 0, nonresPM = 0;
+
+  roles.forEach(r => {
+    const p  = personnel[r.id];
+    const ds = deployState[r.id] || {};
+    const rs = (ds.startYM ? parseYM(ds.startYM) : null) || start;
+    const re = (ds.endYM   ? parseYM(ds.endYM)   : null) || end;
+    const note = ds.note !== undefined ? ds.note : (r.placement === '비상주' ? '15%이내' : '');
+
+    let months = 0;
+    const gantt = allMonths.map(({ y, m }) => {
+      const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
+      if (inside) months++;
+      const bg = inside ? (r.placement === '총괄' ? '#5db8c0' : '#a8dde3') : '#fff';
+      return `<td style="background:${bg};border:1px solid #ccc;padding:0;height:16px"></td>`;
+    }).join('');
+
+    totalPM  += months;
+    if (r.placement === '비상주') nonresPM += months;
+
+    const structLabel = r.placement === '총괄' ? '총괄' :
+                        r.placement === '비상주' ? '비상주' :
+                        r.isNew ? '신규' : '분야별';
+    const TD = 'border:1px solid #bbb;text-align:center;font-size:8pt;padding:2px 3px;vertical-align:middle';
+    rows += `<tr>
+      <td style="${TD}">${structLabel}</td>
+      <td style="${TD}">${escHtml(p.info.field)}</td>
+      <td style="${TD}">${escHtml(p.info.name)}</td>
+      <td style="${TD}">${escHtml(p.info.appliedGrade||p.info.grade)}</td>
+      ${gantt}
+      <td style="${TD}">${months}</td>
+      <td style="${TD}">${months}</td>
+      <td style="${TD};font-size:7.5pt">${escHtml(note)}</td>
     </tr>`;
   });
 
+  // 총배치 인월수 행
+  const blankGantt = allMonths.map(() => `<td style="background:#b0dce3;border:1px solid #bbb"></td>`).join('');
+  const TD_TOT = 'border:1px solid #aaa;text-align:center;font-size:8pt;font-weight:700;background:#9ad1d8;padding:3px';
+  rows += `<tr>
+    <td colspan="4" style="${TD_TOT}">총배치 인월수</td>
+    ${blankGantt}
+    <td style="${TD_TOT}"></td>
+    <td style="${TD_TOT}">${totalPM}</td>
+    <td style="${TD_TOT}"></td>
+  </tr>`;
+
+  const nonresRate = totalPM > 0 ? (nonresPM / totalPM * 100).toFixed(1) : '0.0';
+  const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
+
   document.getElementById('deployTablePreview').innerHTML = `
-    <div class="a4-preview">
-      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">부표 (제8조 관련)</div>
-      <h2 style="text-align:center;font-size:18pt;letter-spacing:8px;margin:20px 0 10px;font-weight:800">감리원 배치계획표</h2>
-      <div style="text-align:center;font-size:10pt;color:#666;margin-bottom:24px">현장명 : ${escHtml(pj.name)}</div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:18%" rowspan="2">구 분</th><th style="width:9%" rowspan="2">성명</th>
-            <th style="width:7%" rowspan="2">분야</th><th style="width:7%" rowspan="2">등급</th>
-            <th style="width:11%" rowspan="2">등록번호</th><th style="width:8%" rowspan="2">상주</th>
-            <th style="width:10%" rowspan="2">환산경력</th><th colspan="3" style="width:30%">배 점</th>
-          </tr>
-          <tr><th>등급</th><th>경력</th><th>합계</th></tr>
-        </thead>
-        <tbody>
-          ${deployRows}
-          <tr style="background:#e8f4fb;font-weight:700">
-            <td colspan="7" style="text-align:center">합 계</td>
-            <td style="text-align:center;color:#000">${grandGrade.toFixed(1)}</td>
-            <td style="text-align:center;color:#000">${grandExp.toFixed(1)}</td>
-            <td style="text-align:center;font-size:13pt;color:#000">${grandTotal.toFixed(1)}</td>
-          </tr>
-        </tbody>
-      </table>
-      <div style="margin-top:24px;font-size:9.5pt;color:#555;line-height:1.7">
-        <div>* 등급 배점: 총괄감리원 6점 만점, 분야별감리원 2점 만점</div>
-        <div>* 경력 배점: 총괄감리원 18점 만점, 분야별감리원 7점 만점</div>
-        <div>* 환산경력: 「주택건설공사 감리자지정기준」 부표 나.(2) 환산비율 적용</div>
-      </div>
-      <div style="text-align:right;font-size:11pt;line-height:2.2;margin-top:40px;padding-right:20px">
-        <div>${escHtml(co.name)}</div>
-        <div>대표이사 : ${escHtml(co.ceo)}&emsp;&emsp;(인)</div>
-      </div>
-    </div>`;
+  <div class="a4-preview" id="deployDoc" style="overflow-x:auto">
+    <div style="text-align:right;font-size:8.5pt;color:#555;margin-bottom:6px">[별첨 ${escHtml(annexNo)}]</div>
+    <div style="display:flex;justify-content:center;align-items:baseline;gap:30px;margin-bottom:14px">
+      <span style="font-size:14pt;font-weight:800;letter-spacing:3px">&lt;감&nbsp;리&nbsp;원&nbsp;배&nbsp;치&nbsp;계&nbsp;획&nbsp;표&gt;</span>
+      <span style="font-size:9pt;color:#555">(예시)</span>
+    </div>
+    <table style="border-collapse:collapse;width:100%;table-layout:fixed">
+      <colgroup>
+        <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
+        ${allMonths.map(() => `<col style="width:${colW}px">`).join('')}
+        <col style="width:28px"><col style="width:38px"><col style="width:38px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="3" style="${TH_HDR}">구분</th>
+          <th rowspan="3" style="${TH_HDR}">분야</th>
+          <th rowspan="3" style="${TH_HDR}">성명</th>
+          <th rowspan="3" style="${TH_HDR}">등급</th>
+          <th colspan="${totalM}" style="${TH_YR};font-size:8.5pt">투&ensp;입&ensp;기&ensp;간</th>
+          <th rowspan="3" style="${TH_HDR}">개월</th>
+          <th rowspan="3" style="${TH_HDR};font-size:7pt">환산비<br>인월수</th>
+          <th rowspan="3" style="${TH_HDR}">비고</th>
+        </tr>
+        <tr>${yearRow}</tr>
+        <tr>${monthRow}</tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="border:1px solid #888;margin-top:14px;padding:10px 14px;font-size:9pt;line-height:2">
+      <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')}</div>
+      <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
+      <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${totalPM}&ensp;인·월</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)</div>
+    </div>
+    <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
+      ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
+    </div>
+    <div style="text-align:right;font-size:10pt;line-height:2.2;margin-top:30px;padding-right:10px">
+      <div>${escHtml(co.name)}</div>
+      <div>대표이사 : ${escHtml(co.ceo)}&emsp;(인)</div>
+    </div>
+  </div>`;
 }
 function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
 
