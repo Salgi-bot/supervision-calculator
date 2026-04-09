@@ -4195,6 +4195,20 @@ function autoCalcLegalMonths() {
   renderDeployTable();
 }
 
+// 날짜 입력 blur 시 월만 입력되면 자동으로 일 완성 (시작=1일, 종료=말일)
+function completeDate(roleId, field, el) {
+  const val = el.value.trim();
+  if (!val) return;
+  const parsed = parseYMShort(val);
+  if (!parsed || parsed.d) return; // 이미 일까지 있으면 그대로
+  const d = field === 'start' ? 1 : lastDay(parsed.y, parsed.m);
+  const completed = String(parsed.y).slice(-2) + String(parsed.m).padStart(2,'0') + String(d).padStart(2,'0');
+  el.value = completed;
+  if (!deployState[roleId]) deployState[roleId] = {};
+  if (field === 'start') deployState[roleId].startYM = completed;
+  else                   deployState[roleId].endYM   = completed;
+  renderDeployTable();
+}
 function renderDeploySettings() {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || settingsEl.contains(document.activeElement)) return;
@@ -4206,7 +4220,7 @@ function renderDeploySettings() {
     settingsEl.innerHTML = '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
     return;
   }
-  const ISTY = 'width:56px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
+  const ISTY = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   const ISTY_LOCK = ISTY + ';background:#f0f0f0;color:#888;cursor:default';
   const NSTY = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   settingsEl.innerHTML = roles.map(r => {
@@ -4216,11 +4230,13 @@ function renderDeploySettings() {
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
     const auto     = getDeployAutoRules(r);
+    // 잠금 필드: 일까지 표시 (시작=1일, 종료=말일)
+    const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
     const startDisp = auto.lockStart
-      ? (projStart ? `${projStart.y}.${String(projStart.m).padStart(2,'0')}` : '')
+      ? (projStart ? fmt6(projStart.y, projStart.m, 1) : '')
       : (ds.startYM || '');
-    const endDisp   = auto.lockEnd
-      ? (projEnd ? `${projEnd.y}.${String(projEnd.m).padStart(2,'0')}` : '')
+    const endDisp = auto.lockEnd
+      ? (projEnd ? fmt6(projEnd.y, projEnd.m, lastDay(projEnd.y, projEnd.m)) : '')
       : (ds.endYM || '');
     return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0">
       <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
@@ -4229,13 +4245,15 @@ function renderDeploySettings() {
         ? `<input type="text" value="${startDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
         : `<input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${ISTY}"
              title="YYMMDD(260101) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()">`}
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()"
+             onblur="completeDate('${r.id}','start',this)">`}
       <span style="font-size:10px;color:#666">~</span>
       ${auto.lockEnd
         ? `<input type="text" value="${endDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
         : `<input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${ISTY}"
              title="YYMMDD(281231) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()">`}
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()"
+             onblur="completeDate('${r.id}','end',this)">`}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
       <input type="number" value="${convRate}" step="0.01" min="0.1" max="9.99" style="${NSTY}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;renderDeployTable()">
