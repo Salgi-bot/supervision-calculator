@@ -610,7 +610,7 @@ tbody tr:hover td { background: var(--ci-light); }
   .btn, button:not(.no-print-exclude) { display: none !important; }
   .person-upload-zone, .upload-zone { display: none !important; }
   body.print-deploy-only #calcResultPreview { display: none !important; }
-  @page { margin: 1.5cm; size: A4; }
+  @page { margin: 0; size: A4; }
 }
 </style>
 </head>
@@ -1683,6 +1683,7 @@ function loadAutoSave() {
     if (data.deployState) deployState = data.deployState;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
+    renderDeploySettings();
     loadPersonToForm(currentPersonId);
     const names = getAllRoles().filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
     if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
@@ -2387,6 +2388,7 @@ function loadV2Data(data) {
   if (data.deployState) deployState = data.deployState;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
   if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
+  renderDeploySettings();
   loadPersonToForm(currentPersonId);
   renderCareerTable();
   calcConstructionDays();
@@ -2539,7 +2541,8 @@ async function parsePDF(file) {
     }
 
     const nonEmpty = allItems.filter(i => i.str.trim().length > 0);
-    if (nonEmpty.length === 0) {
+    const hasKorean = nonEmpty.some(i => /[가-힣]/.test(i.str));
+    if (nonEmpty.length === 0 || !hasKorean) {
       await parsePDFWithOCR(pdf);
       return;
     }
@@ -3604,7 +3607,7 @@ function renderByeolji1() {
   const thStyle = 'style="text-align:center;background:#e8e8e8;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #999"';
   const tdLabel = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 8px;border:1px solid #bbb;letter-spacing:1px">${s}</td>`;
   const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
-  const tdColHeader = s => `<td style="text-align:center;background:#e0e0e0;font-weight:600;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb">${s}</td>`;
+  const tdColHeader = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb">${s}</td>`;
 
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc">
