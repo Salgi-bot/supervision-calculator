@@ -902,6 +902,9 @@ tbody tr:hover td { background: var(--ci-light); }
     <button class="btn btn-primary" onclick="saveAllJSON()">💾 전체 저장 (JSON)</button>
     <button class="btn btn-outline" onclick="document.getElementById('jsonFileInput').click()">📂 JSON 불러오기</button>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="loadJSONFile(this)">
+    <button class="btn btn-outline" onclick="savePersonnelJSON()" style="border-color:#0369a1;color:#0369a1" title="감리원 명단·경력·배치기간만 저장">👤 감리원 저장</button>
+    <button class="btn btn-outline" onclick="document.getElementById('personnelFileInput').click()" style="border-color:#0369a1;color:#0369a1" title="감리원 파일 불러오기 (공사·회사 정보는 유지)">👤 감리원 불러오기</button>
+    <input type="file" id="personnelFileInput" accept=".json" style="display:none" onchange="loadPersonnelJSON(this)">
     <button class="btn btn-outline" onclick="clearProjectOnly()">📋 새 입찰 (공고 초기화)</button>
     <button class="btn btn-outline" onclick="clearAll()">🗑 전체 초기화</button>
   </div>
@@ -1429,6 +1432,9 @@ tbody tr:hover td { background: var(--ci-light); }
   <button class="btn btn-primary btn-sm" onclick="saveAllJSON()">💾 JSON</button>
   <button class="btn btn-outline btn-sm" onclick="document.getElementById('jsonFileInput2').click()">📂 불러오기</button>
   <input type="file" id="jsonFileInput2" accept=".json" style="display:none" onchange="loadJSONFile(this)">
+  <button class="btn btn-outline btn-sm" onclick="savePersonnelJSON()" style="border-color:#0369a1;color:#0369a1" title="감리원만 저장">👤 감리원</button>
+  <button class="btn btn-outline btn-sm" onclick="document.getElementById('personnelFileInput2').click()" style="border-color:#0369a1;color:#0369a1" title="감리원 불러오기">👤 불러오기</button>
+  <input type="file" id="personnelFileInput2" accept=".json" style="display:none" onchange="loadPersonnelJSON(this)">
   <span id="autoSaveStatus" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
   <div class="divider"></div>
   <button class="btn btn-success btn-sm" onclick="saveExcel()">📊 Excel</button>
@@ -2339,6 +2345,64 @@ function saveAllJSON() {
   a.download = `감리자지정_${pjName}_${todayStr()}.json`;
   a.click();
   showStatus('전체 데이터 JSON 저장 완료');
+}
+
+function savePersonnelJSON() {
+  syncPersonInfo();
+  const data = {
+    version: '2.1-personnel',
+    exportDate: new Date().toISOString(),
+    personnel: personnel,
+    nonEvalList: nonEvalList,
+    nonEvalCounter: nonEvalCounter,
+    newEvalList: newEvalList,
+    newEvalCounter: newEvalCounter,
+    deployState: deployState,
+    deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
+    deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `감리원팀_${todayStr()}.json`;
+  a.click();
+  showStatus('감리원 데이터 저장 완료');
+}
+
+function loadPersonnelJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // 전체 JSON에서도 감리원 데이터만 추출 가능
+      if (!data.personnel) { alert('감리원 데이터가 없는 파일입니다.'); return; }
+      personnel = data.personnel;
+      ROLES.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+      if (data.nonEvalList) {
+        nonEvalList = data.nonEvalList;
+        nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
+        nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r, true); });
+      }
+      if (data.newEvalList) {
+        newEvalList = data.newEvalList;
+        newEvalCounter = data.newEvalCounter || newEvalList.length;
+        newEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+      }
+      if (data.deployState) deployState = data.deployState;
+      if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
+      if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
+      renderPersonCards();
+      renderDeploySettings();
+      loadPersonToForm(currentPersonId);
+      renderCareerTable();
+      triggerAutoSave();
+      showStatus('감리원 데이터 불러오기 완료 (공사·회사 정보는 유지됨)');
+    } catch { alert('파일 파싱 오류'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 
 function loadJSONFile(input) {
