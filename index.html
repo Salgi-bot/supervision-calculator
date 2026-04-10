@@ -1105,6 +1105,9 @@ tbody tr:hover td { background: var(--ci-light); }
       <span style="font-size:12px;color:#666;margin-left:8px">서식 보기:</span>
       <button id="b2btn이상" onclick="setB2ViewMode('이상')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 이상</button>
       <button id="b2btn미만" onclick="setB2ViewMode('미만')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 미만</button>
+      <span style="font-size:12px;color:#666;margin-left:12px">섹션:</span>
+      <button id="b2sectI"  onclick="setB2Section('I')"  style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#1e40af;color:#fff">Ⅰ. 총괄표</button>
+      <button id="b2sectII" onclick="setB2Section('II')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">Ⅱ. 세부평가</button>
     </div>
   </div>
   <div id="byeolji2Preview"></div>
@@ -1544,6 +1547,9 @@ let b2EgState = {};      // 별지2호 산출근거 (300세대 이상)
 let b2NumState미만 = {}; // 별지2호 신청자 점수 (300세대 미만)
 let b2EgState미만 = {};  // 별지2호 산출근거 (300세대 미만)
 let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미만'
+let b2SectionMode = 'I'; // 'I'=총괄표, 'II'=세부평가
+let b2DetailEgState = {};     // Ⅱ. 세부평가 산출근거 (300세대 이상)
+let b2DetailEgState미만 = {}; // Ⅱ. 세부평가 산출근거 (300세대 미만)
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 
 function triggerAutoSave() {
@@ -1573,6 +1579,8 @@ function doAutoSave() {
     deployState: deployState,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
+    b2DetailEgState: b2DetailEgState,
+    b2DetailEgState미만: b2DetailEgState미만,
     savedAt: new Date().toISOString(),
   };
   try {
@@ -1656,6 +1664,8 @@ function loadAutoSave() {
     if (data.b2EgState) b2EgState = data.b2EgState;
     if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
     if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
+    if (data.b2DetailEgState) b2DetailEgState = data.b2DetailEgState;
+    if (data.b2DetailEgState미만) b2DetailEgState미만 = data.b2DetailEgState미만;
     if (data.deployState) deployState = data.deployState;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
@@ -2222,6 +2232,8 @@ function saveAllJSON() {
     b2EgState: b2EgState,
     b2NumState미만: b2NumState미만,
     b2EgState미만: b2EgState미만,
+    b2DetailEgState: b2DetailEgState,
+    b2DetailEgState미만: b2DetailEgState미만,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
   };
@@ -2373,6 +2385,8 @@ function loadV2Data(data) {
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
   if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
+  if (data.b2DetailEgState) b2DetailEgState = data.b2DetailEgState;
+  if (data.b2DetailEgState미만) b2DetailEgState미만 = data.b2DetailEgState미만;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
   if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
   renderDeploySettings();
@@ -3892,7 +3906,20 @@ function calcB2() {
 
 function setB2ViewMode(mode) {
   b2ViewMode = mode;
-  renderByeolji2Cover();
+  if (b2SectionMode === 'II') renderByeolji2Detail();
+  else renderByeolji2Cover();
+}
+
+function setB2Section(sec) {
+  b2SectionMode = sec;
+  ['I','II'].forEach(m => {
+    const btn = document.getElementById('b2sect'+m);
+    if (!btn) return;
+    btn.style.background = m === sec ? '#1e40af' : '#e0f2fe';
+    btn.style.color = m === sec ? '#fff' : '#1e40af';
+  });
+  if (sec === 'II') renderByeolji2Detail();
+  else renderByeolji2Cover();
 }
 
 function renderByeolji2Cover() {
@@ -4098,6 +4125,310 @@ function renderByeolji2All() {
   if (!html) html = '<div class="a4-placeholder"><div style="font-size:16px;color:var(--gray4)">감리원 정보를 입력한 후 생성하세요.</div></div>';
   document.getElementById('byeolji2Preview').innerHTML = html;
 }
+function renderByeolji2Detail() {
+  syncPersonInfo();
+  const pj = getProjectData();
+  const co = getCompanyData();
+  const _mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
+  const _ns  = _mode === '미만' ? b2NumState미만 : b2NumState;
+  const _des = _mode === '미만' ? b2DetailEgState미만 : b2DetailEgState;
+  const is미만 = _mode === '미만';
+  ['이상','미만'].forEach(m => {
+    const btn = document.getElementById('b2btn'+m);
+    if (!btn) return;
+    btn.style.background = m === _mode ? '#1e40af' : '#e0f2fe';
+    btn.style.color = m === _mode ? '#fff' : '#1e40af';
+  });
+  const pi = personnel;
+  const chief = calcPersonScore('chief');
+  const arch  = calcPersonScore('arch');
+  const civil = calcPersonScore('civil');
+  const mech  = calcPersonScore('mech');
+  const nonr  = calcPersonScore('nonres');
+  const pGr = id => pi[id]?.info?.name ? (pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
+  const pYr = s => s.convYears > 0 ? (Math.floor(s.convYears*10)/10).toFixed(1)+'년' : '';
+
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:7.5pt;font-weight:700;padding:3px 2px;border:1px solid #999;vertical-align:middle';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px 2px';
+  const IT  = 'text-align:center;font-size:7.5pt;padding:2px 4px;border:1px solid #bbb;vertical-align:middle';
+  const SC  = 'text-align:center;font-size:7.5pt;padding:2px;border:1px solid #bbb;vertical-align:middle';
+  const EG  = 'font-size:7pt;padding:2px 4px;border:1px solid #bbb;color:#333;vertical-align:middle';
+  const CRI = 'font-size:6.5pt;color:#444;padding:2px 3px;border:1px solid #ddd;background:#fafafa;vertical-align:middle;line-height:1.5';
+  const SR  = 'text-align:center;font-weight:700;font-size:7.5pt;padding:4px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
+  const SV  = 'text-align:center;font-weight:700;font-size:7.5pt;padding:4px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
+
+  const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
+  const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
+  const it  = (s,cs,rs) => `<td ${cs?`colspan="${cs}"`:''}${rs?`rowspan="${rs}"`:''}style="${IT}">${s}</td>`;
+  const sc  = s => `<td style="${SC}">${s}</td>`;
+  const mt  = (cs,rs) => `<td ${cs?`colspan="${cs}"`:''}${rs?`rowspan="${rs}"`:''}style="border:1px solid #bbb"></td>`;
+  const cri = (s,rs) => `<td ${rs?`rowspan="${rs}"`:''}style="${CRI}">${s}</td>`;
+
+  const dei = (key, ph='', w='100%') =>
+    `<input type="text" value="${escHtml(String(_des[key]||''))}"
+      placeholder="${ph.replace(/"/g,'&quot;')}"
+      oninput="(b2ViewMode==='미만'?b2DetailEgState미만:b2DetailEgState)['${key}']=this.value;triggerAutoSave()"
+      style="width:${w};border:none;background:transparent;font-size:7pt;font-family:var(--font);color:#333">`;
+
+  const sco = (key, def='') => {
+    const stored = _ns[key];
+    const dv = stored !== undefined ? stored : def;
+    return `<input type="number" step="0.1" value="${escHtml(String(dv))}"
+      oninput="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${key}']=this.value;calcB2()"
+      style="width:52px;border:none;background:transparent;font-size:8pt;font-family:var(--font);text-align:center;font-weight:700">`;
+  };
+
+  const hdr = `<colgroup>
+    <col style="width:5%"><col style="width:10%"><col style="width:10%"><col style="width:24%">
+    <col style="width:6%"><col style="width:13%"><col style="width:32%">
+  </colgroup>
+  <thead><tr>
+    ${th('구분',2,2)}${th('평가항목',2,2)}${th('채점기준',2)}${th('점수기준',2)}
+    <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>
+  </tr><tr>${th('신청자')}${th('산출근거')}</tr></thead><tbody>`;
+
+  const pageWrap = (title, inner) => `
+  <div class="a4-preview" style="margin-bottom:20px">
+    <div style="text-align:right;font-size:7.5pt;color:#555;margin-bottom:3px">[별지 제2호서식]</div>
+    <div style="font-weight:700;font-size:8.5pt;margin-bottom:3px">Ⅱ. 분야별 세부평가 — ${title}</div>
+    <div style="font-size:7pt;color:#666;margin-bottom:6px">※ 산출근거란에 내용을 기재하고 신청자 평점란에만 기재합니다.</div>
+    <table style="border-collapse:collapse;width:100%;font-size:7.5pt">${hdr}${inner}</tbody></table>
+  </div>`;
+
+  // ── 가. 감리자(감리회사) ──
+  const p1inner = `
+  <tr>
+    ${lbl('감리자<br>(감리<br>회사)',14,2)}
+    ${it('재무상태 건실도',1,2)}
+    ${cri('AA- 이상→5 / A-~BBB+→4 / BBB-~BB+→3 / BB-~B+→2 / B- 이하→1')}
+    ${sc(5)}<td style="${EG};text-align:center">${sco('c_fin','5')}</td>
+    <td style="${EG}">${dei('fin_eg','예) 회사채 신용평가등급 BB-')}</td>
+  </tr>
+  <tr>
+    ${it('감리업무수행실적(감리비)',1,2)}
+    ${cri('30억↑→12 / 20억↑→10 / 10억↑→8 / 5억↑→6 / 3억↑→4 / 미만→2')}
+    ${sc(12)}<td style="${EG};text-align:center">${sco('c_perf','12')}</td>
+    <td style="${EG}">${dei('perf_eg','예) 최근 3년 감리비 합계 000억원')}</td>
+  </tr>
+  <tr>
+    ${it('행정제재',1,2)}
+    ${cri('기준 9점 / 업무정지 −0.5점/월 / 부실벌점 −1점/점')}
+    ${sc(9)}<td style="${EG};text-align:center">${sco('c_admin','9')}</td>
+    <td style="${EG}">업무정지 ${dei('admin_month','0','44px')} 월 / 부실벌점 ${dei('admin_pts','0','44px')} 점</td>
+  </tr>
+  <tr>
+    ${lbl('기술<br>개발<br>및<br>투자',3)}
+    ${it('기술개발실적')}
+    ${cri('특허·실용신안 등록 2점/건 / 논문·발명신고 1점/건 / 상한 2점')}
+    ${sc(2)}<td style="${EG};text-align:center">${sco('c_td1','2')}</td>
+    <td style="${EG}">${dei('td1_cnt','예) 특허 0건')} → ${dei('td1_pts','0점','44px')} 적용</td>
+  </tr>
+  <tr>
+    ${it('기술개발투자실적')}
+    ${cri('매출대비 3%↑→2.5 / 2%↑→2 / 1%↑→1.5 / 0.5%↑→1 / 미만→0.5')}
+    ${sc(2.5)}<td style="${EG};text-align:center">${sco('c_td2','2.5')}</td>
+    <td style="${EG}">${dei('td2_form','예) 재무제표')} / ${dei('td2_pct','0','44px')} %</td>
+  </tr>
+  <tr>
+    ${it('교육훈련')}
+    ${cri('70h이상 0.05점/인 / 35h이상 0.025점/인 / 상한 0.5점')}
+    ${sc(0.5)}<td style="${EG};text-align:center">${sco('c_td3','0.5')}</td>
+    <td style="${EG}">70h: ${dei('td3_70a','0','36px')} 명×${dei('td3_70b','0.05','44px')} / 35h: ${dei('td3_35a','0','36px')} 명×${dei('td3_35b','0.025','44px')}</td>
+  </tr>
+  <tr>
+    ${it('신규감리원 배치',1,2)}
+    ${cri('신규 감리원 0.5점/인 / 상한 2점')}
+    ${sc(2)}<td style="${EG};text-align:center">${sco('c_new','2')}</td>
+    <td style="${EG}">${dei('new_eg','예) 건축 0명')}</td>
+  </tr>
+  <tr>
+    ${it('교체빈도',1,2)}
+    ${cri('(교체건수/배치인원×현장수)×100 / 0%→7 / 10%미만→6 / 20%미만→5 / 30%미만→4 / 40%미만→3 / 이상→2')}
+    ${sc(7)}<td style="${EG};text-align:center">${sco('c_chg','7')}</td>
+    <td style="${EG}">${dei('chg_form','예) 교체건수/배치인원×현장수')} → ${dei('chg_pct','0','40px')} %</td>
+  </tr>
+  <tr>
+    ${lbl('가점',3)}${it('감리원 추가배치·총괄감리원 등급상향')}
+    ${cri('추가배치 0.5점/인(상한1) / 총괄 특급 0.5점')}
+    ${sc('(1)')}<td style="${EG};text-align:center">${sco('c_b1','0')}</td>
+    <td style="${EG}">${dei('b1_eg','예) 건축 0명외 0명 / 총괄 특급건설기술자')}</td>
+  </tr>
+  <tr>
+    ${it('지역가점')}
+    ${cri('해당 시·도 소재 감리업자 / 상한 1점')}
+    ${sc('(1)')}<td style="${EG};text-align:center">${sco('c_b2','0')}</td>
+    <td style="${EG}">${dei('b2_eg','예) 00도(道) 00개월')}</td>
+  </tr>
+  <tr>
+    ${it('설계용역수행가점')}
+    ${cri('당해 현장 설계 수행 / 상한 1점')}
+    ${sc('(1)')}<td style="${EG};text-align:center">${sco('c_b3','0')}</td>
+    <td style="${EG}">${dei('b3_eg','예) 현상공모 0점')}</td>
+  </tr>
+  <tr>
+    <td colspan="2" style="${SR}">계</td><td style="${SR}">40</td>
+    <td id="b2_c_sum_d" style="${SV}"></td>${mt()}
+  </tr>
+  <tr>
+    ${lbl('적격<br>여부',3)}${it('감리원배치계획')}
+    ${cri('적합 여부 판단')}${sc('적·부')}
+    <td style="${EG};text-align:center">${sco('c_q1','적')}</td>
+    <td style="${EG}">${dei('q1_eg','예) 예정공정표와 감리원배치 적합')}</td>
+  </tr>
+  <tr>
+    ${it('업무중첩도')}${cri('적합 여부 판단')}${sc('적·부')}
+    <td style="${EG};text-align:center">${sco('c_q2','적')}</td>
+    <td style="${EG}">${dei('q2_eg','예) 중복배치 없음')}</td>
+  </tr>
+  <tr>
+    ${it('감리원 추가의무배치')}${cri('적합 여부 판단')}${sc('적·부')}
+    <td style="${EG};text-align:center">${sco('c_q3','적')}</td>
+    <td style="${EG}">${dei('q3_eg','예) 건축감리원 0명 추가 배치')}</td>
+  </tr>`;
+
+  // ── 나. 총괄감리원 ──
+  const p2inner = `
+  <tr>
+    <td rowspan="8" style="text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px;writing-mode:vertical-rl;letter-spacing:3px">감리원</td>
+    ${lbl('총괄<br>감리원',8)}
+    ${it('등급',1,2)}
+    ${cri('특급→6 / 고급→5 / 중급→4 / 초급→3')}
+    ${sc(6)}<td style="${EG};text-align:center">${sco('ch_g', chief.gradeScore.toFixed(1))}</td>
+    <td style="${EG}">${dei('ch_grade_eg', pGr('chief'))}</td>
+  </tr>
+  <tr>
+    ${lbl('경력<br>및<br>실적',2)}${it('경력 및 실적')}
+    ${cri('15년↑→18(15) / 12년↑→15(12) / 9년↑→12(9) / 6년↑→9(6) / 3년↑→6(3) / 미만→3(1) ※ ( )면접실시시')}
+    ${sc('18<br>(15)')}<td style="${EG};text-align:center">${sco('ch_e', chief.expScore.toFixed(1))}</td>
+    <td style="${EG}">${dei('ch_exp_eg', pYr(chief))}</td>
+  </tr>
+  <tr>
+    ${it('(면접(발표))')}
+    ${cri('면접 실시 시 배점 / 상한 3점')}
+    ${sc('(3)')}<td style="${EG};text-align:center">${sco('ch_i','0')}</td>${mt()}
+  </tr>
+  <tr>
+    ${it('감리업무 수행계획서',1,2)}
+    ${cri('우수→3 / 양호→2 / 보통→1 / 미흡→0')}
+    ${sc(3)}<td style="${EG};text-align:center">${sco('ch_p','3')}</td>
+    <td style="${EG}">${dei('ch_plan_eg','예) 우수')}</td>
+  </tr>
+  <tr>
+    ${lbl('가점')}${it('자격가점')}
+    ${cri('건축사·기술사 0.2점 / 상한 0.2점')}
+    ${sc('(0.2)')}<td style="${EG};text-align:center">${sco('ch_qb','0')}</td>
+    <td style="${EG}">${dei('ch_qual_eg','예) 건축사, 00기술사')}</td>
+  </tr>
+  <tr>
+    ${lbl('감점',2)}${it('행정제재')}
+    ${cri('업무정지 −0.5점/월 / 부실벌점 −0.5점/점 / 상한 −2점')}
+    ${sc('(-2)')}<td style="${EG};text-align:center">${sco('ch_ad','0')}</td>
+    <td style="${EG}">업무정지 ${dei('ch_ad_month','0','44px')} 월 / 부실벌점 ${dei('ch_ad_pts','0','44px')} 점</td>
+  </tr>
+  <tr>
+    ${it('교체빈도')}
+    ${cri('2건↑→−1 / 1건→−0.5 / 없음→0')}
+    ${sc('(-1)')}<td style="${EG};text-align:center">${sco('ch_r','0')}</td>
+    <td style="${EG}">${dei('ch_r_eg','예) 0건')}</td>
+  </tr>
+  <tr>
+    <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
+    <td id="b2_ch_sum_d" style="${SV}"></td>${mt()}
+  </tr>`;
+
+  // ── 나. 분야별감리원 ──
+  const FIELDS = [
+    { key:'fa', label:'건축', gradeScore: is미만 ? 0 : arch.gradeScore, expScore: is미만 ? 0 : arch.expScore, yr: pYr(arch) },
+    { key:'fc', label:'토목', gradeScore: civil.gradeScore, expScore: civil.expScore, yr: pYr(civil) },
+    { key:'fm', label:'기타설비', gradeScore: mech.gradeScore, expScore: mech.expScore, yr: pYr(mech) },
+  ];
+  let p3inner = `
+  <tr>
+    <td rowspan="16" style="text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px;writing-mode:vertical-rl;letter-spacing:3px">감리원</td>
+    ${lbl('분야별<br>감리원',16)}`;
+  FIELDS.forEach((f, fi) => {
+    const faIs미만 = f.key === 'fa' && is미만;
+    if (fi > 0) p3inner += '<tr>';
+    p3inner += `
+    ${lbl(f.label,5)}
+    ${it('등급')}
+    ${faIs미만 ? cri('300세대 미만 — 해당없음') : cri('특급→2 / 고급→1.6 / 중급→1.2 / 초급→0.8')}
+    ${sc(2)}<td style="${EG};text-align:center">${sco(f.key+'_g', faIs미만 ? '0' : f.gradeScore.toFixed(1))}</td>
+    <td style="${EG}">${dei(f.key+'_grade_eg', faIs미만 ? '300세대 미만 — 해당없음' : '')}</td>
+  </tr>
+  <tr>
+    ${it('경력 및 실적')}
+    ${faIs미만 ? cri('건축 배점 → 토목·기타설비 각 50% 가산') : cri('15년↑→7 / 12년↑→6 / 9년↑→5 / 6년↑→4 / 3년↑→3 / 1년↑→2 / 미만→1')}
+    ${sc(7)}<td style="${EG};text-align:center">${sco(f.key+'_e', faIs미만 ? '0' : f.expScore.toFixed(1))}</td>
+    <td style="${EG}">${dei(f.key+'_exp_eg', faIs미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : f.yr)}</td>
+  </tr>
+  <tr>
+    ${it('자격가점')}
+    ${cri('기술사→0.1 / 기사→0.05 / 상한→0.1')}
+    ${sc('(0.1)')}<td style="${EG};text-align:center">${sco(f.key+'_qb','0')}</td>
+    <td style="${EG}">${dei(f.key+'_qual_eg','예) 00기술사')}</td>
+  </tr>
+  <tr>
+    ${it('행정제재')}
+    ${cri('업무정지 −0.25점/월 / 부실벌점 −0.25점/점 / 상한 −1점')}
+    ${sc('(-1)')}<td style="${EG};text-align:center">${sco(f.key+'_ad','0')}</td>
+    <td style="${EG}">업무정지 ${dei(f.key+'_ad_month','0','40px')} 월 / 부실벌점 ${dei(f.key+'_ad_pts','0','40px')} 점</td>
+  </tr>
+  <tr>
+    ${it('교체빈도')}
+    ${cri('2건↑→−0.5 / 1건→−0.25 / 없음→0')}
+    ${sc('(-0.5)')}<td style="${EG};text-align:center">${sco(f.key+'_r','0')}</td>
+    <td style="${EG}">${dei(f.key+'_r_eg','예) 0건')}</td>
+  </tr>`;
+  });
+  p3inner += `
+  <tr>
+    <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
+    <td id="b2_f_sum_d" style="${SV}"></td>${mt()}
+  </tr>`;
+
+  // ── 나. 비상주감리원 ──
+  const nonresName = pi['nonres']?.info?.name;
+  const p4inner = `
+  <tr>
+    <td rowspan="5" style="text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px;writing-mode:vertical-rl;letter-spacing:3px">감리원</td>
+    ${lbl('비상주<br>감리원',5)}
+    ${it('등급',1,2)}
+    ${cri('특급→2 / 고급→1.6 / 중급→1.2 / 초급→0.8')}
+    ${sc(2)}<td style="${EG};text-align:center">${sco('n_g', nonr.gradeScore.toFixed(1))}</td>
+    <td style="${EG}">${dei('n_grade_eg', nonresName ? pGr('nonres') : '')}</td>
+  </tr>
+  <tr>
+    ${it('경력 및 실적',1,2)}
+    ${cri('15년↑→4 / 12년↑→3.5 / 9년↑→3 / 6년↑→2.5 / 3년↑→2 / 미만→1')}
+    ${sc(4)}<td style="${EG};text-align:center">${sco('n_e', (nonresName && (pi['nonres']?.careers||[]).length>0) ? nonr.expScore.toFixed(1) : '4')}</td>
+    <td style="${EG}">${dei('n_exp_eg', pYr(nonr))}</td>
+  </tr>
+  <tr>
+    ${lbl('감점',2)}${it('행정제재')}
+    ${cri('업무정지 −0.25점/월 / 부실벌점 −0.25점/점 / 상한 −1점')}
+    ${sc('(-1)')}<td style="${EG};text-align:center">${sco('n_ad','0')}</td>
+    <td style="${EG}">업무정지 ${dei('n_ad_month','0','44px')} 월 / 부실벌점 ${dei('n_ad_pts','0','44px')} 점</td>
+  </tr>
+  <tr>
+    ${it('교체빈도')}
+    ${cri('2건↑→−1 / 1건→−0.5 / 없음→0')}
+    ${sc('(-1)')}<td style="${EG};text-align:center">${sco('n_r','0')}</td>
+    <td style="${EG}">${dei('n_r_eg','예) 0건')}</td>
+  </tr>
+  <tr>
+    <td colspan="2" style="${SR}">소 계</td><td style="${SR}">6</td>
+    <td id="b2_n_sum_d" style="${SV}"></td>${mt()}
+  </tr>`;
+
+  document.getElementById('byeolji2Preview').innerHTML =
+    pageWrap('가. 감리자(감리회사)', p1inner) +
+    pageWrap('나. 총괄감리원', p2inner) +
+    pageWrap('나. 분야별 감리원', p3inner) +
+    pageWrap('나. 비상주감리원', p4inner);
+  setTimeout(calcB2, 50);
+}
+
 function formatBidAmount(el) {
   const v = el.value.replace(/[^0-9]/g, '');
   el.value = v ? Number(v).toLocaleString() : '';
