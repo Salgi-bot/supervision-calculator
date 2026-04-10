@@ -3918,13 +3918,13 @@ function renderByeolji2Cover() {
   const nonr  = calcPersonScore('nonres');
 
   // 스타일 상수 (공고문 이미지 서식 일치)
-  const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle;height:14px';
-  const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px;height:14px';
-  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle;height:14px';
-  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle;height:14px';
-  const EG  = 'text-align:center;font-size:7pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle;height:14px';
-  const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle;height:14px';
-  const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle;height:14px';
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:1px 2px;border:1px solid #999;vertical-align:middle;height:14px;line-height:11px;overflow:hidden';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px;height:14px;line-height:11px;overflow:hidden';
+  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle;height:14px;line-height:11px;overflow:hidden;white-space:nowrap';
+  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle;height:14px;line-height:11px;overflow:hidden;white-space:nowrap';
+  const EG  = 'text-align:center;font-size:7pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle;height:14px;line-height:11px;overflow:hidden';
+  const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:1px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle;height:14px;line-height:11px;overflow:hidden';
+  const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:1px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle;height:14px;line-height:11px;overflow:hidden';
 
   const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
   const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
@@ -3958,7 +3958,7 @@ function renderByeolji2Cover() {
     <div style="font-weight:700;font-size:9pt;margin-bottom:6px">Ⅰ. 총괄표</div>
     <div style="font-size:8pt;margin-bottom:0">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:2px 0 4px;font-weight:800">자 기 평 가 서</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:1.2">
+    <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:11px;table-layout:fixed">
       <colgroup>
         <col style="width:6%"><col style="width:8%"><col style="width:7%"><col style="width:7%">
         <col style="width:17%"><col style="width:6%"><col style="width:6%"><col style="width:6%">
