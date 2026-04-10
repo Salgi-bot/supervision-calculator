@@ -3920,8 +3920,8 @@ function renderByeolji2Cover() {
   // 스타일 상수 (공고문 이미지 서식 일치)
   const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle';
   const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px';
-  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle';
-  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle';
+  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle;height:15px';
+  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle;height:15px';
   const EG  = 'text-align:center;font-size:7pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle';
   const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
   const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
@@ -3966,7 +3966,7 @@ function renderByeolji2Cover() {
       <thead>
         <tr>
           ${th('구분',2,2)}${th('평&nbsp;가&nbsp;항&nbsp;목',2,2)}${th('점수<br>기준',2)}
-          <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>${th('평점 산출 근거<br>(해당 사항만 기재)',2)}
+          <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>${th('평점 산정 근거<br>(해당 사항만 기재)',2)}
         </tr>
         <tr>${th('신&nbsp;청&nbsp;자')}${th('지&nbsp;정&nbsp;권&nbsp;자')}</tr>
       </thead>
@@ -4006,8 +4006,8 @@ function renderByeolji2Cover() {
         <td rowspan="30" style="text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px;writing-mode:vertical-rl;letter-spacing:4px">감리원</td>
         ${lbl('총괄<br>감리원',8)}${it('등급',2)}${sc(6)}${inp('ch_g',chief.gradeScore.toFixed(1))}${mt()}${eg(pGr('chief'), pGr('chief'))}
       </tr>
-      <tr>${lbl('경력<br>및<br>실적',2)}${it('경력 및 실적')}${sc('18<br>(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief), pYr(chief))}</tr>
-      <tr>${it('(면접(발표))')}${sc('(3)')}${inp('ch_i',0)}${mt()}${eg('* ( )는 면접을 실시하는 경우 배점')}</tr>
+      <tr>${it('경력 및 실적',2)}${sc('18(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief), pYr(chief))}</tr>
+      <tr>${it('(면접(발표))',2)}${sc('(3)')}${inp('ch_i',0)}${mt()}${eg('* ( )는 면접을 실시하는 경우 배점')}</tr>
       <tr>${it('감리업무 수행계획서',2)}${sc(3)}${inp('ch_p',3)}${mt()}${eg('')}</tr>
       <tr>${lbl('가점')}${it('자격가점')}${sc('(0.2)')}${inp('ch_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${lbl('감점',2)}${it('행정제재')}${sc('(-2)')}${inp('ch_ad',0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
@@ -4030,12 +4030,12 @@ function renderByeolji2Cover() {
       <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc('(0.1)')}${inp('fm_qb',0)}${mt()}${eg('')}</tr>
-      <tr>${lbl('감점<br>행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
-      <tr>${it('토목')}${sc('(-1)')}${inp('fc_ad',0)}${mt()}${eg('')}</tr>
-      <tr>${it('기타설비')}${sc('(-1)')}${inp('fm_ad',0)}${mt()}${eg('')}</tr>
-      <tr>${lbl('감점<br>교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${mt()}${eg('예) 00(건)')}</tr>
-      <tr>${it('토목')}${sc('(-0.5)')}${inp('fc_r',0)}${mt()}${eg('')}</tr>
-      <tr>${it('기타설비')}${sc('(-0.5)')}${inp('fm_r',0)}${mt()}${eg('')}</tr>
+      <tr>${lbl('감점',6)}${lbl('행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>${it('토목')}${sc('(-1)')}${inp('fc_ad',0)}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-1)')}${inp('fm_ad',0)}${eg('')}</tr>
+      <tr>${lbl('교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${eg('예) 00(건)')}</tr>
+      <tr>${it('토목')}${sc('(-0.5)')}${inp('fc_r',0)}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-0.5)')}${inp('fm_r',0)}${eg('')}</tr>
       <tr>
         <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
         <td id="b2_f_sum" style="${SV}"></td>${mt()}${mt()}
