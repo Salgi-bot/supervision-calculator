@@ -1701,7 +1701,7 @@ function loadAutoSave() {
 function clearAutoSave() {
   if (!confirm('자동 저장 데이터를 초기화하시겠습니까?\n(감리원·회사 정보가 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
-  ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+  ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2'); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
   newEvalList.forEach(r => { delete personnel[r.id]; });
@@ -2379,7 +2379,16 @@ function loadPersonnelJSON(input) {
       // 전체 JSON에서도 감리원 데이터만 추출 가능
       if (!data.personnel) { alert('감리원 데이터가 없는 파일입니다.'); return; }
       personnel = data.personnel;
-      ROLES.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
+      ROLES.forEach(r => {
+        if (!personnel[r.id]) {
+          personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2');
+        } else if (r.id === 'civil2') {
+          const info = personnel[r.id].info;
+          if (!info.name)      info.name      = '-';
+          if (!info.birthdate) info.birthdate = '-';
+          if (!info.regNo)     info.regNo     = '-';
+        }
+      });
       if (data.nonEvalList) {
         nonEvalList = data.nonEvalList;
         nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
@@ -2444,9 +2453,16 @@ function loadV2Data(data) {
   // Personnel
   if (data.personnel) {
     personnel = data.personnel;
-    // Ensure all roles exist
+    // Ensure all roles exist + civil2 '-' 마이그레이션
     ROLES.forEach(r => {
-      if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r);
+      if (!personnel[r.id]) {
+        personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2');
+      } else if (r.id === 'civil2') {
+        const info = personnel[r.id].info;
+        if (!info.name)      info.name      = '-';
+        if (!info.birthdate) info.birthdate = '-';
+        if (!info.regNo)     info.regNo     = '-';
+      }
     });
   }
   // 비평가·추가평가 감리원 목록 복원 (없으면 유지)
@@ -2540,7 +2556,7 @@ function clearProjectOnly() {
 function clearAll() {
   if (!confirm('모든 데이터를 초기화하시겠습니까?\n(자동 저장 데이터도 함께 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
-  ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r); });
+  ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2'); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
   newEvalList.forEach(r => { delete personnel[r.id]; });
