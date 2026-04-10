@@ -1088,6 +1088,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolji1()">미리보기 갱신</button>
       <button class="btn" onclick="printByeolji(1)">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveByeolji1AsWord()">📄 Word(.doc) 저장</button>
     </div>
   </div>
   <div id="byeolji1Preview"></div>
@@ -3610,7 +3611,7 @@ function renderByeolji1() {
         <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:30%"></colgroup>
         <tbody>
           <tr>
-            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
+            ${tdLabel('사업주체')}${tdLabel('상&emsp;호')}<td style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.client)}</td>${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(pj.clientCeo,'')}
           </tr>
         </tbody>
       </table>
@@ -3619,18 +3620,18 @@ function renderByeolji1() {
         <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
         <tbody>
           <tr>
-            <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
-            ${tdLabel('위&emsp;&emsp;치')}<td colspan="2" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.location)}</td>${tdLabel('대지면적')}<td style="padding:6px 8px;font-size:9.5pt;border:1px solid #bbb;text-align:center">${escHtml(pj.siteArea ? pj.siteArea + ' ㎡' : '')}</td>
+            <td rowspan="3" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:4px 4px;border:1px solid #bbb;letter-spacing:1px">사업계획<br>내용</td>
+            ${tdLabel('위&emsp;&emsp;치')}<td colspan="2" style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.location)}</td>${tdLabel('대지면적')}<td style="padding:4px 8px;font-size:9.5pt;border:1px solid #bbb;text-align:center">${escHtml(pj.siteArea ? pj.siteArea + ' ㎡' : '')}</td>
           </tr>
           <tr>
-            <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:4px 2px;border:1px solid #bbb;letter-spacing:1px">사업내용</td>
+            <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:3px 2px;border:1px solid #bbb;letter-spacing:1px">사업내용</td>
             ${tdColHeader('규&emsp;모')}${tdColHeader('연&nbsp;면&nbsp;적')}${tdColHeader('착&nbsp;공&nbsp;일')}${tdColHeader('준&nbsp;공&nbsp;일')}
           </tr>
           <tr>
-            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml([pj.stories, pj.blocks, pj.units ? pj.units+'세대' : ''].filter(Boolean).join(' '))}</td>
-            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.area ? pj.area+' ㎡' : '')}</td>
-            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.startDate||'')}</td>
-            <td style="text-align:center;padding:5px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.endDate||'')}</td>
+            <td style="text-align:center;padding:3px 4px;font-size:9pt;border:1px solid #bbb">${escHtml([pj.stories, pj.blocks, pj.units ? pj.units+'세대' : ''].filter(Boolean).join(' '))}</td>
+            <td style="text-align:center;padding:3px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.area ? pj.area+' ㎡' : '')}</td>
+            <td style="text-align:center;padding:3px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.startDate||'')}</td>
+            <td style="text-align:center;padding:3px 4px;font-size:9pt;border:1px solid #bbb">${escHtml(pj.endDate||'')}</td>
           </tr>
         </tbody>
       </table>
@@ -3639,11 +3640,11 @@ function renderByeolji1() {
         <colgroup><col style="width:10%"><col style="width:12%"><col style="width:33%"><col style="width:15%"><col style="width:30%"></colgroup>
         <tbody>
           <tr>
-            <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
-            ${tdLabel('성&emsp;&emsp;명')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerName)}</td>${tdLabel('상&emsp;&emsp;호')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerCompany)}</td>
+            <td rowspan="2" style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:4px 4px;border:1px solid #bbb;letter-spacing:1px">설 계 자</td>
+            ${tdLabel('성&emsp;&emsp;명')}<td style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerName)}</td>${tdLabel('상&emsp;&emsp;호')}<td style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerCompany)}</td>
           </tr>
           <tr>
-            ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
+            ${tdLabel('주&emsp;&emsp;소')}<td colspan="3" style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(pj.designerAddress)}</td>
           </tr>
         </tbody>
       </table>
@@ -3657,10 +3658,10 @@ function renderByeolji1() {
           <tr>
             ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
             ${tdLabel('대&nbsp;표&nbsp;자')}${tdVal(co.ceo,'')}
-            <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px;border:1px solid #bbb">등록번호<br>개설신고번호</td>${tdVal(co.regNo,'')}
+            <td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:3px;border:1px solid #bbb">등록번호<br>개설신고번호</td>${tdVal(co.regNo,'')}
           </tr>
           <tr>
-            ${tdLabel('주&emsp;소')}<td style="padding:6px 10px;font-size:9.5pt;border:1px solid #000">${escHtml(co.address||'').replace(/\n/g,'<br>')}</td>
+            ${tdLabel('주&emsp;소')}<td style="padding:4px 10px;font-size:9.5pt;border:1px solid #000">${escHtml(co.address||'').replace(/\n/g,'<br>')}</td>
             ${tdLabel('용역참여<br>지분율')}${tdVal(co.shareRatio ? co.shareRatio + '%' : '','')}
             ${tdLabel('전화번호')}${tdVal(co.phone,'')}
           </tr>
@@ -4699,6 +4700,56 @@ function printByeolji(num) {
   tab.classList.add('print-target');
   window.print();
   setTimeout(() => tab.classList.remove('print-target'), 500);
+}
+
+function saveByeolji1AsWord() {
+  renderByeolji1();
+  const preview = document.getElementById('byeolji1Preview');
+  if (!preview || !preview.innerHTML.trim()) {
+    alert('별지1호 미리보기를 먼저 생성해주세요.');
+    return;
+  }
+  const pj = getProjectData();
+  const siteName = (pj.name || '주택건설공사').replace(/[\\\/:*?"<>|]/g, '_');
+  const dateStr = new Date().toISOString().slice(0,10);
+  const filename = `별지제1호_감리자지정신청서_${siteName}_${dateStr}.doc`;
+
+  // Word HTML wrapper — opens in MS Word / 한글 / LibreOffice for editing
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>별지 제1호 — 감리자 지정 신청서</title>
+<!--[if gte mso 9]><xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml><![endif]-->
+<style>
+@page { size: A4 portrait; margin: 15mm 18mm 15mm 18mm; }
+body { font-family: '맑은 고딕', Malgun Gothic, sans-serif; font-size: 10pt; }
+table { border-collapse: collapse; width: 100%; }
+td, th { border: 1px solid #888; padding: 4px 6px; }
+h2 { text-align: center; letter-spacing: 4px; }
+input { border: none; background: transparent; }
+</style>
+</head>
+<body>
+${preview.innerHTML}
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showStatus(`📄 ${filename} 저장 완료`);
 }
 function printTab(tabId) {
   const tab = document.getElementById(tabId);
