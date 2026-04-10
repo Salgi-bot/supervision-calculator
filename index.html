@@ -3552,7 +3552,7 @@ function renderByeolji1() {
   const d = sparts[3] ? String(sparts[3]).padStart(2,' ') : String(new Date().getDate()).padStart(2,' ');
 
   // 감리원 행 생성 (구분|분야|성명|생년월일|등급|자격번호|소속회사)
-  const td = s => `<td style="text-align:center;padding:5px 4px;font-size:9pt">${escHtml(s)}</td>`;
+  const td = s => `<td style="text-align:center;padding:3px 4px;font-size:9pt">${escHtml(s)}</td>`;
   // 행 데이터 수집 — 이름 입력된 감리원만 (배치계획표·산출근거와 동일 기준)
   const allPRows = [];
   getAllRoles().filter(r => personnel[r.id]?.info?.name).forEach(r => {
@@ -3591,16 +3591,16 @@ function renderByeolji1() {
     personnelRows += '</tr>';
   });
 
-  const thStyle = 'style="text-align:center;background:#f5f5f5;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #bbb"';
-  const tdLabel = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 8px;border:1px solid #bbb;letter-spacing:1px">${s}</td>`;
-  const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
-  const tdColHeader = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb">${s}</td>`;
+  const thStyle = 'style="text-align:center;background:#f5f5f5;font-weight:700;font-size:9pt;padding:4px 4px;border:1px solid #bbb"';
+  const tdLabel = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:4px 8px;border:1px solid #bbb;letter-spacing:1px">${s}</td>`;
+  const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
+  const tdColHeader = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:3px 2px;border:1px solid #bbb">${s}</td>`;
 
   document.getElementById('byeolji1Preview').innerHTML = `
-    <div class="a4-preview" id="byeolji1Doc">
-      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:6px">[별지 제1호서식]</div>
-      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
-      <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:16px 0 20px;font-weight:800">주택건설공사 감리자지정 신청서</h2>
+    <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:0">
+      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>
+      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
+      <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:10px 0 12mm;font-weight:800">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:8px">(앞 쪽)</div>
 
       <!-- 1. 공사개요 -->
@@ -3790,7 +3790,7 @@ function buildByeolji2Html(roleId) {
   const y = sp2[1] || new Date().getFullYear(), mo = sp2[2] ? String(sp2[2]).padStart(2,' ') : String(new Date().getMonth()+1).padStart(2,' '), d = sp2[3] ? String(sp2[3]).padStart(2,' ') : String(new Date().getDate()).padStart(2,' ');
 
   return `
-    <div class="a4-preview" style="margin-bottom:20px">
+    <div class="a4-preview" style="padding:38px 30px 12px 30px;min-height:0;margin-bottom:20px">
       <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제2호서식 (제8조 관련)</div>
       <h2 style="text-align:center;font-size:18pt;letter-spacing:8px;margin:20px 0 30px;font-weight:800">자 기 평 가 서</h2>
 
@@ -4118,7 +4118,7 @@ function renderInputSheet() {
   const nonresCount = allR.filter(r => r.placement === '비상주' && personnel[r.id].info.name).length;
 
   document.getElementById('inputSheetPreview').innerHTML = `
-    <div class="a4-preview">
+    <div class="a4-preview" style="padding:38px 30px 12px 30px;min-height:0">
       <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제3호서식 (제8조 관련)</div>
       <h2 style="text-align:center;font-size:20pt;letter-spacing:10px;margin:30px 0 50px;font-weight:800">입&ensp;찰&ensp;서</h2>
       <table style="margin-bottom:24px">
@@ -4471,7 +4471,7 @@ function renderDeployTable() {
   const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
 
   document.getElementById('deployTablePreview').innerHTML = `
-  <div class="a4-preview" id="deployDoc" style="overflow-x:auto">
+  <div class="a4-preview" id="deployDoc" style="padding:38px 30px 12px 30px;min-height:0;overflow-x:auto">
     <div style="text-align:right;font-size:8.5pt;color:#555;margin-bottom:6px">[별첨 ${escHtml(annexNo)}]</div>
     <div style="text-align:center;margin-bottom:14px">
       <span style="font-size:14pt;font-weight:800;letter-spacing:3px;color:#111">&lt;감&nbsp;리&nbsp;원&nbsp;배&nbsp;치&nbsp;계&nbsp;획&nbsp;표&gt;</span>
@@ -4613,7 +4613,7 @@ function renderCalcResult() {
   const TH2='border:1px solid #ccc;padding:5px 8px;font-size:8.5pt;background:#f5f5f5;font-weight:700;text-align:center';
 
   el.innerHTML = `
-  <div class="a4-preview" id="calcResultDoc" style="margin-top:16px">
+  <div class="a4-preview" id="calcResultDoc" style="padding:38px 30px 12px 30px;min-height:0;margin-top:16px">
     <div style="text-align:center;margin-bottom:18px;border-bottom:2px solid #333;padding-bottom:8px">
       <span style="font-size:13pt;font-weight:800;letter-spacing:3px;color:#111">감 리 인 · 월 수 산 출 근 거</span>
     </div>
