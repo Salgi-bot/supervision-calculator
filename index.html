@@ -4179,11 +4179,11 @@ function renderByeolji2Detail() {
   };
 
   const hdr = `<colgroup>
-    <col style="width:5%"><col style="width:10%"><col style="width:10%"><col style="width:24%">
-    <col style="width:6%"><col style="width:13%"><col style="width:32%">
+    <col style="width:5%"><col style="width:9%"><col style="width:9%"><col style="width:16%">
+    <col style="width:22%"><col style="width:5%"><col style="width:11%"><col style="width:23%">
   </colgroup>
   <thead><tr>
-    ${th('구분',2,2)}${th('평가항목',2,2)}${th('채점기준',2)}${th('점수기준',2)}
+    ${th('구분',2,2)}${th('평가항목',2,2)}${th('채점기준',2)}${th('점수<br>기준',2)}
     <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>
   </tr><tr>${th('신청자')}${th('산출근거')}</tr></thead><tbody>`;
 
@@ -4198,20 +4198,20 @@ function renderByeolji2Detail() {
   // ── 가. 감리자(감리회사) ──
   const p1inner = `
   <tr>
-    ${lbl('감리자<br>(감리<br>회사)',14,2)}
-    ${it('재무상태 건실도',1,2)}
+    ${lbl('감리자<br>(감리<br>회사)',15,2)}
+    ${it('재무상태 건실도',2)}
     ${cri('AA- 이상→5 / A-~BBB+→4 / BBB-~BB+→3 / BB-~B+→2 / B- 이하→1')}
     ${sc(5)}<td style="${EG};text-align:center">${sco('c_fin','5')}</td>
     <td style="${EG}">${dei('fin_eg','예) 회사채 신용평가등급 BB-')}</td>
   </tr>
   <tr>
-    ${it('감리업무수행실적(감리비)',1,2)}
+    ${it('감리업무수행실적(감리비)',2)}
     ${cri('30억↑→12 / 20억↑→10 / 10억↑→8 / 5억↑→6 / 3억↑→4 / 미만→2')}
     ${sc(12)}<td style="${EG};text-align:center">${sco('c_perf','12')}</td>
     <td style="${EG}">${dei('perf_eg','예) 최근 3년 감리비 합계 000억원')}</td>
   </tr>
   <tr>
-    ${it('행정제재',1,2)}
+    ${it('행정제재',2)}
     ${cri('기준 9점 / 업무정지 −0.5점/월 / 부실벌점 −1점/점')}
     ${sc(9)}<td style="${EG};text-align:center">${sco('c_admin','9')}</td>
     <td style="${EG}">업무정지 ${dei('admin_month','0','44px')} 월 / 부실벌점 ${dei('admin_pts','0','44px')} 점</td>
@@ -4236,13 +4236,13 @@ function renderByeolji2Detail() {
     <td style="${EG}">70h: ${dei('td3_70a','0','36px')} 명×${dei('td3_70b','0.05','44px')} / 35h: ${dei('td3_35a','0','36px')} 명×${dei('td3_35b','0.025','44px')}</td>
   </tr>
   <tr>
-    ${it('신규감리원 배치',1,2)}
+    ${it('신규감리원 배치',2)}
     ${cri('신규 감리원 0.5점/인 / 상한 2점')}
     ${sc(2)}<td style="${EG};text-align:center">${sco('c_new','2')}</td>
     <td style="${EG}">${dei('new_eg','예) 건축 0명')}</td>
   </tr>
   <tr>
-    ${it('교체빈도',1,2)}
+    ${it('교체빈도',2)}
     ${cri('(교체건수/배치인원×현장수)×100 / 0%→7 / 10%미만→6 / 20%미만→5 / 30%미만→4 / 40%미만→3 / 이상→2')}
     ${sc(7)}<td style="${EG};text-align:center">${sco('c_chg','7')}</td>
     <td style="${EG}">${dei('chg_form','예) 교체건수/배치인원×현장수')} → ${dei('chg_pct','0','40px')} %</td>
@@ -4267,7 +4267,7 @@ function renderByeolji2Detail() {
   </tr>
   <tr>
     <td colspan="2" style="${SR}">계</td><td style="${SR}">40</td>
-    <td id="b2_c_sum_d" style="${SV}"></td>${mt()}
+    <td id="b2_c_sum_d" style="${SV}"></td>${mt()}${mt()}
   </tr>
   <tr>
     ${lbl('적격<br>여부',3)}${it('감리원배치계획')}
@@ -4291,7 +4291,7 @@ function renderByeolji2Detail() {
   <tr>
     <td rowspan="8" style="text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px;writing-mode:vertical-rl;letter-spacing:3px">감리원</td>
     ${lbl('총괄<br>감리원',8)}
-    ${it('등급',1,2)}
+    ${it('등급',2)}
     ${cri('특급→6 / 고급→5 / 중급→4 / 초급→3')}
     ${sc(6)}<td style="${EG};text-align:center">${sco('ch_g', chief.gradeScore.toFixed(1))}</td>
     <td style="${EG}">${dei('ch_grade_eg', pGr('chief'))}</td>
@@ -4308,7 +4308,7 @@ function renderByeolji2Detail() {
     ${sc('(3)')}<td style="${EG};text-align:center">${sco('ch_i','0')}</td>${mt()}
   </tr>
   <tr>
-    ${it('감리업무 수행계획서',1,2)}
+    ${it('감리업무 수행계획서',2)}
     ${cri('우수→3 / 양호→2 / 보통→1 / 미흡→0')}
     ${sc(3)}<td style="${EG};text-align:center">${sco('ch_p','3')}</td>
     <td style="${EG}">${dei('ch_plan_eg','예) 우수')}</td>
@@ -4333,7 +4333,7 @@ function renderByeolji2Detail() {
   </tr>
   <tr>
     <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
-    <td id="b2_ch_sum_d" style="${SV}"></td>${mt()}
+    <td id="b2_ch_sum_d" style="${SV}"></td>${mt()}${mt()}
   </tr>`;
 
   // ── 나. 분야별감리원 ──
@@ -4384,7 +4384,7 @@ function renderByeolji2Detail() {
   p3inner += `
   <tr>
     <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
-    <td id="b2_f_sum_d" style="${SV}"></td>${mt()}
+    <td id="b2_f_sum_d" style="${SV}"></td>${mt()}${mt()}
   </tr>`;
 
   // ── 나. 비상주감리원 ──
@@ -4393,13 +4393,13 @@ function renderByeolji2Detail() {
   <tr>
     <td rowspan="5" style="text-align:center;background:#f0f0f0;font-size:7.5pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px;writing-mode:vertical-rl;letter-spacing:3px">감리원</td>
     ${lbl('비상주<br>감리원',5)}
-    ${it('등급',1,2)}
+    ${it('등급',2)}
     ${cri('특급→2 / 고급→1.6 / 중급→1.2 / 초급→0.8')}
     ${sc(2)}<td style="${EG};text-align:center">${sco('n_g', nonr.gradeScore.toFixed(1))}</td>
     <td style="${EG}">${dei('n_grade_eg', nonresName ? pGr('nonres') : '')}</td>
   </tr>
   <tr>
-    ${it('경력 및 실적',1,2)}
+    ${it('경력 및 실적',2)}
     ${cri('15년↑→4 / 12년↑→3.5 / 9년↑→3 / 6년↑→2.5 / 3년↑→2 / 미만→1')}
     ${sc(4)}<td style="${EG};text-align:center">${sco('n_e', (nonresName && (pi['nonres']?.careers||[]).length>0) ? nonr.expScore.toFixed(1) : '4')}</td>
     <td style="${EG}">${dei('n_exp_eg', pYr(nonr))}</td>
@@ -4418,7 +4418,7 @@ function renderByeolji2Detail() {
   </tr>
   <tr>
     <td colspan="2" style="${SR}">소 계</td><td style="${SR}">6</td>
-    <td id="b2_n_sum_d" style="${SV}"></td>${mt()}
+    <td id="b2_n_sum_d" style="${SV}"></td>${mt()}${mt()}
   </tr>`;
 
   document.getElementById('byeolji2Preview').innerHTML =
