@@ -5317,6 +5317,7 @@ function renderByeolchum3() {
     const p = personnel[role.id];
     if(!p.info.name) return;
     const careers = p.careers || [];
+    if(careers.length === 0) return; // 경력 없으면 페이지 제외
     const totalConvDays = careers.reduce((s,c) => s + Math.floor((c.days||0)*getRate(c.conType,c.workType,c.resident)), 0);
     const convYears = ( Math.floor(totalConvDays/365*10)/10 ).toFixed(1);
     const score = calcPersonScore(role.id);
@@ -5364,7 +5365,52 @@ function renderByeolchum3() {
     <div style="font-size:12pt;margin-bottom:2px;">[별첨 4]</div>
     <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○신규감리원</div>`;
   if(!hasNew) {
-    html += `<div style="text-align:center;padding:60px 0;font-size:14pt;font-weight:bold;">해당사항 없음</div>`;
+    html += `
+    <div style="margin-bottom:10px;font-weight:700">가. 신규감리원의 자격사항</div>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:20px;">
+      <thead>
+        <tr>
+          <th rowspan="2" ${thS} style="width:60px">감리원<br>성 명</th>
+          <th rowspan="2" ${thS} style="width:45px">분 야</th>
+          <th colspan="3" ${thS}>등 급 자 격</th>
+          <th colspan="2" ${thS}>신규감리원 자격</th>
+          <th rowspan="2" ${thS} style="width:40px">평 점</th>
+        </tr>
+        <tr>
+          <th ${thS} style="width:55px">현재등급</th>
+          <th ${thS}>자격명<br>(학력명)</th>
+          <th ${thS} style="width:65px">취득일</th>
+          <th ${thS}>해당시점<br>(감리사보)</th>
+          <th ${thS}>해당시점 이후<br>경력및실적</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="8" ${tdS} style="text-align:center;padding:18px;color:#555">신규감리원 해당사항 없음</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-bottom:10px;font-weight:700">나. 신규감리원의 경력 및 실적(신규감리원 자격 해당시점 이후)</div>
+    <table style="border-collapse:collapse;width:100%;">
+      <thead>
+        <tr>
+          <th rowspan="2" ${thS} style="width:55px">구 분</th>
+          <th colspan="2" ${thS}>경 력 사 항</th>
+          <th rowspan="2" ${thS} style="width:55px">경 력<br>일 수</th>
+          <th rowspan="2" ${thS} style="width:45px">환산비</th>
+          <th rowspan="2" ${thS} style="width:60px">평가환산<br>일수</th>
+          <th rowspan="2" ${thS} style="width:50px">비 고</th>
+        </tr>
+        <tr><th ${thS}>사 업 명</th><th ${thS} style="width:100px">기 간</th></tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="7" ${tdS} style="text-align:center;padding:18px;color:#555">신규감리원 해당사항 없음</td></tr>
+        <tr style="font-weight:bold">
+          <td colspan="3" ${tdS}>소&emsp;&emsp;계</td>
+          <td ${tdS}></td><td ${tdS}></td>
+          <td ${tdS} style="font-size:8pt">일<br>년</td>
+          <td ${tdS}></td>
+        </tr>
+      </tbody>
+    </table>`;
   } else {
     newRoles.forEach(role => {
       const p = personnel[role.id];
