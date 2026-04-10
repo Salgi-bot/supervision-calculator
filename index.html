@@ -3918,13 +3918,13 @@ function renderByeolji2Cover() {
   const nonr  = calcPersonScore('nonres');
 
   // 스타일 상수 (공고문 이미지 서식 일치)
-  const TH  = 'text-align:center;background:#d9d9d9;font-size:8pt;font-weight:700;padding:4px 3px;border:1px solid #999;vertical-align:middle';
-  const LBL = 'text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px';
-  const IT  = 'text-align:center;font-size:8pt;padding:3px 6px;border:1px solid #bbb;vertical-align:middle';
-  const SC  = 'text-align:center;font-size:8pt;padding:3px;border:1px solid #bbb;vertical-align:middle';
-  const EG  = 'text-align:center;font-size:7.5pt;padding:3px 5px;border:1px solid #bbb;color:#444;vertical-align:middle';
-  const SR  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
-  const SV  = 'text-align:center;font-weight:700;font-size:8pt;padding:5px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:8pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px';
+  const IT  = 'text-align:center;font-size:8pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle';
+  const SC  = 'text-align:center;font-size:8pt;padding:1px;border:1px solid #bbb;vertical-align:middle';
+  const EG  = 'text-align:center;font-size:7.5pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle';
+  const SR  = 'text-align:center;font-weight:700;font-size:8pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
+  const SV  = 'text-align:center;font-weight:700;font-size:8pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
 
   const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
   const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
@@ -3956,8 +3956,8 @@ function renderByeolji2Cover() {
   <div class="a4-preview" id="byeolji2Doc">
     <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:4px">[별지 제2호서식]</div>
     <div style="font-weight:700;font-size:9pt;margin-bottom:6px">Ⅰ. 총괄표</div>
-    <div style="font-size:8pt;margin-bottom:2px">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
-    <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:6px 0 12px;font-weight:800">자 기 평 가 서</h2>
+    <div style="font-size:8pt;margin-bottom:0">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
+    <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:2px 0 4px;font-weight:800">자 기 평 가 서</h2>
     <table style="border-collapse:collapse;width:100%;font-size:8pt">
       <colgroup>
         <col style="width:6%"><col style="width:9%"><col style="width:9%"><col style="width:17%">
@@ -4069,14 +4069,14 @@ function renderByeolji2Cover() {
       </tr>
       </tbody>
     </table>
-    <div style="font-size:7.5pt;line-height:1.7;margin:12px 0 6px">
+    <div style="font-size:6.5pt;line-height:1.5;margin:4px 0 2px">
       상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출함을 확인하고, 제출된 신청자 평점 중 "허위·거짓 등"의 방법으로 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰한 등의 불이익을 받을 수 있음을 확인합니다.
     </div>
-    <div style="text-align:right;font-size:9pt;margin:8px 20px 4px 0">${getSubmitDateStr()}</div>
-    <div style="text-align:right;font-size:9pt;margin:4px 20px 0 0">
+    <div style="text-align:right;font-size:9pt;margin:4px 20px 2px 0">${getSubmitDateStr()}</div>
+    <div style="text-align:right;font-size:9pt;margin:2px 20px 0 0">
       입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:4px">
       <span>구비서류 : 감리원배치계획서 1부.</span>
       <span>210㎜×297㎜[백상지(80g/㎡)]</span>
     </div>
