@@ -3918,22 +3918,22 @@ function renderByeolji2Cover() {
   const nonr  = calcPersonScore('nonres');
 
   // 스타일 상수 (공고문 이미지 서식 일치)
-  const TH  = 'text-align:center;background:#d9d9d9;font-size:8pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle';
-  const LBL = 'text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px';
-  const IT  = 'text-align:center;font-size:8pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle';
-  const SC  = 'text-align:center;font-size:8pt;padding:1px;border:1px solid #bbb;vertical-align:middle';
-  const EG  = 'text-align:center;font-size:7.5pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle';
-  const SR  = 'text-align:center;font-weight:700;font-size:8pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
-  const SV  = 'text-align:center;font-weight:700;font-size:8pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px';
+  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle';
+  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle';
+  const EG  = 'text-align:center;font-size:7pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle';
+  const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle';
+  const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle';
 
   const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
   const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=_es[k]!==undefined?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
+  const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=_es[k]!==undefined?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb"></td>`;
-  const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
+  const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:7pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
   const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
   const pYr = s => s.convYears > 0 ? ( Math.floor(s.convYears*10)/10 ).toFixed(1)+'년' : '';
@@ -3958,7 +3958,7 @@ function renderByeolji2Cover() {
     <div style="font-weight:700;font-size:9pt;margin-bottom:6px">Ⅰ. 총괄표</div>
     <div style="font-size:8pt;margin-bottom:0">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:15pt;letter-spacing:6px;margin:2px 0 4px;font-weight:800">자 기 평 가 서</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:8pt">
+    <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:1.2">
       <colgroup>
         <col style="width:6%"><col style="width:9%"><col style="width:9%"><col style="width:17%">
         <col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:38%">
