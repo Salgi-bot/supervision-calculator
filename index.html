@@ -602,7 +602,7 @@ tbody tr:hover td { background: var(--ci-light); }
   .tab-content { display: none !important; padding: 0 !important; opacity: 1 !important; }
   .tab-content.print-target { display: block !important; opacity: 1 !important; }
   body { background: #fff; font-size: 11pt; }
-  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 15mm; height: 297mm !important; overflow: hidden; width: 210mm; margin: 0 auto; page-break-after: always; }
+  .a4-preview, .a4-page { border: none; box-shadow: none; box-sizing: border-box; min-height: auto !important; height: auto !important; width: 210mm; margin: 0 auto; page-break-after: always; overflow: visible; }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
   /* flex 페이지(서약서·위임장 등): 세로 균등 배치 */
   .a4-page[style*="flex-direction:column"] { justify-content: space-between !important; }
@@ -4782,7 +4782,7 @@ function renderByeolchum1() {
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
       <div style="font-size:14px;font-weight:bold;margin-bottom:30px;">【별첨 1】</div>
-      <h2 style="text-align:center;font-size:24px;letter-spacing:8px;margin:40px 0 60px;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+      <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:40px 0 30px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
       <div style="margin-bottom:8px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
       <div style="margin-bottom:40px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
       <div style="text-indent:2em;text-align:justify;">
@@ -4794,7 +4794,7 @@ function renderByeolchum1() {
         <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
         <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
       </div>
-      <div style="margin-top:80px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
+      <div style="margin-top:40px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
     </div>`;
 }
 
