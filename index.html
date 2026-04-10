@@ -3929,7 +3929,7 @@ function renderByeolji2Cover() {
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(_es[k]||'')}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
+  const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=_es[k]!==undefined?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb"></td>`;
   const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
@@ -4002,9 +4002,9 @@ function renderByeolji2Cover() {
       <!-- 감리원 outer(rowspan=30) + 총괄감리원 8행 -->
       <tr>
         <td rowspan="30" style="text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:3px 2px;writing-mode:vertical-rl;letter-spacing:4px">감리원</td>
-        ${lbl('총괄<br>감리원',8)}${it('등급',2)}${sc(6)}${inp('ch_g',chief.gradeScore.toFixed(1))}${mt()}${eg(pGr('chief'))}
+        ${lbl('총괄<br>감리원',8)}${it('등급',2)}${sc(6)}${inp('ch_g',chief.gradeScore.toFixed(1))}${mt()}${eg(pGr('chief'), pGr('chief'))}
       </tr>
-      <tr>${lbl('경력<br>및<br>실적',2)}${it('경력 및 실적')}${sc('18<br>(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief))}</tr>
+      <tr>${lbl('경력<br>및<br>실적',2)}${it('경력 및 실적')}${sc('18<br>(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief), pYr(chief))}</tr>
       <tr>${it('(면접(발표))')}${sc('(3)')}${inp('ch_i',0)}${mt()}${eg('* ( )는 면접을 실시하는 경우 배점')}</tr>
       <tr>${it('감리업무 수행계획서',2)}${sc(3)}${inp('ch_p',3)}${mt()}${eg('')}</tr>
       <tr>${lbl('가점')}${it('자격가점')}${sc('(0.2)')}${inp('ch_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
@@ -4018,13 +4018,13 @@ function renderByeolji2Cover() {
       <!-- 분야별 감리원 16행 -->
       <tr>
         ${lbl('분야별<br>감리원',16)}
-        ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g', faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
+        ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g', faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'), is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
       </tr>
-      <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'))}</tr>
-      <tr>${it('기타설비')}${sc(2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'))}</tr>
-      <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e', faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
-      <tr>${it('토목')}${sc(7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil))}</tr>
-      <tr>${it('기타설비')}${sc(7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech))}</tr>
+      <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
+      <tr>${it('기타설비')}${sc(2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
+      <tr>${lbl('경력<br>및<br>실적',3)}${it('건축')}${sc(7)}${inp('fa_e', faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch), is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
+      <tr>${it('토목')}${sc(7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil), pYr(civil))}</tr>
+      <tr>${it('기타설비')}${sc(7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech), pYr(mech))}</tr>
       <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc('(0.1)')}${inp('fm_qb',0)}${mt()}${eg('')}</tr>
@@ -4041,9 +4041,9 @@ function renderByeolji2Cover() {
 
       <!-- 비상주감리원 5행 -->
       <tr>
-        ${lbl('비상주<br>감리원',5)}${it('등급',2)}${sc(2)}${inp('n_g',nonr.gradeScore.toFixed(1))}${mt()}${eg(pi['nonres']?.info?.name?'예) '+(pi['nonres'].info.appliedGrade||'고급')+'건설기술자, 현장배치 0개소':'')}
+        ${lbl('비상주<br>감리원',5)}${it('등급',2)}${sc(2)}${inp('n_g',nonr.gradeScore.toFixed(1))}${mt()}${(()=>{const v=pi['nonres']?.info?.name?'예) '+(pi['nonres'].info.appliedGrade||'고급')+'건설기술자, 현장배치 0개소':''; return eg(v, v);})()}
       </tr>
-      <tr>${it('경력 및 실적',2)}${sc(4)}${inp('n_e', (personnel['nonres']?.info?.name && (personnel['nonres']?.careers||[]).length>0) ? nonr.expScore.toFixed(1) : '4')}${mt()}${eg(pYr(nonr))}</tr>
+      <tr>${it('경력 및 실적',2)}${sc(4)}${inp('n_e', (personnel['nonres']?.info?.name && (personnel['nonres']?.careers||[]).length>0) ? nonr.expScore.toFixed(1) : '4')}${mt()}${eg(pYr(nonr), pYr(nonr))}</tr>
       <tr>${lbl('감점',2)}${it('행정제재')}${sc('(-1)')}${inp('n_ad',0)}${mt()}${eg('예) 업무정지 00(월)')}</tr>
       <tr>${it('교체빈도')}${sc('(-1)')}${inp('n_r',0)}${mt()}${eg('예) 00(건)')}</tr>
       <tr>
