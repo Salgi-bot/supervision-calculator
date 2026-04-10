@@ -678,7 +678,6 @@ tbody tr:hover td { background: var(--ci-light); }
     <button class="sub-tab-btn active" onclick="scrollToSection('tab0','sec-project')">공고·공사</button>
     <button class="sub-tab-btn" onclick="scrollToSection('tab1','sec-person')">감리원 관리</button>
     <button class="sub-tab-btn" onclick="scrollToSection('tab2','sec-career')">경력 상세</button>
-    <button class="sub-tab-btn" onclick="scrollToSection('tab3','sec-score')">배점</button>
   </div>
   <div id="sec-project"></div>
   <div class="card">
@@ -1078,48 +1077,6 @@ tbody tr:hover td { background: var(--ci-light); }
   </div>
 </div>
 
-<!-- ══════════ TAB 3: 배점 ══════════ -->
-<div class="tab-content" id="tab3" role="tabpanel">
-  <hr class="section-divider"><div class="section-header" id="sec-score">🎯 배점</div>
-  <div class="person-selector" id="personSelectorScore"></div>
-  <div class="card">
-    <div class="card-title"><span class="icon">🎯</span>배점 계산 — <span id="scorePersonLabel">총괄감리원(건축)</span></div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>공사 규모</label>
-        <select id="projectSize" onchange="calcScore()">
-          <option value="1000이상">1,000세대 이상</option>
-          <option value="500이상">500~1,000세대</option>
-          <option value="300이상">300~500세대</option>
-          <option value="300미만">300세대 미만</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>배치 구분</label>
-        <select id="scorePlacement" onchange="calcScore()">
-          <option value="분야별">분야별감리원</option>
-          <option value="총괄">총괄감리원</option>
-          <option value="비상주">비상주감리원</option>
-          <option value="신규">신규감리원</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>환산경력 (일) — 자동</label>
-        <input type="number" id="convDays" readonly style="background:#f5f5f5">
-      </div>
-      <div class="form-group">
-        <label>환산경력 (년) — 자동</label>
-        <input type="number" id="convYears" step="0.01" readonly style="background:#f5f5f5">
-      </div>
-    </div>
-  </div>
-  <div class="card" id="scoreCard">
-    <div class="card-title"><span class="icon">🏆</span>배점 결과</div>
-    <div id="scoreContent">
-      <p style="color:var(--gray4);padding:16px 0">환산 계산 후 배점이 자동으로 표시됩니다.</p>
-    </div>
-  </div>
-</div>
 
 <!-- ══════════ TAB 4: 별지1호 ══════════ -->
 <div class="tab-content" id="tab4" role="tabpanel">
@@ -1141,8 +1098,11 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="info-note">
       감리자(회사) + 감리원 합산 100점 자기평가서가 자동 생성됩니다.
     </div>
-    <div style="margin:6px 0">
+    <div style="margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
+      <span style="font-size:12px;color:#666;margin-left:8px">서식 보기:</span>
+      <button id="b2btn이상" onclick="setB2ViewMode('이상')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 이상</button>
+      <button id="b2btn미만" onclick="setB2ViewMode('미만')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 미만</button>
     </div>
   </div>
   <div id="byeolji2Preview"></div>
@@ -1543,7 +1503,6 @@ function getAllRoles() {
 function _refreshAfterToggle() {
   renderPersonCards();
   renderPersonSelector('personSelector');
-  renderPersonSelector('personSelectorScore');
   renderDeploySettings();
   renderDeployTable();
   if (document.getElementById('tab4')?.classList.contains('active')) renderByeolji1();
@@ -1563,7 +1522,8 @@ function onSizeClassChange() {
     _refreshAfterToggle();
   }
   // 세대수 변경 시 자동계산 필드 초기화 (재계산 반영)
-  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e'].forEach(k => delete b2NumState[k]);
+  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
+  b2ViewMode = null; // 세대수 변경 시 자동 감지로 리셋
   if (document.getElementById('tab5')?.classList.contains('active')) renderByeolji2Cover();
 }
 function toggleCivil2() {
@@ -1577,8 +1537,11 @@ function toggleCivil2() {
 // ══════════════════════════════════════════════════════
 const AUTOSAVE_KEY = 'hb_autosave_v1';
 let _autoSaveTimer = null;
-let b2NumState = {};  // 별지2호 신청자 점수 사용자 편집값
-let b2EgState = {};   // 별지2호 산출근거 사용자 편집값
+let b2NumState = {};     // 별지2호 신청자 점수 (300세대 이상)
+let b2EgState = {};      // 별지2호 산출근거 (300세대 이상)
+let b2NumState미만 = {}; // 별지2호 신청자 점수 (300세대 미만)
+let b2EgState미만 = {};  // 별지2호 산출근거 (300세대 미만)
+let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미만'
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 
 function triggerAutoSave() {
@@ -1601,6 +1564,8 @@ function doAutoSave() {
     bidPrice: document.getElementById('bidPrice')?.value||'',
     b2NumState: b2NumState,
     b2EgState: b2EgState,
+    b2NumState미만: b2NumState미만,
+    b2EgState미만: b2EgState미만,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     deployState: deployState,
@@ -1687,6 +1652,8 @@ function loadAutoSave() {
     if (data.bidPrice) { const el = document.getElementById('bidPrice'); if (el) el.value = data.bidPrice; }
     if (data.b2NumState) b2NumState = data.b2NumState;
     if (data.b2EgState) b2EgState = data.b2EgState;
+    if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
+    if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
     if (data.deployState) deployState = data.deployState;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
@@ -1804,7 +1771,7 @@ function getRowClass(rate) {
 function switchTab(visualIdx) {
   // Map visual tab index → content div IDs
   const tabMap = [
-    ['tab0','tab1','tab2','tab3'], // 0: 데이터 입력 (merged)
+    ['tab0','tab1','tab2'], // 0: 데이터 입력 (merged)
     ['tab_cover'],                 // 1: 표지
     ['tab4'],                      // 2: 별지1호
     ['tab5'],                      // 3: 별지2호
@@ -1834,8 +1801,6 @@ function switchTab(visualIdx) {
     renderPersonSelector('personSelector');
     loadPersonToForm(currentPersonId);
     renderCareerTable();
-    renderPersonSelector('personSelectorScore');
-    calcScore();
   }
   if (visualIdx === 1) renderCover();
   if (visualIdx === 2) renderByeolji1();
@@ -1960,7 +1925,7 @@ function clearPerson(roleId) {
 }
 
 // ══════════════════════════════════════════════════════
-//  PERSON SELECTOR (경력 상세 / 배점 탭)
+//  PERSON SELECTOR (경력 상세 탭)
 // ══════════════════════════════════════════════════════
 function renderPersonSelector(containerId) {
   const container = document.getElementById(containerId);
@@ -1976,10 +1941,7 @@ function renderPersonSelector(containerId) {
 function selectPerson(roleId, fromContainer) {
   syncPersonInfo();
   currentPersonId = roleId;
-  if (fromContainer === 'personSelectorScore') {
-    renderPersonSelector('personSelectorScore');
-    loadScoreForPerson(roleId);
-  } else if (fromContainer === 'personSelectorB2') {
+  if (fromContainer === 'personSelectorB2') {
     renderPersonSelector('personSelectorB2');
     document.getElementById('byeolji2Preview').innerHTML = buildByeolji2Html(roleId);
   } else {
@@ -2110,7 +2072,6 @@ function calcAll() {
   });
   renderCareerTable();
   renderResults();
-  calcScore();
   showStatus('환산 계산 완료');
 }
 
@@ -2170,8 +2131,6 @@ function renderResults() {
     <div class="summary-item"><div class="label">환산경력</div><div class="val" style="color:#e65c00">${floorAt2(totalConv/365).toFixed(2)}년</div></div>`;
 
   renderRateSummary(totalConv);
-  document.getElementById('convDays').value = totalConv;
-  document.getElementById('convYears').value = floorAt2(totalConv / 365).toFixed(2);
 }
 
 function renderRateSummary(grandTotal) {
@@ -2195,23 +2154,6 @@ function renderRateSummary(grandTotal) {
   document.getElementById('rateSummaryContent').innerHTML = html;
 }
 
-// ══════════════════════════════════════════════════════
-//  SCORE CALCULATION
-// ══════════════════════════════════════════════════════
-function loadScoreForPerson(roleId) {
-  const p = personnel[roleId];
-  const role = findRole(roleId);
-  document.getElementById('scorePersonLabel').textContent = role.label;
-  document.getElementById('scorePlacement').value = p.info.placement || role.placement;
-  // Calc conversion
-  const totalConv = p.careers.reduce((s,c) => s + Math.floor((c.days||0) * getRate(c.conType, c.workType, c.resident)), 0);
-  document.getElementById('convDays').value = totalConv;
-  document.getElementById('convYears').value = floorAt2(totalConv / 365).toFixed(2);
-  // Sync project size
-  const pjSize = document.getElementById('pj_sizeClass');
-  if (pjSize) document.getElementById('projectSize').value = pjSize.value;
-  calcScore();
-}
 
 function calcConstructionDays() {
   const s = document.getElementById('pj_startDate')?.value || '';
@@ -2229,67 +2171,6 @@ function calcConstructionDays() {
   }
 }
 
-function calcScore() {
-  const convDays = parseFloat(document.getElementById('convDays').value) || 0;
-  const convYears = convDays / 365;
-  const p = personnel[currentPersonId];
-  const grade = p.info.appliedGrade || '특급';
-  const projectSize = document.getElementById('projectSize').value;
-  const placement = document.getElementById('scorePlacement').value;
-  const name = p.info.name || '—';
-  const field = p.info.field || '토목';
-
-  let gradeScore = 0, expScore = 0, maxGrade = 0, maxExp = 0, expLabel = '', gradeLabel = '';
-
-  const gMap = getGradeScores();
-  const eTbl = getExpScores();
-  function calcExpScore(key) {
-    const tbl = eTbl[key] || [];
-    for (const e of tbl) { if (convYears >= e.min) return { score: e.score, label: `${floorAt2(convYears).toFixed(2)}년 (${e.label}) → ${e.score}점` }; }
-    return { score: 0, label: '기준 없음' };
-  }
-  if (placement === '신규') {
-    maxGrade = 0; maxExp = 0;
-    gradeLabel = '신규감리원 — 개인 배점 없음'; expLabel = '—';
-  } else if (placement === '비상주') {
-    maxGrade = 2; maxExp = eTbl['비상주']?.[0]?.score || 4;
-    gradeScore = gMap[grade] || 0; gradeLabel = `${grade} → ${gradeScore}점`;
-    const r = calcExpScore('비상주'); expScore = r.score; expLabel = r.label;
-  } else if (placement === '분야별') {
-    maxGrade = 2; maxExp = eTbl['분야별']?.[0]?.score || 7;
-    gradeScore = gMap[grade] || 0; gradeLabel = `${grade} → ${gradeScore}점`;
-    const r = calcExpScore('분야별'); expScore = r.score; expLabel = r.label;
-  } else {
-    maxGrade = 6; maxExp = eTbl['총괄']?.[0]?.score || 18;
-    gradeScore = grade === '특급' ? 6.0 : 0;
-    gradeLabel = grade === '특급' ? '특급 → 6.0점' : `${grade} — 총괄 자격 없음`;
-    const r = calcExpScore('총괄'); expScore = r.score; expLabel = r.label;
-  }
-
-  const total = gradeScore + expScore;
-  const maxScore = maxGrade + maxExp;
-  const isPerfect = total >= maxScore;
-
-  document.getElementById('scoreContent').innerHTML = `
-    <div class="score-grid" style="margin-bottom:16px">
-      <div class="score-box ${gradeScore>=maxGrade?'perfect':''}"><div class="title">등급</div><div class="value">${gradeScore.toFixed(1)}</div><div class="max">/ ${maxGrade}점</div></div>
-      <div class="score-box ${expScore>=maxExp?'perfect':''}"><div class="title">경력</div><div class="value">${expScore.toFixed(1)}</div><div class="max">/ ${maxExp}점</div></div>
-      <div class="score-box ${isPerfect?'perfect':''}"><div class="title">합계 ${isPerfect?'만점':''}</div><div class="value">${total.toFixed(1)}</div><div class="max">/ ${maxScore}점</div></div>
-    </div>
-    <table class="ref-table">
-      <thead><tr><th>항목</th><th>내용</th><th>점수</th></tr></thead>
-      <tbody>
-        <tr><td class="fw-bold">대상자</td><td class="text-left">${name} (${field} ${grade} / ${placement})</td><td>—</td></tr>
-        <tr><td class="fw-bold">공사규모</td><td class="text-left">${projectSize}</td><td>—</td></tr>
-        <tr><td class="fw-bold">환산경력</td><td class="text-left">${convDays.toLocaleString()}일 (${floorAt2(convYears).toFixed(2)}년)</td><td>—</td></tr>
-        <tr><td class="fw-bold">등급 (${maxGrade}점)</td><td class="text-left">${gradeLabel}</td><td style="color:var(--ci)">${gradeScore.toFixed(1)}</td></tr>
-        <tr><td class="fw-bold">경력 (${maxExp}점)</td><td class="text-left">${expLabel}</td><td style="color:var(--ci)">${expScore.toFixed(1)}</td></tr>
-        <tr style="background:${isPerfect?'var(--ci)':'#e8f4fb'};color:${isPerfect?'#fff':'var(--ci)'}">
-          <td class="fw-bold">최종</td><td class="text-left fw-bold">${isPerfect?'만점':'만점까지 '+(maxScore-total).toFixed(1)+'점 부족'}</td><td class="fw-bold" style="font-size:15px">${total.toFixed(1)} / ${maxScore}</td></tr>
-      </tbody>
-    </table>
-    ${field !== '건축' && placement === '총괄' ? '<div class="warn-note mt-10">⚠ '+field+'분야는 총괄감리원 불가 (건축 전용)</div>' : ''}`;
-}
 
 // ══════════════════════════════════════════════════════
 //  JSON SAVE / LOAD
@@ -2336,6 +2217,9 @@ function saveAllJSON() {
     docImages: docImages,
     deployState: deployState,
     b2NumState: b2NumState,
+    b2EgState: b2EgState,
+    b2NumState미만: b2NumState미만,
+    b2EgState미만: b2EgState미만,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
   };
@@ -2484,6 +2368,9 @@ function loadV2Data(data) {
   // 배치계획표 상태
   if (data.deployState) deployState = data.deployState;
   if (data.b2NumState) b2NumState = data.b2NumState;
+  if (data.b2EgState) b2EgState = data.b2EgState;
+  if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
+  if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
   if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
   renderDeploySettings();
@@ -4001,10 +3888,26 @@ function calcB2() {
   set('total', cSum+monSum);
 }
 
+function setB2ViewMode(mode) {
+  b2ViewMode = mode;
+  renderByeolji2Cover();
+}
+
 function renderByeolji2Cover() {
   syncPersonInfo();
   const pj = getProjectData();
   const co = getCompanyData();
+  // 보기 모드 결정 (null이면 pj_sizeClass 기준 자동)
+  const _mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
+  const _ns = _mode === '미만' ? b2NumState미만 : b2NumState;
+  const _es = _mode === '미만' ? b2EgState미만 : b2EgState;
+  // 토글 버튼 활성화 표시
+  ['이상','미만'].forEach(m => {
+    const btn = document.getElementById('b2btn'+m);
+    if (!btn) return;
+    btn.style.background = m === _mode ? '#1e40af' : '#e0f2fe';
+    btn.style.color = m === _mode ? '#fff' : '#1e40af';
+  });
 
   const chief = calcPersonScore('chief');
   const arch  = calcPersonScore('arch');
@@ -4026,15 +3929,15 @@ function renderByeolji2Cover() {
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(b2EgState[k]||'')}" oninput="b2EgState['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
+  const eg  = s => { const k='e'+(++_egIdx); return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(_es[k]||'')}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7.5pt;font-family:var(--font);background:transparent;color:#444;text-align:center"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb"></td>`;
-  const inp = (id,val) => { const stored=b2NumState[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="b2NumState['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
+  const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:2px;border:1px solid #bbb"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:8pt;font-family:var(--font);background:transparent"></td>`; };
   const pi  = personnel;
   const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
   const pYr = s => s.convYears > 0 ? ( Math.floor(s.convYears*10)/10 ).toFixed(1)+'년' : '';
 
   // 300세대 미만: 건축 값 0, 토목·기타설비가 건축 점수 50%씩 가산
-  const is300미만 = document.getElementById('pj_sizeClass')?.value === '300미만';
+  const is300미만 = _mode === '미만';
   const fcBase    = !!(personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0);
   const faGrade   = is300미만 ? 0 : arch.gradeScore;
   const faExp     = is300미만 ? 0 : arch.expScore;
@@ -5381,6 +5284,24 @@ function renderByeolchum2() {
   document.getElementById('byeolchum2Preview').innerHTML = html || '<div class="card" style="padding:20px;text-align:center;color:var(--gray4)">수행실적 데이터를 입력하세요.</div>';
 }
 
+function getB2Score(roleId) {
+  const ns = b2ViewMode === '미만' ? b2NumState미만 : b2NumState;
+  const keyMap = {
+    'chief':  ['ch_g','ch_e'],
+    'arch':   ['fa_g','fa_e'],
+    'civil':  ['fc_g','fc_e'],
+    'civil2': ['fc_g','fc_e'],
+    'mech':   ['fm_g','fm_e'],
+    'nonres': ['n_g','n_e'],
+  };
+  const keys = keyMap[roleId];
+  if (!keys) return null;
+  const g = parseFloat(ns[keys[0]]);
+  const e = parseFloat(ns[keys[1]]);
+  if (isNaN(g) && isNaN(e)) return null;
+  return Number(((isNaN(g)?0:g) + (isNaN(e)?0:e)).toFixed(1));
+}
+
 // ══════════════════════════════════════════════════════
 //  별첨3 감리원경력 + 별첨4 신규감리원
 // ══════════════════════════════════════════════════════
@@ -5427,7 +5348,7 @@ function renderByeolchum3() {
         <td ${tdS}>${rate.toFixed(1)}</td>
         <td ${tdS}>${convDays}</td>
         ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="font-weight:700">${escHtml(p.info.appliedGrade||p.info.grade||'')}</td>
-        <td rowspan="${rowCount}" ${tdS} style="font-weight:700">${score.total||''}</td>` : ''}
+        <td rowspan="${rowCount}" ${tdS} style="font-weight:700">${(()=>{const b=getB2Score(role.id);return b!==null?b:(score.total||'');})()}</td>` : ''}
       </tr>`;
     });
     html += `<tr style="font-weight:bold">
@@ -5470,7 +5391,7 @@ function renderByeolchum3() {
 window.addEventListener('DOMContentLoaded', () => {
   loadRuntimeConstants();
   try { loadAutoSave(); } catch(e) { console.warn('자동복원 오류:', e); }
-  // 초기 탭 활성화 (tab0~tab3 모두 표시)
+  // 초기 탭 활성화 (tab0~tab2 모두 표시)
   switchTab(0);
   checkLawUpdate();
   // 회사정보 필드 변경 시 자동 저장
