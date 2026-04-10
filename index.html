@@ -4019,7 +4019,7 @@ function renderByeolji2Cover() {
 
       <!-- 분야별 감리원 16행 -->
       <tr>
-        ${lbl('분야별<br>감리원',16)}
+        ${lbl('분야별<br>감리원',9)}
         ${lbl('등급',3)}${it('건축')}${sc(2)}${inp('fa_g', faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'), is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
       </tr>
       <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
@@ -4030,14 +4030,14 @@ function renderByeolji2Cover() {
       <tr>${lbl('자격<br>가점',3)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc('(0.1)')}${inp('fc_qb',0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc('(0.1)')}${inp('fm_qb',0)}${mt()}${eg('')}</tr>
-      <tr>${lbl('감점',6)}${lbl('행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
-      <tr>${it('토목')}${sc('(-1)')}${inp('fc_ad',0)}${eg('')}</tr>
-      <tr>${it('기타설비')}${sc('(-1)')}${inp('fm_ad',0)}${eg('')}</tr>
-      <tr>${lbl('교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${eg('예) 00(건)')}</tr>
-      <tr>${it('토목')}${sc('(-0.5)')}${inp('fc_r',0)}${eg('')}</tr>
-      <tr>${it('기타설비')}${sc('(-0.5)')}${inp('fm_r',0)}${eg('')}</tr>
+      <tr>${lbl('감점',6)}${lbl('행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>${it('토목')}${sc('(-1)')}${inp('fc_ad',0)}${mt()}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-1)')}${inp('fm_ad',0)}${mt()}${eg('')}</tr>
+      <tr>${lbl('교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${mt()}${eg('예) 00(건)')}</tr>
+      <tr>${it('토목')}${sc('(-0.5)')}${inp('fc_r',0)}${mt()}${eg('')}</tr>
+      <tr>${it('기타설비')}${sc('(-0.5)')}${inp('fm_r',0)}${mt()}${eg('')}</tr>
       <tr>
-        <td colspan="2" style="${SR}">소 계</td><td style="${SR}">27</td>
+        <td colspan="3" style="${SR}">소 계</td><td style="${SR}">27</td>
         <td id="b2_f_sum" style="${SV}"></td>${mt()}${mt()}
       </tr>
 
