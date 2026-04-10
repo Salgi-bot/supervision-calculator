@@ -1377,10 +1377,11 @@ tbody tr:hover td { background: var(--ci-light); }
       <input type="file" id="perfPdfInput" accept=".pdf" style="display:none" onchange="handlePerfPdf(this.files[0])">
     </div>
     <div style="overflow-x:auto;margin:12px 0;">
-      <table id="perfTable" style="font-size:12px;border-collapse:collapse;width:100%;min-width:900px;">
+      <table id="perfTable" style="font-size:12px;border-collapse:collapse;width:100%;min-width:950px;">
         <thead>
           <tr style="background:#e8f0fe;">
             <th style="padding:6px;border:1px solid #ccc;width:30px">#</th>
+            <th style="padding:6px;border:1px solid #ccc;width:40px" title="체크 시 서식 출력에 포함">포함</th>
             <th style="padding:6px;border:1px solid #ccc;min-width:140px">용역명</th>
             <th style="padding:6px;border:1px solid #ccc;width:95px">착공일</th>
             <th style="padding:6px;border:1px solid #ccc;width:95px">준공(예정)일</th>
@@ -1388,7 +1389,7 @@ tbody tr:hover td { background: var(--ci-light); }
             <th style="padding:6px;border:1px solid #ccc;width:70px">공사종류</th>
             <th style="padding:6px;border:1px solid #ccc;width:80px">수주금액(억)</th>
             <th style="padding:6px;border:1px solid #ccc;width:90px;background:#e8f4fb">계산수행금액(억)</th>
-            <th style="padding:6px;border:1px solid #ccc;width:35px"></th>
+            <th style="padding:6px;border:1px solid #ccc;width:65px">순서/삭제</th>
           </tr>
         </thead>
         <tbody id="perfTableBody"></tbody>
@@ -2321,6 +2322,10 @@ function saveAllJSON() {
     project: getProjectData(),
     company: getCompanyData(),
     personnel: personnel,
+    nonEvalList: nonEvalList,
+    nonEvalCounter: nonEvalCounter,
+    newEvalList: newEvalList,
+    newEvalCounter: newEvalCounter,
     perfRecords: perfRecords,
     docImages: docImages,
     deployState: deployState,
@@ -2379,6 +2384,17 @@ function loadV2Data(data) {
     ROLES.forEach(r => {
       if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r);
     });
+  }
+  // 비평가·추가평가 감리원 목록 복원 (없으면 유지)
+  if (data.nonEvalList) {
+    nonEvalList = data.nonEvalList;
+    nonEvalCounter = data.nonEvalCounter || nonEvalList.length;
+    nonEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r, true); });
+  }
+  if (data.newEvalList) {
+    newEvalList = data.newEvalList;
+    newEvalCounter = data.newEvalCounter || newEvalList.length;
+    newEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
   }
   // Performance records
   if (data.perfRecords) { perfRecords = data.perfRecords; renderPerfTable(); }
@@ -3604,7 +3620,7 @@ function renderByeolji1() {
     personnelRows += '</tr>';
   });
 
-  const thStyle = 'style="text-align:center;background:#e8e8e8;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #999"';
+  const thStyle = 'style="text-align:center;background:#f5f5f5;font-weight:700;font-size:9pt;padding:6px 4px;border:1px solid #bbb"';
   const tdLabel = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:9pt;padding:6px 8px;border:1px solid #bbb;letter-spacing:1px">${s}</td>`;
   const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:6px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
   const tdColHeader = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:4px 2px;border:1px solid #bbb">${s}</td>`;
@@ -4905,6 +4921,13 @@ function addPerfRow(data) {
   triggerAutoSave();
 }
 function removePerfRow(i) { perfRecords.splice(i,1); renderPerfTable(); triggerAutoSave(); }
+function movePerfRow(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= perfRecords.length) return;
+  [perfRecords[i], perfRecords[j]] = [perfRecords[j], perfRecords[i]];
+  renderPerfTable();
+  triggerAutoSave();
+}
 function renderPerfTable() {
   const tbody = document.getElementById('perfTableBody');
   if(!tbody) return;
@@ -4914,12 +4937,16 @@ function renderPerfTable() {
   const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
   let totalCalcWon = 0;
   tbody.innerHTML = perfRecords.map((r,i) => {
-    const calc = calcPerfRecord(r, annDate);
+    const enabled = r.enabled !== false;
+    const calc = enabled ? calcPerfRecord(r, annDate) : null;
     const calcDisp = calc ? floorAt2(calc.calcAmount).toFixed(2) : '-';
     const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
     if(calc) totalCalcWon += calc.calcWon;
-    return `<tr>
+    const rowStyle = enabled ? '' : 'opacity:0.45;background:#f8f8f8;';
+    const btnSty = 'background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;line-height:1';
+    return `<tr style="${rowStyle}">
     <td style="text-align:center;border:1px solid #ccc;padding:4px">${i+1}</td>
+    <td style="text-align:center;border:1px solid #ccc;padding:4px"><input type="checkbox" ${enabled?'checked':''} onchange="perfRecords[${i}].enabled=this.checked;renderPerfTable();triggerAutoSave()" title="서식에 포함"></td>
     <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
     <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
     <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
@@ -4930,13 +4957,17 @@ function renderPerfTable() {
     </select></td>
     <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
     <td style="border:1px solid #ccc;padding:4px;text-align:center;background:#f0f9ff;font-size:12px;font-weight:700" title="${calcTip}">${calcDisp}</td>
-    <td style="border:1px solid #ccc;padding:2px;text-align:center"><button onclick="removePerfRow(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-weight:bold;">✕</button></td>
+    <td style="border:1px solid #ccc;padding:2px;text-align:center;white-space:nowrap">
+      <button onclick="movePerfRow(${i},-1)" style="${btnSty}color:#555" title="위로">▲</button>
+      <button onclick="movePerfRow(${i},1)" style="${btnSty}color:#555" title="아래로">▼</button>
+      <button onclick="removePerfRow(${i})" style="${btnSty}color:#ef4444" title="삭제">✕</button>
+    </td>
   </tr>`;
   }).join('');
-  // 합계행
+  // 합계행 (포함된 항목만)
   const totalDisp = floorAt2(totalCalcWon/100000000).toFixed(2);
   tbody.innerHTML += `<tr style="background:#e8f4fb;font-weight:700">
-    <td colspan="7" style="border:1px solid #ccc;padding:6px;text-align:right">합 계 (3년이내 환산금액)</td>
+    <td colspan="8" style="border:1px solid #ccc;padding:6px;text-align:right">합 계 (포함 항목 3년이내 환산금액)</td>
     <td style="border:1px solid #ccc;padding:6px;text-align:center;color:#1d4ed8">${totalDisp}억</td>
     <td style="border:1px solid #ccc"></td>
   </tr>`;
@@ -5112,7 +5143,8 @@ function renderByeolchum2() {
   const annRaw = document.getElementById('pj_noticeDate')?.value || '';
   const annParts = annRaw.split(/[.\-\/]/);
   const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
-  const calcs = perfRecords.map(r => calcPerfRecord(r, annDate)).filter(Boolean);
+  // 포함 체크된 항목만 서식에 반영
+  const calcs = perfRecords.filter(r => r.enabled !== false).map(r => calcPerfRecord(r, annDate)).filter(Boolean);
   const totalAmount = calcs.reduce((s,c) => s + (c.amount||0), 0);
   // 합계는 원 단위(정수) 합산 후 억원 변환 → 절사 (float 누적 오차 방지)
   const totalConverted = floorAt2(calcs.reduce((s,c) => s + c.calcWon, 0) / 100000000);
