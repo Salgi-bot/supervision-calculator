@@ -3961,15 +3961,15 @@ function renderByeolji2Cover() {
     <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:11px;table-layout:fixed">
       <colgroup>
         <col style="width:6%"><col style="width:8%"><col style="width:7%"><col style="width:7%">
-        <col style="width:17%"><col style="width:6%"><col style="width:6%"><col style="width:6%">
-        <col style="width:37%">
+        <col style="width:17%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
+        <col style="width:35%">
       </colgroup>
       <thead>
         <tr>
           ${th('구분',2,2)}${th('평&nbsp;가&nbsp;항&nbsp;목',2,3)}${th('점수<br>기준',2)}
           <th colspan="2" style="${TH}">평&nbsp;&nbsp;점</th>${th('평점 산정 근거<br>(해당 사항만 기재)',2)}
         </tr>
-        <tr>${th('신&nbsp;청&nbsp;자')}${th('지&nbsp;정&nbsp;권&nbsp;자')}</tr>
+        <tr>${th('신청자')}${th('지정권자')}</tr>
       </thead>
       <tbody>
       <!-- 감리자(감리회사) 15행: C0+C1=colspan=2 -->
@@ -4004,7 +4004,7 @@ function renderByeolji2Cover() {
 
       <!-- 감리원 outer(rowspan=30) + 총괄감리원 8행 -->
       <tr>
-        <td rowspan="30" style="text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px;writing-mode:vertical-rl;letter-spacing:4px;line-height:11px;overflow:hidden">감리원</td>
+        <td rowspan="30" style="text-align:center;background:#f0f0f0;font-size:8pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px;line-height:14px">감<br>리<br>원</td>
         ${lbl('총괄<br>감리원',8)}${it('등급',3)}${sc(6)}${inp('ch_g',chief.gradeScore.toFixed(1))}${mt()}${eg(pGr('chief'), pGr('chief'))}
       </tr>
       <tr>${it('경력 및 실적',3)}${sc('18(15)')}${inp('ch_e',chief.expScore.toFixed(1))}${mt()}${eg(pYr(chief), pYr(chief))}</tr>
