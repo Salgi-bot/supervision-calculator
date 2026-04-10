@@ -602,8 +602,10 @@ tbody tr:hover td { background: var(--ci-light); }
   .tab-content { display: none !important; padding: 0 !important; opacity: 1 !important; }
   .tab-content.print-target { display: block !important; opacity: 1 !important; }
   body { background: #fff; font-size: 11pt; }
-  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 15mm; min-height: auto; width: 210mm; margin: 0 auto; page-break-after: always; }
+  .a4-preview, .a4-page { border: none; box-shadow: none; padding: 15mm; height: 297mm !important; overflow: hidden; width: 210mm; margin: 0 auto; page-break-after: always; }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
+  /* flex 페이지(서약서·위임장 등): 세로 균등 배치 */
+  .a4-page[style*="flex-direction:column"] { justify-content: space-between !important; }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -5796,6 +5798,36 @@ async function openLawSearch(query) {
   document.addEventListener('keyup', e => {
     if (e.code !== 'Space') return;
     stopRec();
+  });
+})();
+
+// ══════════════════════════════════════════════════════
+//  인쇄 시 1페이지 꽉 채우기 — tbody tr 높이 균등 분배
+// ══════════════════════════════════════════════════════
+(function () {
+  let _saved = [];
+
+  window.addEventListener('beforeprint', function () {
+    _saved = [];
+    document.querySelectorAll('.a4-page, .a4-preview').forEach(function (page) {
+      var rows = Array.from(page.querySelectorAll('tbody tr')).filter(function (r) {
+        return r.offsetHeight > 0;
+      });
+      if (!rows.length) return;
+      var gap = page.offsetHeight - page.scrollHeight;
+      if (gap < 4) return;
+      var add = Math.floor(gap / rows.length);
+      if (add < 1) return;
+      rows.forEach(function (r) {
+        _saved.push({ el: r, h: r.style.height });
+        r.style.height = (r.offsetHeight + add) + 'px';
+      });
+    });
+  });
+
+  window.addEventListener('afterprint', function () {
+    _saved.forEach(function (s) { s.el.style.height = s.h; });
+    _saved = [];
   });
 })();
 </script>
