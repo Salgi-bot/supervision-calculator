@@ -2335,6 +2335,7 @@ function saveAllJSON() {
     perfRecords: perfRecords,
     docImages: docImages,
     deployState: deployState,
+    b2NumState: b2NumState,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
   };
@@ -2482,6 +2483,7 @@ function loadV2Data(data) {
   if (data.docImages) { docImages = data.docImages; renderDocImageList(); renderDocImagePreview(); }
   // 배치계획표 상태
   if (data.deployState) deployState = data.deployState;
+  if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
   if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
   renderDeploySettings();
@@ -4995,7 +4997,7 @@ function renderDelegation() {
 // ══════════════════════════════════════════════════════
 let perfRecords = [];
 function addPerfRow(data) {
-  const r = data || { name:'', startDate:'', endDate:'', suspendDays:0, type:'비주택건축', amount:0 };
+  const r = data || { enabled: true, name:'', startDate:'', endDate:'', suspendDays:0, type:'비주택건축', amount:0 };
   perfRecords.push(r);
   renderPerfTable();
   triggerAutoSave();
