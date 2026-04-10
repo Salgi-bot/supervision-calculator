@@ -5068,13 +5068,13 @@ function calcPerfRecord(r, announcementDate) {
   const applicableDays = Math.max(0, totalDays - suspend); // 해당일수 = 총감리일수 - 중지일수
   // 모집공고일 기준
   const annDate = announcementDate || new Date();
-  // 3년 이내 기준일
-  const cutoff = new Date(annDate.getFullYear()-3, annDate.getMonth(), annDate.getDate());
+  // 3년 이내 기준일 (초일불산입: 공고일 기산, 역산 3년 → 공고일-3년+1일)
+  const cutoff = new Date(annDate.getFullYear()-3, annDate.getMonth(), annDate.getDate()+1);
   // 3년 이내 시작일 = max(착공일, 기준일)
   const effStart = s < cutoff ? cutoff : s;
   // 준공 여부에 따라 종료일 결정
   const isCompleted = e <= annDate;
-  const effEnd = isCompleted ? e : new Date(annDate.getTime()-86400000); // 수행중: 공고일 전날
+  const effEnd = isCompleted ? e : annDate; // 수행중: 모집공고일 포함
   const recentDays = Math.max(0, Math.floor((effEnd-effStart)/86400000));
   // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분 (올림 → 중지일수 최대화 → 적용일수 최소화 → 보수적 계산)
   const recentSuspend = totalDays > 0 ? Math.ceil(suspend * recentDays / totalDays) : 0;
