@@ -3796,7 +3796,7 @@ function renderByeolji1() {
       <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
-        <colgroup><col style="width:10%"><col style="width:36%"><col style="width:12%"><col style="width:12%"><col style="width:15%"><col style="width:15%"></colgroup>
+        <colgroup><col style="width:8%"><col style="width:40%"><col style="width:10%"><col style="width:10%"><col style="width:14%"><col style="width:18%"></colgroup>
         <tbody>
           <tr>
             ${tdLabel('상&emsp;호')}${tdVal(co.name,'')}
@@ -4061,13 +4061,13 @@ function renderByeolji2Cover() {
   const nonr  = calcPersonScore('nonres');
 
   // 스타일 상수 (공고문 이미지 서식 일치)
-  const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:1px 2px;border:1px solid #999;vertical-align:middle;height:13px;line-height:11px;overflow:hidden';
-  const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:1px 2px;height:13px;line-height:11px;overflow:hidden';
-  const IT  = 'text-align:center;font-size:7pt;padding:1px 4px;border:1px solid #bbb;vertical-align:middle;height:13px;line-height:11px;overflow:hidden;white-space:nowrap';
-  const SC  = 'text-align:center;font-size:7pt;padding:1px;border:1px solid #bbb;vertical-align:middle;height:13px;line-height:11px;overflow:hidden;white-space:nowrap';
-  const EG  = 'text-align:center;font-size:7pt;padding:1px 3px;border:1px solid #bbb;color:#444;vertical-align:middle;height:13px;line-height:11px;overflow:hidden';
-  const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:1px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle;height:13px;line-height:11px;overflow:hidden';
-  const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:1px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle;height:13px;line-height:11px;overflow:hidden';
+  const TH  = 'text-align:center;background:#d9d9d9;font-size:7pt;font-weight:700;padding:2px 2px;border:1px solid #999;vertical-align:middle;height:16px;line-height:13px;overflow:hidden';
+  const LBL = 'text-align:center;background:#f0f0f0;font-size:7pt;font-weight:700;border:1px solid #bbb;vertical-align:middle;padding:2px 2px;height:16px;line-height:13px;overflow:hidden';
+  const IT  = 'text-align:center;font-size:7pt;padding:2px 4px;border:1px solid #bbb;vertical-align:middle;height:16px;line-height:13px;overflow:hidden;white-space:nowrap';
+  const SC  = 'text-align:center;font-size:7pt;padding:2px;border:1px solid #bbb;vertical-align:middle;height:16px;line-height:13px;overflow:hidden;white-space:nowrap';
+  const EG  = 'text-align:center;font-size:7pt;padding:2px 3px;border:1px solid #bbb;color:#444;vertical-align:middle;height:16px;line-height:13px;overflow:hidden';
+  const SR  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#e8e8e8;vertical-align:middle;height:16px;line-height:13px;overflow:hidden';
+  const SV  = 'text-align:center;font-weight:700;font-size:7pt;padding:2px;border:1px solid #bbb;background:#eef6fb;vertical-align:middle;height:16px;line-height:13px;overflow:hidden';
 
   const th  = (s,rs,cs) => `<th ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${TH}">${s}</th>`;
   const lbl = (s,rs,cs) => `<td ${rs?`rowspan="${rs}"`:''}${cs?` colspan="${cs}"`:''}style="${LBL}">${s}</td>`;
@@ -4075,7 +4075,7 @@ function renderByeolji2Cover() {
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
   const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=_es[k]!==undefined?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(b2ViewMode==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7pt;font-family:var(--font);background:transparent;color:#444;text-align:center;line-height:11px;height:11px;padding:0"></td>`; };
-  const mt  = () => `<td style="border:1px solid #bbb;padding:1px;height:13px;line-height:11px;overflow:hidden"></td>`;
+  const mt  = () => `<td style="border:1px solid #bbb;padding:2px;height:16px;line-height:13px;overflow:hidden"></td>`;
   const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:1px;border:1px solid #bbb;height:13px;line-height:11px;overflow:hidden"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:7pt;font-family:var(--font);background:transparent;line-height:11px;height:11px;padding:0"></td>`; };
   const pi  = personnel;
   const pGr = id => pi[id]?.info?.name ? (pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
@@ -4101,7 +4101,7 @@ function renderByeolji2Cover() {
     <div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4">Ⅰ. 총괄표</div>
     <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
-    <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:11px;table-layout:fixed">
+    <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:13px;table-layout:fixed">
       <colgroup>
         <col style="width:6%"><col style="width:8%"><col style="width:7%"><col style="width:7%">
         <col style="width:17%"><col style="width:6%"><col style="width:7%"><col style="width:7%">
@@ -4955,21 +4955,25 @@ function renderByeolchum1() {
   const dateStr = getSubmitDateStr();
   const authority = pj.submitTo || pj.authority || '○○시장';
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;">
-      <div style="font-size:14px;font-weight:bold;margin-bottom:30px;">【별첨 1】</div>
-      <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:40px 0 30px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
-      <div style="margin-bottom:8px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-      <div style="margin-bottom:40px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
-      <div style="text-indent:2em;text-align:justify;">
-        본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, <b><u>자기평가서</u></b>는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 <b>"허위·거짓 등"</b>의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 <b><u>참여감리원(평가대상 및 비평가대상감리원)</u></b>은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
+      <div>
+        <div style="font-size:14px;font-weight:bold;margin-bottom:30px;">【별첨 1】</div>
+        <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:50px 0 40px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+        <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
+        <div style="margin-bottom:50px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
+        <div style="text-indent:2em;text-align:justify;line-height:2.6;">
+          본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, <b><u>자기평가서</u></b>는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 <b>"허위·거짓 등"</b>의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 <b><u>참여감리원(평가대상 및 비평가대상감리원)</u></b>은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.
+        </div>
       </div>
-      <div style="text-align:center;margin:60px 0 80px;font-size:16px;">${dateStr}</div>
-      <div style="text-align:right;margin-right:40px;line-height:2.4;">
-        <div>서약자 주소 : ${escHtml(co.address||'')}</div>
-        <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
-        <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+      <div>
+        <div style="text-align:center;margin:40px 0 60px;font-size:16px;">${dateStr}</div>
+        <div style="text-align:right;margin-right:40px;line-height:2.6;">
+          <div>서약자 주소 : ${escHtml(co.address||'')}</div>
+          <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
+          <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
+        </div>
+        <div style="margin-top:50px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
       </div>
-      <div style="margin-top:40px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
     </div>`;
 }
 
