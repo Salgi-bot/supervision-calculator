@@ -5148,13 +5148,14 @@ function renderPerfTable() {
   const annRaw = document.getElementById('pj_noticeDate')?.value || '';
   const annParts = annRaw.split(/[.\-\/]/);
   const annDate = annParts.length >= 3 ? new Date(+annParts[0],+annParts[1]-1,+annParts[2]) : new Date();
-  let totalCalcWon = 0;
+  let totalDispSum = 0;
   tbody.innerHTML = perfRecords.map((r,i) => {
     const enabled = r.enabled !== false;
     const calc = enabled ? calcPerfRecord(r, annDate) : null;
-    const calcDisp = calc ? floorAt2(calc.calcAmount).toFixed(2) : '-';
+    const calcDispVal = calc ? floorAt2(calc.calcAmount) : 0;
+    const calcDisp = calc ? calcDispVal.toFixed(2) : '-';
     const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
-    if(calc) totalCalcWon += calc.calcWon;
+    if(calc) totalDispSum += calcDispVal;
     const rowStyle = enabled ? '' : 'opacity:0.45;background:#f8f8f8;';
     const btnSty = 'background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;line-height:1';
     return `<tr style="${rowStyle}">
@@ -5178,7 +5179,7 @@ function renderPerfTable() {
   </tr>`;
   }).join('');
   // 합계행 (포함된 항목만)
-  const totalDisp = floorAt2(totalCalcWon/100000000).toFixed(2);
+  const totalDisp = (Math.round(totalDispSum * 100) / 100).toFixed(2);
   tbody.innerHTML += `<tr style="background:#e8f4fb;font-weight:700">
     <td colspan="8" style="border:1px solid #ccc;padding:6px;text-align:right">합 계 (포함 항목 3년이내 환산금액)</td>
     <td style="border:1px solid #ccc;padding:6px;text-align:center;color:#1d4ed8">${totalDisp}억</td>
@@ -5359,8 +5360,8 @@ function renderByeolchum2() {
   // 포함 체크된 항목만 서식에 반영
   const calcs = perfRecords.filter(r => r.enabled !== false).map(r => calcPerfRecord(r, annDate)).filter(Boolean);
   const totalAmount = calcs.reduce((s,c) => s + (c.amount||0), 0);
-  // 합계는 원 단위(정수) 합산 후 억원 변환 → 절사 (float 누적 오차 방지)
-  const totalConverted = floorAt2(calcs.reduce((s,c) => s + c.calcWon, 0) / 100000000);
+  // 합계는 표시값(개별 절사 억원)의 합 — 화면에 보이는 숫자와 일치
+  const totalConverted = Math.round(calcs.reduce((s,c) => s + floorAt2(c.calcAmount), 0) * 100) / 100;
   let html = '';
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
