@@ -5194,7 +5194,7 @@ function calcPerfRecord(r, announcementDate) {
   const parseD = s => { if(!s) return null; const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
   const s = parseD(r.startDate), e = parseD(r.endDate);
   if(!s||!e) return null;
-  const totalDays = Math.floor((e-s)/86400000); // 버림 — 유리하지 않게
+  const totalDays = Math.floor((e-s)/86400000) + 1; // 초일산입 (착공일·준공일 양쪽 포함)
   if(totalDays<=0) return null;
   const suspend = Math.max(0, r.suspendDays || 0);
   const applicableDays = Math.max(0, totalDays - suspend); // 해당일수 = 총감리일수 - 중지일수
@@ -5207,7 +5207,7 @@ function calcPerfRecord(r, announcementDate) {
   // 준공 여부에 따라 종료일 결정
   const isCompleted = e <= annDate;
   const effEnd = isCompleted ? e : annDate; // 수행중: 모집공고일 포함
-  const recentDays = Math.max(0, Math.floor((effEnd-effStart)/86400000));
+  const recentDays = Math.max(0, Math.floor((effEnd-effStart)/86400000) + 1); // 초일산입
   // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분 (올림 → 중지일수 최대화 → 적용일수 최소화 → 보수적 계산)
   const recentSuspend = totalDays > 0 ? Math.ceil(suspend * recentDays / totalDays) : 0;
   const appliedDays = Math.max(0, recentDays - recentSuspend); // 적용일수
