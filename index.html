@@ -2156,7 +2156,7 @@ function updateRowDates(i, which, val) {
   const rows = getRows();
   if (which === 'start') rows[i].startDate = val; else rows[i].endDate = val;
   const d1 = parseDate(rows[i].startDate), d2 = parseDate(rows[i].endDate);
-  if (d1 && d2 && d2 >= d1) rows[i].days = Math.round((d2 - d1) / 86400000) + 1;
+  if (d1 && d2 && d2 >= d1) rows[i].days = Math.floor((d2 - d1) / 86400000) + 1;
   renderCareerTable();
 }
 
@@ -2289,7 +2289,7 @@ function calcConstructionDays() {
   const parse = v => { const m = v.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? new Date(+m[1], +m[2]-1, +m[3]) : null; };
   const d1 = parse(s), d2 = parse(e);
   if (d1 && d2 && d2 > d1) {
-    const days = Math.round((d2 - d1) / 86400000) + 1;
+    const days = Math.floor((d2 - d1) / 86400000) + 1;
     const months = Math.round(days / 30.44 * 10) / 10;
     el.value = `${days.toLocaleString()}일 (약 ${months}개월)`;
   } else {
@@ -2889,7 +2889,7 @@ function parseKCEAText(items, rawText) {
       else {
         const [y1,m1,d1] = startDate.split('.').map(Number);
         const [y2,m2,d2] = endDate.split('.').map(Number);
-        days = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000);
+        days = Math.floor((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1; // 초일산입
       }
       if (days <= 0 || days >= 30000) continue;
       usedStarts.add(startM.index);
@@ -3026,7 +3026,7 @@ function extractCareersFromItems(items) {
       if (days <= 0) {
         const [y1,m1,d1] = startItem.str.split('.').map(Number);
         const [y2,m2,d2] = endItem.str.split('.').map(Number);
-        days = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1;
+        days = Math.floor((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1;
       }
       if (days <= 0 || days >= 30000) continue;
 
