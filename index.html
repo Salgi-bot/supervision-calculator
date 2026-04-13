@@ -692,6 +692,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
       <button class="btn btn-primary" onclick="renderCover()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab_cover')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('coverPreview', renderCover, '표지', '표지')">📄 Word 저장</button>
     </div>
   </div>
   <div id="coverPreview"></div>
@@ -1126,6 +1127,7 @@ tbody tr:hover td { background: var(--ci-light); }
     </div>
     <div style="margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('byeolji2Preview', renderByeolji2Cover, '별지 제2호 — 자기평가서', '별지제2호_자기평가서')">📄 Word 저장</button>
       <span style="font-size:12px;color:#666;margin-left:8px">서식 보기:</span>
       <button id="b2btn이상" onclick="setB2ViewMode('이상')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 이상</button>
       <button id="b2btn미만" onclick="setB2ViewMode('미만')" style="padding:6px 14px;font-size:12px;border:1.5px solid #1e40af;border-radius:6px;cursor:pointer;background:#e0f2fe;color:#1e40af">300세대 미만</button>
@@ -1151,6 +1153,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <button class="btn" onclick="printDeployOnly()" style="margin-left:auto">🖨 배치계획표 인쇄</button>
       <button class="btn" onclick="printCalcResult()" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🖨 산출근거 인쇄</button>
+      <button class="btn" onclick="saveTabAsWord('deployTablePreview', null, '배치계획표', '배치계획표')">📄 Word 저장</button>
     </div>
     <div style="font-size:11px;color:#666;margin-bottom:4px">▼ 각 감리원 투입기간 — 비워두면 공사기간 전체 자동 적용</div>
     <div id="deployPersonSettings" style="display:flex;flex-direction:column;gap:4px"></div>
@@ -1289,6 +1292,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('byeolchum1Preview', renderByeolchum1, '별첨1 — 서약서', '별첨1_서약서')">📄 Word 저장</button>
     </div>
   </div>
   <div id="byeolchum1Preview"></div>
@@ -1311,6 +1315,7 @@ tbody tr:hover td { background: var(--ci-light); }
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn" onclick="printTab('tab9')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('inputSheetPreview', renderInputSheet, '별지 제3호 — 입찰서', '별지제3호_입찰서')">📄 Word 저장</button>
     </div>
   </div>
   <div id="inputSheetPreview"></div>
@@ -1324,6 +1329,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
       <button class="btn btn-primary" onclick="renderSayongIngam()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab10')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('sayongIngamPreview', renderSayongIngam, '사용인감계', '사용인감계')">📄 Word 저장</button>
     </div>
   </div>
   <div id="sayongIngamPreview"></div>
@@ -1346,6 +1352,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div id="docImageList" style="margin-top:12px"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" onclick="printTab('tab11')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('delegationPreview', renderDelegation, '위임장·재직증명서', '위임장_재직증명서')">📄 Word 저장</button>
     </div>
   </div>
   <div id="delegationPreview"></div>
@@ -1394,6 +1401,7 @@ tbody tr:hover td { background: var(--ci-light); }
         <option value="calc">계산근거 확인</option>
       </select>
       <button class="btn" onclick="printTab('tab12')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('byeolchum2Preview', renderByeolchum2, '별첨2 — 수행실적', '별첨2_수행실적')">📄 Word 저장</button>
     </div>
   </div>
   <div id="byeolchum2Preview"></div>
@@ -1407,6 +1415,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum3()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab13')">인쇄 / PDF 저장</button>
+      <button class="btn" onclick="saveTabAsWord('byeolchum3Preview', renderByeolchum3, '별첨3 — 감리원경력', '별첨3_감리원경력')">📄 Word 저장</button>
     </div>
   </div>
   <div id="byeolchum3Preview"></div>
@@ -4860,23 +4869,22 @@ function printByeolji(num) {
   setTimeout(() => tab.classList.remove('print-target'), 500);
 }
 
-function saveByeolji1AsWord() {
-  renderByeolji1();
-  const preview = document.getElementById('byeolji1Preview');
+function saveTabAsWord(previewId, renderFn, title, filenamePrefix) {
+  if (renderFn) renderFn();
+  const preview = document.getElementById(previewId);
   if (!preview || !preview.innerHTML.trim()) {
-    alert('별지1호 미리보기를 먼저 생성해주세요.');
+    alert(title + ' 미리보기를 먼저 생성해주세요.');
     return;
   }
   const pj = getProjectData();
   const siteName = (pj.name || '주택건설공사').replace(/[\\\/:*?"<>|]/g, '_');
   const dateStr = new Date().toISOString().slice(0,10);
-  const filename = `별지제1호_감리자지정신청서_${siteName}_${dateStr}.doc`;
+  const filename = `${filenamePrefix}_${siteName}_${dateStr}.doc`;
 
-  // Word HTML wrapper — opens in MS Word / 한글 / LibreOffice for editing
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta charset="utf-8">
-<title>별지 제1호 — 감리자 지정 신청서</title>
+<title>${title}</title>
 <!--[if gte mso 9]><xml>
 <w:WordDocument>
 <w:View>Print</w:View>
@@ -4909,6 +4917,7 @@ ${preview.innerHTML}
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showStatus(`📄 ${filename} 저장 완료`);
 }
+function saveByeolji1AsWord() { saveTabAsWord('byeolji1Preview', renderByeolji1, '별지 제1호 — 감리자 지정 신청서', '별지제1호_감리자지정신청서'); }
 function printTab(tabId) {
   const tab = document.getElementById(tabId);
   if (!tab) return;
