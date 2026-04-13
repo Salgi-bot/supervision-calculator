@@ -627,6 +627,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div id="last-generated" style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="printAllForSubmit()" title="별지1호·별지2호·서약서·배치계획표 통합 인쇄" style="padding:4px 10px;background:#065f46;color:#fff;border:1px solid #047857;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:700">🖨 입찰서류 통합출력</button>
     <button onclick="copyShareLink()" title="현재 데이터를 클라우드에 저장하고 공유 링크 복사" style="padding:4px 10px;background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">🔗 링크 공유</button>
     <span id="cloudStatus" style="font-size:10px;color:rgba(255,255,255,0.6)"></span>
     <button id="hb-const-btn" onclick="openConstEditor()" title="계산 기준값 편집 (법령 개정 시 업데이트)" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">⚙️ 기준값</button>
@@ -4790,6 +4791,30 @@ function printCalcResult() {
 }
 
 function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
+
+function printAllForSubmit() {
+  // 모든 서식 렌더링
+  renderByeolji1();
+  renderByeolji2Cover();
+  renderByeolchum1();
+  renderDeploySettings();
+  renderDeployTable();
+  // 인쇄 대상 탭 지정: 별지1호(tab4), 별지2호(tab5), 서약서(tab8), 배치계획표(tab6)
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
+  ['tab4','tab5','tab8','tab6'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('print-target');
+  });
+  document.body.classList.add('print-deploy-only');
+  window.print();
+  setTimeout(() => {
+    ['tab4','tab5','tab8','tab6'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('print-target');
+    });
+    document.body.classList.remove('print-deploy-only');
+  }, 500);
+}
 
 function printByeolji(num) {
   const tabIdx = num + 3;
