@@ -5154,7 +5154,7 @@ function renderPerfTable() {
     const calc = enabled ? calcPerfRecord(r, annDate) : null;
     const calcDispVal = calc ? floorAt2(calc.calcAmount) : 0;
     const calcDisp = calc ? calcDispVal.toFixed(2) : '-';
-    const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(1)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
+    const calcTip = calc ? `총${calc.totalDays}일 / 중지${calc.suspend}일 / 해당${calc.applicableDays}일 / 3년이내${calc.recentDays}일 / 적용${calc.appliedDays}일 / 요율${(calc.ratio*100).toFixed(2)}% / ${calc.isCompleted?'준공':'수행중'} / ${calc.typeRate===0.8?'건축80%':'주택100%'}` : '';
     if(calc) totalDispSum += calcDispVal;
     const rowStyle = enabled ? '' : 'opacity:0.45;background:#f8f8f8;';
     const btnSty = 'background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;line-height:1';
@@ -5194,7 +5194,7 @@ function calcPerfRecord(r, announcementDate) {
   const parseD = s => { if(!s) return null; const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
   const s = parseD(r.startDate), e = parseD(r.endDate);
   if(!s||!e) return null;
-  const totalDays = Math.round((e-s)/86400000);
+  const totalDays = Math.floor((e-s)/86400000); // 버림 — 유리하지 않게
   if(totalDays<=0) return null;
   const suspend = Math.max(0, r.suspendDays || 0);
   const applicableDays = Math.max(0, totalDays - suspend); // 해당일수 = 총감리일수 - 중지일수
@@ -5211,9 +5211,10 @@ function calcPerfRecord(r, announcementDate) {
   // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분 (올림 → 중지일수 최대화 → 적용일수 최소화 → 보수적 계산)
   const recentSuspend = totalDays > 0 ? Math.ceil(suspend * recentDays / totalDays) : 0;
   const appliedDays = Math.max(0, recentDays - recentSuspend); // 적용일수
-  // 적용기간요율 = 적용일수 / 해당일수
+  // 적용기간요율 = 적용일수 / 해당일수 → 표시값(%소수2자리 버림)으로 고정하여 계산
   const typeRate = (r.type === '비주택건축') ? 0.8 : 1.0;
-  const ratio = applicableDays > 0 ? appliedDays / applicableDays : 0;
+  const ratioRaw = applicableDays > 0 ? appliedDays / applicableDays : 0;
+  const ratio = Math.floor(ratioRaw * 10000) / 10000; // 소수4자리 버림 (=% 소수2자리 버림)
   // amount는 억원 단위: 원 단위 변환 후 절사 후 다시 억원으로
   const amountWon = (r.amount || 0) * 100000000;
   const calcWon = Math.floor(amountWon * ratio * typeRate);
