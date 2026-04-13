@@ -4078,7 +4078,7 @@ function renderByeolji2Cover() {
   const mt  = () => `<td style="border:1px solid #bbb;padding:1px;height:13px;line-height:11px;overflow:hidden"></td>`;
   const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:1px;border:1px solid #bbb;height:13px;line-height:11px;overflow:hidden"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(b2ViewMode==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:7pt;font-family:var(--font);background:transparent;line-height:11px;height:11px;padding:0"></td>`; };
   const pi  = personnel;
-  const pGr = id => pi[id]?.info?.name ? '예) '+(pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
+  const pGr = id => pi[id]?.info?.name ? (pi[id].info.appliedGrade||'특급')+'건설기술자' : '';
   const pYr = s => s.convYears > 0 ? ( Math.floor(s.convYears*10)/10 ).toFixed(1)+'년' : '';
 
   // 300세대 미만: 건축 값 0, 토목·기타설비가 건축 점수 50%씩 가산
@@ -4164,20 +4164,20 @@ function renderByeolji2Cover() {
       <!-- 분야별 감리원 16행 -->
       <tr>
         ${lbl('분야별<br>감리원',16)}
-        ${lbl('등급',3,2)}${it('건축')}${sc(is300미만 ? '-' : 2)}${inp('fa_g', is300미만 ? '-' : faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'), is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
+        ${lbl('등급',3,2)}${it('건축')}${sc(is300미만 ? '-' : 2)}${inp('fa_g', is300미만 ? '-' : faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '특급건설기술자' : pGr('arch'), is300미만 ? '특급건설기술자' : pGr('arch'))}
       </tr>
       <tr>${it('토목')}${sc(is300미만 ? 3 : 2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? 3 : 2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
       <tr>${lbl('경력<br>및<br>실적',3,2)}${it('건축')}${sc(is300미만 ? '-' : 7)}${inp('fa_e', is300미만 ? '-' : faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch), is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
       <tr>${it('토목')}${sc(is300미만 ? 10.5 : 7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil), pYr(civil))}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? 10.5 : 7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech), pYr(mech))}</tr>
-      <tr>${lbl('자격<br>가점',3,2)}${it('건축')}${sc(is300미만 ? '-' : '(0.1)')}${inp('fa_qb', is300미만 ? '-' : 0)}${mt()}${eg('예) 건축사, 00기술사')}</tr>
+      <tr>${lbl('자격<br>가점',3,2)}${it('건축')}${sc('(0.1)')}${inp('fa_qb',0)}${mt()}${eg('건축사, 00기술사')}</tr>
       <tr>${it('토목')}${sc(is300미만 ? '-' : '(0.1)')}${inp('fc_qb', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? '-' : '(0.1)')}${inp('fm_qb', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
-      <tr>${lbl('감점',6)}${lbl('행정<br>제재',3)}${it('건축')}${sc(is300미만 ? '-' : '(-1)')}${inp('fa_ad', is300미만 ? '-' : 0)}${mt()}${eg('예) 업무정지(월), 부실벌점(점)')}</tr>
+      <tr>${lbl('감점',6)}${lbl('행정<br>제재',3)}${it('건축')}${sc('(-1)')}${inp('fa_ad',0)}${mt()}${eg('업무정지(월), 부실벌점(점)')}</tr>
       <tr>${it('토목')}${sc(is300미만 ? '-' : '(-1)')}${inp('fc_ad', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? '-' : '(-1)')}${inp('fm_ad', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
-      <tr>${lbl('교체<br>빈도',3)}${it('건축')}${sc(is300미만 ? '-' : '(-0.5)')}${inp('fa_r', is300미만 ? '-' : 0)}${mt()}${eg('예) 00(건)')}</tr>
+      <tr>${lbl('교체<br>빈도',3)}${it('건축')}${sc('(-0.5)')}${inp('fa_r',0)}${mt()}${eg('00(건)')}</tr>
       <tr>${it('토목')}${sc(is300미만 ? '-' : '(-0.5)')}${inp('fc_r', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? '-' : '(-0.5)')}${inp('fm_r', is300미만 ? '-' : 0)}${mt()}${eg('')}</tr>
       <tr>
