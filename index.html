@@ -5519,7 +5519,8 @@ function renderByeolchum2() {
 }
 
 function getB2Score(roleId) {
-  const ns = b2ViewMode === '미만' ? b2NumState미만 : b2NumState;
+  const _mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
+  const ns = _mode === '미만' ? b2NumState미만 : b2NumState;
   const keyMap = {
     'chief':  ['ch_g','ch_e'],
     'arch':   ['fa_g','fa_e'],
