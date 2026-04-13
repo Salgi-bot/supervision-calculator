@@ -597,6 +597,25 @@ tbody tr:hover td { background: var(--ci-light); }
   .person-info-grid { grid-template-columns: 1fr; }
 }
 
+/* ── 데이터 입력 탭 가독성 향상 ── */
+#tab0 .card-title, #tab1 .card-title, #tab2 .card-title { font-size: 20px; }
+#tab0 .card-title .icon, #tab1 .card-title .icon, #tab2 .card-title .icon { font-size: 22px; }
+#tab0 .form-group label, #tab1 .form-group label, #tab2 .form-group label { font-size: 16px; }
+#tab0 .form-group input, #tab0 .form-group select,
+#tab1 .form-group input, #tab1 .form-group select,
+#tab2 .form-group input, #tab2 .form-group select { font-size: 17px; padding: 11px 14px; }
+#tab0 .info-note, #tab1 .info-note, #tab2 .info-note { font-size: 15px; }
+#tab0 .warn-note, #tab1 .warn-note, #tab2 .warn-note { font-size: 15px; }
+#tab0 .btn, #tab1 .btn, #tab2 .btn { font-size: 15px; padding: 10px 20px; }
+#tab0 .section-header, #tab1 .section-header, #tab2 .section-header { font-size: 18px; }
+#tab0 .sub-tab-bar .sub-tab-btn, #tab1 .sub-tab-bar .sub-tab-btn, #tab2 .sub-tab-bar .sub-tab-btn { font-size: 15px; padding: 8px 16px; }
+#tab0 .score-box .title, #tab1 .score-box .title, #tab2 .score-box .title { font-size: 15px; }
+#tab0 .score-box .value, #tab1 .score-box .value, #tab2 .score-box .value { font-size: 34px; }
+#tab0 .summary-item .label, #tab1 .summary-item .label, #tab2 .summary-item .label { font-size: 14px; }
+#tab0 .summary-item .val, #tab1 .summary-item .val, #tab2 .summary-item .val { font-size: 19px; }
+#tab0 table, #tab1 table, #tab2 table { font-size: 14px; }
+#tab0 td input, #tab0 td select, #tab1 td input, #tab1 td select, #tab2 td input, #tab2 td select { font-size: 14px; }
+
 /* ── Print ── */
 @media print {
   header, .tab-bar, .sub-tab-bar, .action-bar, .no-print { display: none !important; }
@@ -3335,7 +3354,7 @@ function parseAnnouncementText(rawText) {
   if (m) result.submitDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
 
   // ── 공사명: "XX 공동주택 신축공사" 패턴 (규정 제목 제외) ──
-  const nameRe = /([가-힣a-zA-Z0-9\s·‧]+(?:신축|증축|리모델링|개축|대수선)공사)/g;
+  const nameRe = /([가-힣a-zA-Z0-9\s·‧\-_]+(?:신축|증축|리모델링|개축|대수선)공사)/g;
   let nm;
   while ((nm = nameRe.exec(raw)) !== null) {
     const candidate = nm[1].trim();
@@ -3349,6 +3368,11 @@ function parseAnnouncementText(rawText) {
   if (m) result.location = m[1].trim();
   if (!result.location) {
     m = raw.match(/((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\S+\s+\S+[시군구]\s+[가-힣0-9\s\-]+?(?:번지|일원|일대))/);
+    if (m) result.location = m[1].trim();
+  }
+  // 폴백: "위치" 라벨 뒤 값 추출 (지구명, 블록 등 비표준 주소)
+  if (!result.location) {
+    m = joined.match(/위\s*치\s*[:：]?\s*([가-힣a-zA-Z0-9\s\-]+?(?:블록|지구|단지|일대|일원|택지))/);
     if (m) result.location = m[1].trim();
   }
 
@@ -3383,8 +3407,8 @@ function parseAnnouncementText(rawText) {
 
   // ── 공사기간: 착공일/준공일 두 날짜 연속 캡처 ──
   // PDF 테이블에서 "착공일 준공일 ... date1 date2" 형태 또는 "공사기간 : date1 ~ date2"
-  const dateP = '(20[2-4]\\d)\\s*[\\.\\/ \\-]\\s*(\\d{1,2})\\s*[\\.\\/ \\-]\\s*(\\d{1,2})';
-  m = joined.match(new RegExp('(?:착공일|공사기간|용역기간).*?' + dateP + '[\\s\\.~∼]+?' + dateP));
+  const dateP = '(20[2-4]\\d)\\s*[\\.\\/ \\-년]\\s*(\\d{1,2})\\s*[\\.\\/ \\-월]\\s*(\\d{1,2})';
+  m = joined.match(new RegExp('(?:착공일|공사기간|용역기간).*?' + dateP + '[\\s\\.~∼일]+?' + dateP));
   if (m) {
     result.startDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
     result.endDate = `${m[4]}.${m[5].padStart(2,'0')}.${m[6].padStart(2,'0')}`;
@@ -3398,37 +3422,47 @@ function parseAnnouncementText(rawText) {
     m = joined.match(new RegExp('준공(?:\\(예정\\)|예정)?일\\s*[:：]?\\s*' + dateP));
     if (m) result.endDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
   }
+  // 폴백2: "공사기간 : 2025년 12월 1일 ~ 2028년 11월 30일" (년/월/일 형식)
+  if (!result.startDate || !result.endDate) {
+    m = joined.match(/공사기간\s*[:：]?\s*(20[2-4]\d)\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일\s*[~∼〜～–—]\s*(20[2-4]\d)\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (m) {
+      if (!result.startDate) result.startDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
+      if (!result.endDate) result.endDate = `${m[4]}.${m[5].padStart(2,'0')}.${m[6].padStart(2,'0')}`;
+    }
+  }
 
-  // ── 발주처: 소재지에서 시/군/구 추출 우선, 귀하 앞 폴백 ──
+  // ── 발주처: 글자 사이 공백 제거 후 매칭 (예: "시 흥 시 장" → "시흥시장") ──
+  const joinedNoSpace = joined.replace(/([가-힣])\s+(?=[가-힣])/g, '$1');
   if (result.location) {
-    m = result.location.match(/([가-힣]+[시군])\s/);
+    m = result.location.match(/([가-힣]+[시군])/);
     if (m) result.authority = m[1] + (m[1].endsWith('시') ? '장' : '수');
   }
   if (!result.authority) {
-    m = joined.match(/([가-힣]{2,6}(?:시장|구청장|군수|도지사))\s*귀하/);
+    m = joinedNoSpace.match(/([가-힣]{2,6}(?:시장|구청장|군수|도지사))\s*귀하/);
     if (m && !/자본|주식|노동|부동산|금융/.test(m[1])) result.authority = m[1];
   }
   if (!result.authority) {
     const authRe = /([가-힣]{2,4}(?:시장|구청장|군수|도지사))/g;
     let am;
-    while ((am = authRe.exec(joined)) !== null) {
+    while ((am = authRe.exec(joinedNoSpace)) !== null) {
       if (!/자본|주식|노동|부동산|금융/.test(am[1])) { result.authority = am[1]; break; }
     }
   }
 
-  // ── 사업주체: ㈜/(주) 접두어 필수 ──
-  const compRe = /(?:㈜|\(주\))\s*([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))/g;
+  // ── 사업주체: ㈜/(주) 접두어 또는 접미어 ──
+  const compRe = /(?:(?:㈜|\(주\))\s*([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))|([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))\s*(?:㈜|\(주\)))/g;
   let cm;
   const clientList = [];
   while ((cm = compRe.exec(joined)) !== null) {
-    const name = '㈜' + cm[1];
+    const rawName = cm[1] || cm[2];
+    const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
     if (!/아이팝|건축사사무소|감리/.test(name)) clientList.push(name);
   }
   if (clientList.length > 0) result.client = clientList[0];
-  // 폴백: 사업주체/시행사 라벨 뒤 (접두어 옵셔널)
+  // 폴백: 사업주체/시행사 라벨 뒤 값 전체 캡처
   if (!result.client) {
-    m = joined.match(/(?:사업주체|시행사|사업시행자)\s*[:：]?\s*(?:㈜|\(주\))?\s*([가-힣a-zA-Z]+(?:건설|주택|개발))/);
-    if (m) result.client = '㈜' + m[1];
+    m = joined.match(/(?:사업주체|시행사|사업시행자)\s*[:：]?\s*((?:㈜|\(주\))?\s*[가-힣a-zA-Z]+(?:건설|주택|개발)\s*(?:㈜|\(주\))?)/);
+    if (m) result.client = m[1].trim();
   }
 
   // ── 설계자 상호 (건축사사무소, 자사 제외) ──
@@ -3444,7 +3478,7 @@ function parseAnnouncementText(rawText) {
   {
     const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝/;
     const findCeo = (text) => {
-      const nm = text.match(/대표이사\s+([가-힣]{2,4})(?![가-힣])/) || text.match(/대표자\s+([가-힣]{2,4})(?![가-힣])/);
+      const nm = text.match(/대표이사\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/) || text.match(/대표자\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/);
       return (nm && !excl.test(nm[1])) ? nm[1] : null;
     };
 
@@ -3472,11 +3506,11 @@ function parseAnnouncementText(rawText) {
   }
 
   // ── 감리비용 ──
-  // 1순위: "감리대상 공사비" 명시적 매칭
-  m = joined.match(/감리대상\s*공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/);
+  // 1순위: "감리대상 (건축)공사비" 명시적 매칭
+  m = joined.match(/감리대상\s*(?:건축)?공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/);
   if (m) result.supervisionCost = m[1];
   // 2순위: "대상공사비" 패턴
-  if (!result.supervisionCost) { m = joined.match(/대상\s*공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
+  if (!result.supervisionCost) { m = joined.match(/대상\s*(?:건축)?공사비\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
   // 3순위: 폴백 — 일반 "공사비" (총공사비 등 제외)
   if (!result.supervisionCost) { m = joined.match(/(?<!총|기본|도급)공사비\s*[:：]\s*(?:금\s*)?([\d,]+)\s*(?:천원|원)/); if (m) result.supervisionCost = m[1]; }
   m = joined.match(/(?:감리대가|감리용역대가|감리비)\s*(?:기준)?\s*[:：]?\s*(?:금\s*)?([\d,]+)\s*(?:원)/);
