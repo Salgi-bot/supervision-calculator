@@ -4836,24 +4836,32 @@ function printCalcResult() {
 function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
 
 function printAllForSubmit() {
-  // 모든 서식 렌더링
   renderByeolji1();
   renderByeolji2Cover();
   renderByeolchum1();
   renderDeploySettings();
   renderDeployTable();
-  // 인쇄 대상 탭 지정: 별지1호(tab4), 별지2호(tab5), 서약서(tab8), 배치계획표(tab6)
+  // 인쇄 순서: 별지1호 → 별지2호 → 서약서 → 배치계획표
+  const printOrder = ['tab4','tab5','tab8','tab6'];
+  const parent = document.getElementById('tab4').parentNode;
+  const originalChildren = [...parent.children];
+
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
-  ['tab4','tab5','tab8','tab6'].forEach(id => {
+  printOrder.forEach((id, i) => {
     const el = document.getElementById(id);
-    if (el) el.classList.add('print-target');
+    if (el) {
+      el.classList.add('print-target');
+      if (i > 0) el.style.pageBreakBefore = 'always';
+      parent.appendChild(el);
+    }
   });
   document.body.classList.add('print-deploy-only');
   window.print();
   setTimeout(() => {
-    ['tab4','tab5','tab8','tab6'].forEach(id => {
+    originalChildren.forEach(el => parent.appendChild(el));
+    printOrder.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.classList.remove('print-target');
+      if (el) { el.classList.remove('print-target'); el.style.pageBreakBefore = ''; }
     });
     document.body.classList.remove('print-deploy-only');
   }, 500);
