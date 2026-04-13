@@ -5548,6 +5548,7 @@ function renderByeolchum3() {
   // 평가대상 감리원 (chief, arch/civil/mech, nonres)
   const evalRoles = [...ROLES, ...nonEvalList];
   evalRoles.forEach(role => {
+    if(role.id === 'arch' && !archEnabled) return; // 300세대 미만: 건축감리원 제외
     const p = personnel[role.id];
     if(!p.info.name) return;
     const careers = p.careers || [];
