@@ -3792,17 +3792,22 @@ function renderByeolji1() {
   const td = s => `<td style="text-align:center;padding:3px 4px;font-size:9pt">${escHtml(s)}</td>`;
   // 행 데이터 수집 — 이름 입력된 감리원만 (배치계획표·산출근거와 동일 기준)
   const allPRows = [];
-  getAllRoles().filter(r => personnel[r.id]?.info?.name).forEach(r => {
+  getAllRoles().filter(r => personnel[r.id]?.info?.name && r.placement !== '비평가').forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
     const structLabel = r.placement === '총괄' ? '총괄' :
                          r.placement === '비상주' ? '비상주' :
-                         r.placement === '비평가' ? '비평가' :
                          r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r) || (p.field || r.field);
     allPRows.push({ structLabel, field: fieldLabel,
       name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
       grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
+  });
+  // 배치계획표 비평가 행 추가
+  extraDeployRows.filter(r => r.placement === '비평가').forEach(row => {
+    allPRows.push({ structLabel: '비평가', field: row.field || '건축',
+      name: row.name || '-', birthdate: '-',
+      grade: row.grade || '특급', regNo: '-', company: co.name });
   });
   // 300세대 이상: 건축 추가배치 행 추가
   const sizeClass = document.getElementById('pj_sizeClass')?.value || '';
