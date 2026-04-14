@@ -3803,11 +3803,16 @@ function renderByeolji1() {
       name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
       grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
   });
-  // 배치계획표 비평가 행 추가 (토목은 순서에 따라 전/후 구분)
-  let civB1Idx = 0;
-  extraDeployRows.filter(r => r.placement === '비평가').forEach(row => {
+  // 배치계획표 비평가 행 추가 (토목 2개면 전/후, 1개면 토목)
+  const nonEvalRows = extraDeployRows.filter(r => r.placement === '비평가');
+  const civNECount = nonEvalRows.filter(r => r.field === '토목').length;
+  let civNEIdx = 0;
+  nonEvalRows.forEach(row => {
     let fieldLabel = row.field || '건축';
-    if (row.field === '토목') { civB1Idx++; fieldLabel = civB1Idx === 1 ? '토목(전)' : '토목(후)'; }
+    if (row.field === '토목') {
+      civNEIdx++;
+      fieldLabel = civNECount >= 2 ? (civNEIdx === 1 ? '토목(전)' : '토목(후)') : '토목';
+    }
     allPRows.push({ structLabel: '비평가', field: fieldLabel,
       name: row.name || '-', birthdate: '-',
       grade: row.grade || '특급', regNo: '-', company: co.name });
@@ -4761,9 +4766,13 @@ function renderDeploySettings(force = false) {
 
   // ── 직접 추가한 감리원 행 (추가배치 앞) ──
   // 토목 순번 사전 계산: 토목 선택 extra row 중 몇 번째인지 (1→전, 2→후)
+  const civExtraCount = extraDeployRows.filter(r => r.field === '토목').length;
   let civExtraIdx = 0;
   const civExtraLabel = extraDeployRows.map(r => {
-    if (r.field === '토목') { civExtraIdx++; return civExtraIdx === 1 ? '토목(전)' : '토목(후)'; }
+    if (r.field === '토목') {
+      civExtraIdx++;
+      return civExtraCount >= 2 ? (civExtraIdx === 1 ? '토목(전)' : '토목(후)') : '토목';
+    }
     return r.field || '건축';
   });
   extraDeployRows.forEach((row, rowIdx) => {
@@ -4957,7 +4966,7 @@ function renderDeployTable() {
   });
 
   // ── 직접 추가 감리원 행 (환산비·인월수 '-' 표기, 합계 제외) ──
-  // 토목 순번: 1→토목(전), 2→토목(후)
+  const civExtraCountT = extraDeployRows.filter(r => r.field === '토목').length;
   let civExtraIdxT = 0;
   extraDeployRows.forEach(row => {
     const rs_c = parseYMShort(row.startYM) || start;
@@ -4972,7 +4981,7 @@ function renderDeployTable() {
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
     const mDisp_c = fmtMonths(actM_c);
     let fieldLabel_c = row.field || '건축';
-    if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraIdxT === 1 ? '토목(전)' : '토목(후)'; }
+    if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraCountT >= 2 ? (civExtraIdxT === 1 ? '토목(전)' : '토목(후)') : '토목'; }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
     let cpm_c = floorAt3(actM_c * cr_c);
     if (row.placement === '비상주') {
