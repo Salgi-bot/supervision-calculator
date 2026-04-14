@@ -4078,7 +4078,7 @@ function renderByeolji2Cover() {
   const it  = (s,cs)    => `<td ${cs?`colspan="${cs}"`:''}style="${IT}">${s}</td>`;
   const sc  = s => `<td style="${SC}">${s}</td>`;
   let _egIdx = 0;
-  const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=_es[k]!==undefined?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(getB2Mode()==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7pt;font-family:var(--font);background:transparent;color:#444;text-align:center;line-height:11px;height:11px;padding:0"></td>`; };
+  const eg  = (s, def='') => { const k='e'+(++_egIdx); const displayVal=(_es[k]!==undefined&&_es[k]!=='')?_es[k]:def; return `<td style="${EG}"><input id="b2eg_${k}" type="text" placeholder="${s.replace(/"/g,'&quot;')}" value="${escHtml(displayVal)}" oninput="(getB2Mode()==='미만'?b2EgState미만:b2EgState)['${k}']=this.value;triggerAutoSave()" style="width:100%;border:none;font-size:7pt;font-family:var(--font);background:transparent;color:#444;text-align:center;line-height:11px;height:11px;padding:0"></td>`; };
   const mt  = () => `<td style="border:1px solid #bbb;padding:2px;height:16px;line-height:13px;overflow:hidden"></td>`;
   const inp = (id,val) => { const stored=_ns[id]; const dv=(stored!==undefined)?stored:val; const numVal=Number(dv); const displayVal=(String(dv)!==''&&!isNaN(numVal)&&!/[가-힣·]/.test(String(dv)))?numVal.toFixed(1):String(dv); return `<td style="padding:1px;border:1px solid #bbb;height:13px;line-height:11px;overflow:hidden"><input id="b2_${id}" type="text" value="${escHtml(displayVal)}" onchange="(getB2Mode()==='미만'?b2NumState미만:b2NumState)['${id}']=this.value;calcB2()" style="width:100%;border:none;text-align:center;font-size:7pt;font-family:var(--font);background:transparent;line-height:11px;height:11px;padding:0"></td>`; };
   const pi  = personnel;
@@ -4087,6 +4087,7 @@ function renderByeolji2Cover() {
 
   // 300세대 미만: 건축 값 0, 토목·기타설비가 건축 점수 50%씩 가산
   const is300미만 = _mode === '미만';
+  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e','fa_ad'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
   const fcBase    = !!(personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0);
   const faGrade   = is300미만 ? 0 : arch.gradeScore;
   const faExp     = is300미만 ? 0 : arch.expScore;
