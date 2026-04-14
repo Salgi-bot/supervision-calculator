@@ -4657,6 +4657,10 @@ function updateExtraRow(id, field, value) {
 function renderDeploySettings(force = false) {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || (!force && settingsEl.contains(document.activeElement))) return;
+  // 이름 없는 비평가 행 자동 삭제
+  const _prevLen = extraDeployRows.length;
+  extraDeployRows = extraDeployRows.filter(r => (r.name || '').trim() || r.placement !== '비평가');
+  if (extraDeployRows.length < _prevLen) triggerAutoSave();
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
@@ -4850,8 +4854,10 @@ function renderDeploySettings(force = false) {
 
 function renderDeployTable() {
   syncPersonInfo();
-  // 이름 없는 비평가 행 자동 삭제
+  // 이름 없는 비평가 행 자동 삭제 (설정 패널도 동기화)
+  const _prevLenDT = extraDeployRows.length;
   extraDeployRows = extraDeployRows.filter(r => (r.name || '').trim() || r.placement !== '비평가');
+  if (extraDeployRows.length < _prevLenDT) { triggerAutoSave(); renderDeploySettings(true); }
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   const lawMonths = document.getElementById('deployLawMonths')?.value || '';
