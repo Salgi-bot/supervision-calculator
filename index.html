@@ -5709,6 +5709,29 @@ function renderByeolchum3() {
 //  INIT
 // ══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
+  // 시작 기도 팝업
+  (function() {
+    const verses = [
+      { ref: '잠언 16:3', text: '너의 행사를 여호와께 맡기라\n그리하면 네가 경영하는 것이 이루어지리라' },
+      { ref: '시편 1:3', text: '그가 하는 모든 일이 다 형통하리로다' },
+      { ref: '빌립보서 4:13', text: '내게 능력 주시는 자 안에서\n내가 모든 것을 할 수 있느니라' },
+      { ref: '여호수아 1:9', text: '강하고 담대하라 두려워하지 말며 놀라지 말라\n네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라' },
+      { ref: '예레미야 29:11', text: '나 여호와가 너희를 향하여 계획하는 것은\n재앙이 아니라 곧 평안이요 너희 미래에 희망을 주려 함이라' },
+    ];
+    const v = verses[Math.floor(Math.random() * verses.length)];
+    const overlay = document.createElement('div');
+    overlay.id = 'startPrayPopup';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:36px 32px 28px;max-width:340px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+        <div style="font-size:28px;margin-bottom:8px">✝️</div>
+        <div style="font-size:12pt;font-weight:700;color:#1e3a5f;margin-bottom:16px;line-height:1.6;white-space:pre-line">${v.text}</div>
+        <div style="font-size:10pt;color:#888;margin-bottom:24px">${v.ref}</div>
+        <button id="startPrayBtn" style="padding:10px 36px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:14pt;font-weight:700;cursor:pointer;letter-spacing:2px">아멘</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('startPrayBtn').addEventListener('click', () => overlay.remove());
+  })();
   loadRuntimeConstants();
   try { loadAutoSave(); } catch(e) { console.warn('자동복원 오류:', e); }
   switchTab(0);
