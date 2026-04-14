@@ -1204,6 +1204,7 @@ tbody tr:hover td { background: var(--ci-light); }
       ※ 건당 0.5점, 상한 2.0점 (4건 만점) &nbsp;|&nbsp; 경과기간 가중치: 3년미만 100% → 3~6년 80% → 6~10년 60% → 10년↑ 0점<br>
       ※ 알림기간(월) 이내에 점수 하락 또는 만료 예정이면 주의 표시
     </div>
+    <div id="patentSummary"></div>
     <div id="patentTable">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
@@ -5963,6 +5964,96 @@ function deleteTrainingRow(i) {
 }
 
 // ── 특허·기술개발 ──────────────────────────────────────
+// 특허 합계 요약 및 점수 변경 일정 표시
+function renderPatentSummary() {
+  const container = document.getElementById('patentSummary');
+  if (!container) return;
+  const rows = getPatentData();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // 현재 총점 계산 (건별 합산, 상한 2.0점)
+  let rawTotal = 0;
+  rows.forEach(r => {
+    const ps = calcPatentScore(r.regDate);
+    if (ps.score !== null) rawTotal += ps.score;
+  });
+  const cappedTotal = Math.min(rawTotal, 2.0);
+  const validCount = rows.filter(r => r.regDate).length;
+
+  // 미래 점수 하락 이벤트 수집
+  const events = [];
+  rows.forEach((r, i) => {
+    if (!r.regDate) return;
+    const reg = new Date(r.regDate);
+    const years = (today - reg) / (365.25 * 86400000);
+    const label = r.patentNo ? r.patentNo : (r.content ? r.content.slice(0,12) : `특허 ${i+1}`);
+    const drops = [];
+    if (years < 3)       drops.push({ atYear:3,  fromW:1.0, toW:0.8 }, { atYear:6, fromW:0.8, toW:0.6 }, { atYear:10, fromW:0.6, toW:0.0 });
+    else if (years < 6)  drops.push({ atYear:6,  fromW:0.8, toW:0.6 }, { atYear:10, fromW:0.6, toW:0.0 });
+    else if (years < 10) drops.push({ atYear:10, fromW:0.6, toW:0.0 });
+    drops.forEach(d => {
+      const dropDate = new Date(reg);
+      dropDate.setFullYear(dropDate.getFullYear() + d.atYear);
+      const days = Math.ceil((dropDate - today) / 86400000);
+      events.push({ date: dropDate.toISOString().slice(0,10), days, label,
+        scoreBefore: Math.round(0.5 * d.fromW * 100) / 100,
+        scoreAfter:  Math.round(0.5 * d.toW  * 100) / 100 });
+    });
+  });
+  events.sort((a, b) => a.date.localeCompare(b.date));
+
+  // 점수 변경 시점별 총점 시뮬레이션 (상한 2.0 적용)
+  // 각 이벤트에서 해당 특허의 점수 변화만큼 rawTotal을 수정
+  let simTotal = rawTotal;
+  const timeline = events.map(e => {
+    const delta = e.scoreAfter - e.scoreBefore; // 음수
+    simTotal = Math.max(0, simTotal + delta);
+    return { ...e, delta, newTotal: Math.min(simTotal, 2.0) };
+  });
+
+  const scoreColor = (s) => s >= 1.5 ? '#166534' : s >= 1.0 ? '#92400e' : '#dc2626';
+
+  let html = `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:600;color:#475569;">오늘 현재 총점</span>
+      <span style="font-size:22px;font-weight:800;color:${scoreColor(cappedTotal)};">${cappedTotal.toFixed(2)}점</span>
+      <span style="font-size:12px;color:#94a3b8;">/ 2.00점 &nbsp;(${validCount}건)</span>
+      ${rawTotal > 2.0 ? `<span style="font-size:11px;color:#94a3b8;">(원점수 ${rawTotal.toFixed(2)}점 → 상한 2.0 적용)</span>` : ''}
+    </div>`;
+
+  if (timeline.length > 0) {
+    html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;">
+      <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;">점수 변경 예정</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="color:#94a3b8;">
+            <th style="padding:3px 8px;text-align:left;font-weight:500;">변경일</th>
+            <th style="padding:3px 8px;text-align:center;font-weight:500;">남은 기간</th>
+            <th style="padding:3px 8px;text-align:left;font-weight:500;">해당 특허</th>
+            <th style="padding:3px 8px;text-align:center;font-weight:500;">해당 특허 점수</th>
+            <th style="padding:3px 8px;text-align:center;font-weight:500;">변경 후 총점</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    timeline.forEach(e => {
+      const urgent = e.days <= 180 ? '#dc2626' : e.days <= 365 ? '#d97706' : '#374151';
+      html += `<tr style="border-top:1px solid #f1f5f9;">
+        <td style="padding:4px 8px;font-weight:600;color:${urgent};">${e.date}</td>
+        <td style="padding:4px 8px;text-align:center;color:${urgent};">D-${e.days}</td>
+        <td style="padding:4px 8px;color:#374151;">${e.label}</td>
+        <td style="padding:4px 8px;text-align:center;color:#374151;">${e.scoreBefore.toFixed(2)} → ${e.scoreAfter.toFixed(2)} <span style="color:#dc2626;">(${e.delta.toFixed(2)})</span></td>
+        <td style="padding:4px 8px;text-align:center;font-weight:700;color:${scoreColor(e.newTotal)};">${e.newTotal.toFixed(2)}점</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  } else if (validCount > 0) {
+    html += `<div style="margin-top:8px;font-size:12px;color:#94a3b8;">등록된 특허가 없거나 모두 10년 이상 경과</div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = rows.length === 0 ? '' : html;
+}
+
 // 경과기간 가중치 및 다음 점수 하락일 계산
 function calcPatentScore(regDateStr) {
   if (!regDateStr) return { score: null, weight: null, nextDropDate: null, nextDropDays: null };
@@ -5991,6 +6082,7 @@ function calcPatentScore(regDateStr) {
 function renderPatentRows() {
   const tbody = document.getElementById('patentRows');
   if (!tbody) return;
+  renderPatentSummary();
   const rows = getPatentData();
   if (rows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#94a3b8;">특허 추가 버튼으로 항목을 등록하세요.</td></tr>';
