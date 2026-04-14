@@ -4838,6 +4838,9 @@ function renderDeploySettings(force = false) {
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','end',this)">
       ${btnPair('extra_arch','end')}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">개월</span>
+      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }
 
