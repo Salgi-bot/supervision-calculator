@@ -4836,8 +4836,7 @@ function renderDeploySettings(force = false) {
       <span style="font-weight:600">비상주 한도</span>
       <span>${fmtMonths(nonresLimitSt)} 인·월</span>
       <span style="color:#666">(법정 ${fmtMonths(_lpBaseSt)} × 15%)</span>
-      <span style="margin-left:4px">사용 <b>${fmtMonths(nonresUsedSt)}</b> 인·월</span>
-      <span style="font-weight:700;margin-left:4px">${nrOver ? '✗ 초과' : '✓ 이내'}</span>
+      <span style="margin-left:4px">→ <b>${fmtMonths(nonresLimitSt)}</b> 인·월 전액 배정</span>
     </div>`;
   }
   // ── + 감리원 추가 버튼 ──
@@ -4943,10 +4942,8 @@ function renderDeployTable() {
 
     let convPM = floorAt3(actualMonths * convRate);
     if (r.placement === '비상주') {
-      // 누적 상한: 전체 비상주 합계 ≤ 법정인월수 × 15%
-      const remaining = nonresMax > 0 ? Math.max(0, nonresMax - nonresPM) : convPM;
-      convPM = Math.min(convPM, remaining);
-      convPM = floorAt3(convPM);
+      // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
+      convPM = nonresMax > 0 ? floorAt3(Math.max(0, nonresMax - nonresPM)) : floorAt3(convPM);
       nonresPM += convPM;
     }
     totalConvPM += convPM;
@@ -4961,7 +4958,10 @@ function renderDeployTable() {
                         r.placement === '비평가' ? '비평가' :
                         r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r);
-    const monthsDisp = fmtMonths(actualMonths);
+    // 비상주: 개월 = 법정×15%/환산비로 환산 표시
+    const monthsDisp = (r.placement === '비상주' && nonresMax > 0)
+      ? fmtMonths(convPM / convRate)
+      : fmtMonths(actualMonths);
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
@@ -5107,7 +5107,7 @@ function renderDeployTable() {
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')} 천원</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
       <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(${nonresRate}%)${parseFloat(nonresRate)>15 ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 15% 초과</span>' : ''}</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수 : ${nonresPM}&ensp;인·월&ensp;(법정 × 15% 전액 배정)</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
@@ -5185,8 +5185,8 @@ function renderCalcResult() {
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
     let convPM = floorAt3(actualMonths2 * convRate);
     if (r.placement==='비상주') {
-      const rem2 = nonresMax2 > 0 ? Math.max(0, nonresRemaining2) : convPM;
-      convPM = floorAt3(Math.min(convPM, rem2));
+      // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
+      convPM = nonresMax2 > 0 ? floorAt3(Math.max(0, nonresRemaining2)) : floorAt3(convPM);
       nonresConv += convPM;
       nonresRemaining2 -= convPM;
     }
