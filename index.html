@@ -1557,7 +1557,7 @@ function onSizeClassChange() {
     _refreshAfterToggle();
   }
   // 세대수 변경 시 자동계산 필드 초기화 (재계산 반영)
-  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
+  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e','fa_ad'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
   b2ViewMode = null; // 세대수 변경 시 자동 감지로 리셋
   if (document.getElementById('tab5')?.classList.contains('active')) renderByeolji2Cover();
 }
@@ -4168,10 +4168,10 @@ function renderByeolji2Cover() {
       <!-- 분야별 감리원 16행 -->
       <tr>
         ${lbl('분야별<br>감리원',16)}
-        ${lbl('등급',3,2)}${it('건축')}${sc(is300미만 ? '-' : 2)}${inp('fa_g', is300미만 ? '-' : faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'), is300미만 ? '300세대 미만 — 해당없음' : pGr('arch'))}
+        ${lbl('등급',3,2)}${it('건축')}${sc(is300미만 ? '-' : 2)}${inp('fa_g', is300미만 ? '-' : faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : (pGr('arch')||'특급건설기술자'), is300미만 ? '300세대 미만 — 해당없음' : (pGr('arch')||'특급건설기술자'))}
       </tr>
-      <tr>${it('토목')}${sc(is300미만 ? 3 : 2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
-      <tr>${it('기타설비')}${sc(is300미만 ? 3 : 2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
+      <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
+      <tr>${it('기타설비')}${sc(2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
       <tr>${lbl('경력<br>및<br>실적',3,2)}${it('건축')}${sc(is300미만 ? '-' : 7)}${inp('fa_e', is300미만 ? '-' : faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch), is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
       <tr>${it('토목')}${sc(is300미만 ? 10.5 : 7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil), pYr(civil))}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? 10.5 : 7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech), pYr(mech))}</tr>
@@ -4218,7 +4218,7 @@ function renderByeolji2Cover() {
       </tbody>
     </table>
     <div style="font-size:7pt;line-height:1.6;margin:8px 0 0">
-      상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출함을 확인하고, 제출된 신청자 평점 중 "허위·거짓 등"의 방법으로 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰한 등의 불이익을 받을 수 있음을 확인합니다.
+      상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출함을 확인하고, 제출된 신청자 평점 중 "허위·거짓 등"의 방법으로 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰제한 등의 불이익을 받을 수 있음을 확인합니다.
     </div>
     <div style="text-align:right;font-size:10pt;margin:12px 20px 2px 0;line-height:1.3">${getSubmitDateStr()}</div>
     <div style="text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
