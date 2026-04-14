@@ -4944,8 +4944,8 @@ function renderDeployTable() {
 
     let convPM = floorAt3(actualMonths * convRate);
     if (r.placement === '비상주') {
-      // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
-      convPM = nonresMax > 0 ? floorAt3(Math.max(0, nonresMax - nonresPM)) : floorAt3(convPM);
+      // 비상주 인월수: 개월×환산비 (한도 nonresMax 이내로 cap)
+      if (nonresMax > 0) convPM = floorAt3(Math.min(convPM, Math.max(0, nonresMax - nonresPM)));
       nonresPM += convPM;
     }
     totalConvPM += convPM;
@@ -4960,10 +4960,7 @@ function renderDeployTable() {
                         r.placement === '비평가' ? '비평가' :
                         r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r);
-    // 비상주: 개월 = 법정×15%/환산비로 환산 표시
-    const monthsDisp = (r.placement === '비상주' && nonresMax > 0)
-      ? fmtMonths(convPM / convRate)
-      : fmtMonths(actualMonths);
+    const monthsDisp = fmtMonths(actualMonths);
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
@@ -5086,7 +5083,7 @@ function renderDeployTable() {
       <colgroup>
         <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
         ${allMonths.map(() => `<col style="width:${colW}px">`).join('')}
-        <col style="width:28px"><col style="width:24px"><col style="width:38px"><col style="width:55px">
+        <col style="width:28px"><col style="width:32px"><col style="width:38px"><col style="width:44px">
       </colgroup>
       <thead>
         <tr>
@@ -5187,8 +5184,8 @@ function renderCalcResult() {
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
     let convPM = floorAt3(actualMonths2 * convRate);
     if (r.placement==='비상주') {
-      // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
-      convPM = nonresMax2 > 0 ? floorAt3(Math.max(0, nonresRemaining2)) : floorAt3(convPM);
+      // 비상주 인월수: 개월×환산비 (한도 nonresMax2 이내로 cap)
+      if (nonresMax2 > 0) convPM = floorAt3(Math.min(convPM, Math.max(0, nonresRemaining2)));
       nonresConv += convPM;
       nonresRemaining2 -= convPM;
     }
