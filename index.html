@@ -4170,8 +4170,8 @@ function renderByeolji2Cover() {
         ${lbl('분야별<br>감리원',16)}
         ${lbl('등급',3,2)}${it('건축')}${sc(is300미만 ? '-' : 2)}${inp('fa_g', is300미만 ? '-' : faGrade.toFixed(1))}${mt()}${eg(is300미만 ? '300세대 미만 — 해당없음' : (pGr('arch')||'특급건설기술자'), is300미만 ? '300세대 미만 — 해당없음' : (pGr('arch')||'특급건설기술자'))}
       </tr>
-      <tr>${it('토목')}${sc(2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
-      <tr>${it('기타설비')}${sc(2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
+      <tr>${it('토목')}${sc(is300미만 ? 3 : 2)}${inp('fc_g', fcGrade.toFixed(1))}${mt()}${eg(pGr('civil'), pGr('civil'))}</tr>
+      <tr>${it('기타설비')}${sc(is300미만 ? 3 : 2)}${inp('fm_g', fmGrade.toFixed(1))}${mt()}${eg(pGr('mech'), pGr('mech'))}</tr>
       <tr>${lbl('경력<br>및<br>실적',3,2)}${it('건축')}${sc(is300미만 ? '-' : 7)}${inp('fa_e', is300미만 ? '-' : faExp.toFixed(1))}${mt()}${eg(is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch), is300미만 ? '건축 배점 토목·기타설비에 각 50% 배분' : pYr(arch))}</tr>
       <tr>${it('토목')}${sc(is300미만 ? 10.5 : 7)}${inp('fc_e', fcExp.toFixed(1))}${mt()}${eg(pYr(civil), pYr(civil))}</tr>
       <tr>${it('기타설비')}${sc(is300미만 ? 10.5 : 7)}${inp('fm_e', fmExp.toFixed(1))}${mt()}${eg(pYr(mech), pYr(mech))}</tr>
