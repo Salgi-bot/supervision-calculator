@@ -4541,12 +4541,16 @@ function renderDeploySettings() {
     const auto     = getDeployAutoRules(r);
     // 잠금 필드: 일까지 표시 (시작=1일, 종료=말일)
     const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
-    const startDisp = auto.lockStart
-      ? (projStart ? fmt6(projStart.y, projStart.m, 1) : '')
-      : (ds.startYM || '');
-    const endDisp = auto.lockEnd
-      ? (projEnd ? fmt6(projEnd.y, projEnd.m, lastDay(projEnd.y, projEnd.m)) : '')
-      : (ds.endYM || '');
+    // 수동 미설정 시 공사기간 날짜를 기본값으로 표시
+    const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, 1) : '';
+    const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   lastDay(projEnd.y, projEnd.m)) : '';
+    const startDisp = auto.lockStart ? defStartDisp : (ds.startYM || defStartDisp);
+    const endDisp   = auto.lockEnd   ? defEndDisp   : (ds.endYM   || defEndDisp);
+    // 개월값: 저장값 우선, 없으면 날짜 기반 자동 계산
+    const rsDisp = parseYMShort(startDisp) || projStart;
+    const reDisp = parseYMShort(endDisp)   || projEnd;
+    const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
+    const monthsVal = (ds.months !== undefined && ds.months !== '') ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
     return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0">
       <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(${r.placement}·${grade})</span>
@@ -4554,18 +4558,22 @@ function renderDeploySettings() {
         ? `<input type="text" value="${startDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
         : `<input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${ISTY}"
              title="YYMMDD(260101) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;renderDeployTable()"
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';renderDeployTable()"
              onblur="completeDate('${r.id}','start',this)">`}
       <span style="font-size:10px;color:#666">~</span>
       ${auto.lockEnd
         ? `<input type="text" value="${endDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
         : `<input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${ISTY}"
              title="YYMMDD(281231) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()"
+             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';renderDeployTable()"
              onblur="completeDate('${r.id}','end',this)">`}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
       <input type="number" value="${convRate}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;renderDeployTable()">
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">개월</span>
+      <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;"
+        title="비워두면 날짜 기반 자동 계산"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';renderDeployTable()">
     </div>`;
   }).join('');
 }
@@ -4620,7 +4628,8 @@ function renderDeployTable() {
     const auto = getDeployAutoRules(r);
     const rs = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
     const re = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
-      const m_f = (rs && re) ? calcDeployMonths(rs, re) : 0;
+      const dsM_f = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+      const m_f = dsM_f !== null ? dsM_f : ((rs && re) ? calcDeployMonths(rs, re) : 0);
     const grade = p.info.appliedGrade || p.info.grade || '중급';
     const defRate = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
@@ -4649,7 +4658,8 @@ function renderDeployTable() {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
     }).join('');
-    const actualMonths = calcDeployMonths(rs, re);
+    const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+    const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
 
     let convPM = floorAt3(actualMonths * convRate);
     if (r.placement === '비상주') {
