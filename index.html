@@ -3803,9 +3803,12 @@ function renderByeolji1() {
       name: dash ? '-' : p.name, birthdate: dash ? '-' : p.birthdate,
       grade: p.appliedGrade || p.grade, regNo: dash ? '-' : p.regNo, company: p.company || co.name });
   });
-  // 배치계획표 비평가 행 추가
+  // 배치계획표 비평가 행 추가 (토목은 순서에 따라 전/후 구분)
+  let civB1Idx = 0;
   extraDeployRows.filter(r => r.placement === '비평가').forEach(row => {
-    allPRows.push({ structLabel: '비평가', field: row.field || '건축',
+    let fieldLabel = row.field || '건축';
+    if (row.field === '토목') { civB1Idx++; fieldLabel = civB1Idx === 1 ? '토목(전)' : '토목(후)'; }
+    allPRows.push({ structLabel: '비평가', field: fieldLabel,
       name: row.name || '-', birthdate: '-',
       grade: row.grade || '특급', regNo: '-', company: co.name });
   });
