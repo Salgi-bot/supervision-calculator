@@ -4416,7 +4416,8 @@ function parseYM(s) {
   const parts = s.replace(/[-\/]/g, '.').split('.');
   const y = parseInt(parts[0]), m = parseInt(parts[1]);
   if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return null;
-  return { y, m };
+  const d = parts[2] ? parseInt(parts[2]) : null;
+  return { y, m, ...(d >= 1 && d <= 31 ? { d } : {}) };
 }
 // YYMM(4자리) / YYMMDD(6자리) / YYYYMMDD(8자리) / YYYY.MM.DD 지원
 function parseYMShort(s) {
@@ -4530,8 +4531,8 @@ function adjustDeployDate(roleId, field, delta) {
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate), projEnd = parseYM(pj.endDate);
-  const defStart = projStart ? _f6(projStart.y, projStart.m, 1) : '';
-  const defEnd   = projEnd   ? _f6(projEnd.y, projEnd.m, lastDay(projEnd.y, projEnd.m)) : '';
+  const defStart = projStart ? _f6(projStart.y, projStart.m, projStart.d || 1) : '';
+  const defEnd   = projEnd   ? _f6(projEnd.y,   projEnd.m,   projEnd.d   || lastDay(projEnd.y, projEnd.m)) : '';
   const fKey = field === 'start' ? 'startYM' : 'endYM';
   const defVal = field === 'start' ? defStart : defEnd;
   const isExtra = roleId.startsWith('ec_');
@@ -4563,8 +4564,8 @@ function addExtraDeployRow() {
   const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
   extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'분야별', field:'건축', grade:'특급',
-    startYM: ps ? _f6(ps.y, ps.m, 1) : '',
-    endYM:   pe ? _f6(pe.y, pe.m, lastDay(pe.y, pe.m)) : '',
+    startYM: ps ? _f6(ps.y, ps.m, ps.d || 1) : '',
+    endYM:   pe ? _f6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '',
     convRate: 1.139, months: '' });
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
@@ -4586,8 +4587,8 @@ function renderDeploySettings() {
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
   const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
-  const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, 1) : '';
-  const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   lastDay(projEnd.y, projEnd.m)) : '';
+  const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, projStart.d || 1) : '';
+  const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   projEnd.d   || lastDay(projEnd.y, projEnd.m)) : '';
 
   const ISTY  = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   const NSTY  = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
