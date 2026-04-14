@@ -4779,8 +4779,6 @@ function renderDeploySettings(force = false) {
     const sErrR = cr.start && startD && startD < cr.start;
     const eErrR = cr.end   && endD   && endD   > cr.end;
     settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
-      <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center" title="감리원 성명"
-        oninput="updateExtraRow('${row.id}','name',this.value)">
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
@@ -4840,8 +4838,7 @@ function renderDeploySettings(force = false) {
     settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;margin-top:2px;border:1px solid ${nrBdr};border-radius:4px;background:${nrBg};font-size:10.5px;color:${nrClr}">
       <span style="font-weight:600">비상주 한도</span>
       <span>${fmtMonths(nonresLimitSt)} 인·월</span>
-      <span style="color:#666">(법정 ${fmtMonths(_lpBaseSt)} × 15%)</span>
-      <span style="margin-left:4px">→ <b>${fmtMonths(nonresLimitSt)}</b> 인·월 전액 배정</span>
+      <span style="color:#666">(법정 ${fmtMonths(_lpBaseSt)} × 15% 이내)</span>
     </div>`;
   }
   // ── + 감리원 추가 버튼 ──
@@ -5112,7 +5109,7 @@ function renderDeployTable() {
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')} 천원</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
       <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수 : ${nonresPM}&ensp;인·월&ensp;(법정 × 15% 전액 배정)</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수 : ${nonresPM}&ensp;인·월&ensp;(법정 × 15% 이내)</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
