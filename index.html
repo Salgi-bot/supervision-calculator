@@ -4624,7 +4624,7 @@ function getFieldDeployPeriod(fieldName, skipRowId) {
   const defS = ps ? fmt6(ps.y, ps.m, ps.d || 1) : '';
   const defE = pe ? fmt6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '';
   // fieldName → ROLES.field 매핑
-  const roleFieldMap = { '건축': '건축', '토목': '토목', '기계설비': '설비' };
+  const roleFieldMap = { '건축': '건축', '토목': '토목', '설비': '설비' };
   const roleField = roleFieldMap[fieldName];
   if (!roleField) return { startYM: defS, endYM: defE };
   const candidates = getAllRoles().filter(r => r.placement === '분야별' && r.field === roleField);
@@ -4737,7 +4737,7 @@ function renderDeploySettings(force = false) {
     const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
     const convRateE = (row.convRate !== undefined && row.convRate !== '') ? row.convRate : 1.139;
     const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
-    const foHtml = ['건축','토목','기계설비','전기','소방'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
+    const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
     // 토목인 경우 (전)/(후) 표시
     const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
