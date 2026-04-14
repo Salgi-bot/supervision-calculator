@@ -4030,7 +4030,13 @@ function calcB2() {
   set('n_sum', nSum);
   const monSum = chSum+fSum+nSum;
   set('mon_sum', monSum);
-  set('total', cSum+monSum);
+  const b2Total = cSum + monSum;
+  set('total', b2Total);
+  const warnEl = document.getElementById('b2_warn_msg');
+  if (warnEl) {
+    warnEl.style.display = b2Total < 100 ? '' : 'none';
+    warnEl.textContent = `⚠ 신청자 점수 합계 ${b2Total.toFixed(1)}점 — 100점 미만입니다. 각 항목을 확인하세요.`;
+  }
 }
 
 function setB2ViewMode(mode) {
@@ -4223,6 +4229,7 @@ function renderByeolji2Cover() {
       </tr>
       </tbody>
     </table>
+    <div id="b2_warn_msg" style="display:none;color:#b91c1c;font-size:7.5pt;font-weight:700;margin:5px 0 0;padding:4px 8px;background:#fff0f0;border:1px solid #fca5a5;border-radius:3px"></div>
     <div style="font-size:7pt;line-height:1.6;margin:8px 0 0">
       상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성ㆍ제출되었음을 확인하고, 제출된 신청자 평점 중 "허위ㆍ거짓 등"의 방법에 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰제한 등의 불이익을 받을 수 있음을 확인합니다.
     </div>
