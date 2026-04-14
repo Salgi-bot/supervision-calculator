@@ -2704,6 +2704,21 @@ function handleTab2Drop(event) {
   if (file) handlePersonFileSelect(currentPersonId, file);
 }
 
+// ── PDF 텍스트 정규화 규칙 ──────────────────────────────
+// 1) PDF 아이템을 join('')로 이어붙여 인위적 공백 삽입 방지
+// 2) 연속 공백(2칸 이상)은 1칸으로 정규화
+// 3) 탭·전각공백도 단일 공백으로 통일
+function normalizePdfText(str) {
+  return str
+    .replace(/[\t　]+/g, ' ')   // 탭·전각공백 → 공백 1개
+    .replace(/ {2,}/g, ' ')    // 연속 공백 → 공백 1개
+    .trim();
+}
+// PDF 아이템 배열 → 정규화된 문자열
+function joinPdfItems(items) {
+  return normalizePdfText(items.map(i => (typeof i === 'string' ? i : (i.str || ''))).join(''));
+}
+
 async function parsePDF(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   try {
@@ -2726,7 +2741,7 @@ async function parsePDF(file) {
       return;
     }
 
-    const rawText = allItems.map(i => i.str).join(' ');
+    const rawText = joinPdfItems(allItems);
     const parsed = parseKCEAText(allItems, rawText);
     showPdfModal(parsed, rawText);
   } catch (err) {
@@ -3124,8 +3139,10 @@ function extractCareersFromItems(items) {
         !/^[.…·:;|!lLItT\-_,'"]+$/.test(i.str.trim())
       );
 
-      const context = [...dutyItems, ...midItems, ...respItems, ...siteItems]
-        .map(i => i.str.trim()).filter(s => s.length >= 2).join(' ');
+      const context = normalizePdfText(
+        [...dutyItems, ...midItems, ...respItems, ...siteItems]
+          .map(i => i.str.trim()).filter(s => s.length >= 2).join(' ')
+      );
 
       careers.push({
         site: siteName || '(미확인)',
@@ -3361,7 +3378,7 @@ async function extractAnnouncementPDF(file) {
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const tc = await page.getTextContent();
-    const pageText = tc.items.map(i => i.str).join(' ');
+    const pageText = joinPdfItems(tc.items);
     allText += pageText + '\n';
   }
   // 텍스트 추출 실패 시 OCR
@@ -5359,7 +5376,7 @@ async function handlePerfPdf(file) {
     });
     const tableRows = [...rowMap.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([, items]) => items.sort((a, b) => a.x - b.x).map(i => i.str).join(' '));
+      .map(([, items]) => normalizePdfText(items.sort((a, b) => a.x - b.x).map(i => i.str).join(' ')));
     const allFlat = tableRows.join('\n');
 
     // ── 3. 문서 유형 감지 ──
