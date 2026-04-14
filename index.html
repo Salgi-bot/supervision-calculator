@@ -1644,6 +1644,7 @@ let b2NumState미만 = {}; // 별지2호 신청자 점수 (300세대 미만)
 let b2EgState미만 = {};  // 별지2호 산출근거 (300세대 미만)
 let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미만'
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
+let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,placement,field,grade,startYM,endYM,convRate,months }]
 
 // ── Cloud Save (Supabase) ──
 const SUPABASE_URL = 'https://osnpmbwkeskjpykloktq.supabase.co';
@@ -1672,7 +1673,7 @@ function buildCloudPayload() {
     version: '2.1', exportDate: new Date().toISOString(),
     project: getProjectData(), company: getCompanyData(),
     personnel, nonEvalList, nonEvalCounter, newEvalList, newEvalCounter,
-    perfRecords, deployState,
+    perfRecords, deployState, extraDeployRows,
     b2NumState, b2EgState, 'b2NumState미만': b2NumState미만, 'b2EgState미만': b2EgState미만,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
@@ -1761,6 +1762,7 @@ function doAutoSave() {
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     deployState: deployState,
+    extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
     savedAt: new Date().toISOString(),
@@ -1847,6 +1849,7 @@ function loadAutoSave() {
     if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
     if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
     if (data.deployState) deployState = data.deployState;
+    if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     renderDeploySettings();
@@ -2410,6 +2413,7 @@ function saveAllJSON() {
     perfRecords: perfRecords,
     docImages: docImages,
     deployState: deployState,
+    extraDeployRows: extraDeployRows,
     b2NumState: b2NumState,
     b2EgState: b2EgState,
     b2NumState미만: b2NumState미만,
@@ -2437,6 +2441,7 @@ function savePersonnelJSON() {
     newEvalList: newEvalList,
     newEvalCounter: newEvalCounter,
     deployState: deployState,
+    extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
   };
@@ -2479,6 +2484,7 @@ function loadPersonnelJSON(input) {
         newEvalList.forEach(r => { if (!personnel[r.id]) personnel[r.id] = makeEmptyPerson(r); });
       }
       if (data.deployState) deployState = data.deployState;
+      if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
       renderPersonCards();
@@ -2561,6 +2567,7 @@ function loadV2Data(data) {
   if (data.docImages) { docImages = data.docImages; renderDocImageList(); renderDocImagePreview(); }
   // 배치계획표 상태
   if (data.deployState) deployState = data.deployState;
+  if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
@@ -4454,10 +4461,8 @@ function getRoleFieldLabel(r) {
   if (r.id === 'civil2') return '토목(후)';
   return personnel[r.id]?.info?.field || r.field || '';
 }
-// 배치기간 자동 잠금 규칙
-// 총괄·비상주만 고정(readonly), 나머지는 모두 편집 가능 + 공사기간 기본값 표시
+// 배치기간 잠금 규칙 — 전체 편집 가능 (배치계획표 독립성)
 function getDeployAutoRules(r) {
-  if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true, lockEnd:true };
   return { lockStart:false, lockEnd:false };
 }
 // 환산비 기본값 — 한국건설엔지니어링협회 2026년도 건설사업관리기술인 노임 기준 (중급 350,580원 = 1.000)
@@ -4517,63 +4522,121 @@ function completeDate(roleId, field, el) {
   else                   deployState[roleId].endYM   = completed;
   renderDeployTable();
 }
+// 배치기간 ±1개월 조정
+function adjustDeployDate(roleId, field, delta) {
+  const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+  const pj = getProjectData();
+  const projStart = parseYM(pj.startDate), projEnd = parseYM(pj.endDate);
+  const defStart = projStart ? _f6(projStart.y, projStart.m, 1) : '';
+  const defEnd   = projEnd   ? _f6(projEnd.y, projEnd.m, lastDay(projEnd.y, projEnd.m)) : '';
+  const fKey = field === 'start' ? 'startYM' : 'endYM';
+  const defVal = field === 'start' ? defStart : defEnd;
+  const isExtra = roleId.startsWith('ec_');
+  let cur;
+  if (isExtra) {
+    const row = extraDeployRows.find(r => r.id === roleId); if (!row) return;
+    cur = row[fKey] || defVal;
+  } else {
+    if (!deployState[roleId]) deployState[roleId] = {};
+    cur = deployState[roleId][fKey] || defVal;
+  }
+  const p = parseYMShort(cur); if (!p) return;
+  let ny = p.y, nm = p.m + delta;
+  while (nm > 12) { nm -= 12; ny++; }
+  while (nm < 1)  { nm += 12; ny--; }
+  const nd = field === 'end' ? lastDay(ny, nm) : 1;
+  const nv = _f6(ny, nm, nd);
+  if (isExtra) {
+    const row = extraDeployRows.find(r => r.id === roleId);
+    if (row) { row[fKey] = nv; row.months = ''; }
+  } else {
+    deployState[roleId][fKey] = nv; deployState[roleId].months = '';
+  }
+  triggerAutoSave(); renderDeploySettings(); renderDeployTable();
+}
+// 추가 감리원 행 관리
+function addExtraDeployRow() {
+  const pj = getProjectData();
+  const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
+  const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'분야별', field:'건축', grade:'특급',
+    startYM: ps ? _f6(ps.y, ps.m, 1) : '',
+    endYM:   pe ? _f6(pe.y, pe.m, lastDay(pe.y, pe.m)) : '',
+    convRate: 1.139, months: '' });
+  triggerAutoSave(); renderDeploySettings(); renderDeployTable();
+}
+function removeExtraDeployRow(id) {
+  extraDeployRows = extraDeployRows.filter(r => r.id !== id);
+  triggerAutoSave(); renderDeploySettings(); renderDeployTable();
+}
+function updateExtraRow(id, field, value) {
+  const row = extraDeployRows.find(r => r.id === id); if (!row) return;
+  row[field] = value;
+  if (field === 'grade') row.convRate = CONV_RATE_DEFAULTS[value] ?? 1.000;
+  if (field === 'startYM' || field === 'endYM') row.months = '';
+  triggerAutoSave(); renderDeployTable();
+}
 function renderDeploySettings() {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || settingsEl.contains(document.activeElement)) return;
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
-  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
-  if (!roles.length) {
-    settingsEl.innerHTML = '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
-    return;
-  }
-  const ISTY = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  const ISTY_LOCK = ISTY + ';background:#f0f0f0;color:#888;cursor:default';
-  const NSTY = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  // fmt6, 기본 날짜 표시값을 map 바깥에서 계산 (추가배치 행에서도 재사용)
   const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
   const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, 1) : '';
   const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   lastDay(projEnd.y, projEnd.m)) : '';
 
-  let settingsHtml = roles.map(r => {
+  const ISTY  = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
+  const NSTY  = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
+  const BSTY  = 'height:16px;width:15px;padding:0;font-size:9px;border:1px solid #bbb;border-radius:2px;background:#f8f8f8;cursor:pointer;line-height:1;display:block';
+  const SELSTY = 'font-size:10px;padding:1px 2px;border:1px solid #ccc;border-radius:3px;height:20px;background:#fff';
+
+  // ↑↓ 버튼 (날짜 ±1개월 조정)
+  const btnPair = (roleId, field) =>
+    `<div style="display:inline-flex;flex-direction:column;gap:1px;vertical-align:middle">
+      <button onclick="adjustDeployDate('${roleId}','${field}',1)" style="${BSTY}" title="+1개월">▲</button>
+      <button onclick="adjustDeployDate('${roleId}','${field}',-1)" style="${BSTY}" title="-1개월">▼</button>
+    </div>`;
+
+  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
+  let settingsHtml = '';
+
+  if (!roles.length && extraDeployRows.length === 0) {
+    settingsEl.innerHTML = '<span style="font-size:12px;color:#888">감리원 정보를 먼저 입력하세요.</span>';
+    return;
+  }
+
+  // ── 기존 감리원 행 ──
+  settingsHtml += roles.map(r => {
     const p  = personnel[r.id];
     const ds = deployState[r.id] || {};
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
-    const auto     = getDeployAutoRules(r);
-    // 수동 미설정 시 공사기간 날짜를 기본값으로 표시
-    const startDisp = auto.lockStart ? defStartDisp : (ds.startYM || defStartDisp);
-    const endDisp   = auto.lockEnd   ? defEndDisp   : (ds.endYM   || defEndDisp);
-    // 개월값: 저장값 우선, 없으면 날짜 기반 자동 계산
+    const startDisp = ds.startYM || defStartDisp;
+    const endDisp   = ds.endYM   || defEndDisp;
     const rsDisp = parseYMShort(startDisp) || projStart;
     const reDisp = parseYMShort(endDisp)   || projEnd;
     const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
     const monthsVal = (ds.months !== undefined && ds.months !== '') ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
-    return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0">
-      <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
-      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(${r.placement}·${grade})</span>
-      ${auto.lockStart
-        ? `<input type="text" value="${startDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
-        : `<input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${ISTY}"
-             title="YYMMDD(260101) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';renderDeployTable()"
-             onblur="completeDate('${r.id}','start',this)">`}
+    return `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
+      <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
+      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(${r.placement}·${grade})</span>
+      <input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD 또는 YYYY.MM.DD"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
+        onblur="completeDate('${r.id}','start',this)">
+      ${btnPair(r.id,'start')}
       <span style="font-size:10px;color:#666">~</span>
-      ${auto.lockEnd
-        ? `<input type="text" value="${endDisp}" readonly style="${ISTY_LOCK}" title="공사기간 자동">`
-        : `<input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${ISTY}"
-             title="YYMMDD(281231) 또는 YYYY.MM.DD"
-             oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';renderDeployTable()"
-             onblur="completeDate('${r.id}','end',this)">`}
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
+      <input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${ISTY}" title="YYMMDD 또는 YYYY.MM.DD"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
+        onblur="completeDate('${r.id}','end',this)">
+      ${btnPair(r.id,'end')}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
       <input type="number" value="${convRate}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;renderDeployTable()">
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">개월</span>
-      <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;"
-        title="비워두면 날짜 기반 자동 계산"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';renderDeployTable()">
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
+      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
+      <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 날짜 기반 자동 계산"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }).join('');
 
@@ -4588,27 +4651,74 @@ function renderDeploySettings() {
     const reDisp_e = parseYMShort(endDisp_e)   || projEnd;
     const calcM_e  = (rsDisp_e && reDisp_e) ? calcDeployMonths(rsDisp_e, reDisp_e) : 0;
     const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? calcM_e.toFixed(3) : '');
-    settingsHtml += `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4">
-      <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
-      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(추가배치·-)</span>
-      <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${ISTY}"
-        title="YYMMDD(260101) 또는 YYYY.MM.DD"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';renderDeployTable()"
+    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
+      <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
+      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(추가배치·-)</span>
+      <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD 또는 YYYY.MM.DD"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','start',this)">
+      ${btnPair('extra_arch','start')}
       <span style="font-size:10px;color:#666">~</span>
-      <input type="text" value="${endDisp_e}" placeholder="281231" maxlength="10" style="${ISTY}"
-        title="YYMMDD(281231) 또는 YYYY.MM.DD"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';renderDeployTable()"
+      <input type="text" value="${endDisp_e}" placeholder="281231" maxlength="10" style="${ISTY}" title="YYMMDD 또는 YYYY.MM.DD"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','end',this)">
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
+      ${btnPair('extra_arch','end')}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
       <input type="number" value="${convRate_e}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].convRate=parseFloat(this.value)||1;renderDeployTable()">
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">개월</span>
-      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;"
-        title="비워두면 날짜 기반 자동 계산"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';renderDeployTable()">
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
+      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
+      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 날짜 기반 자동 계산"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }
+
+  // ── 직접 추가한 감리원 행 ──
+  const placOpts = ['총괄','분야별','비상주','비평가'].map(o => `<option${o==='{P}'?' selected':''}>${o}</option>`);
+  const fieldOpts = ['건축','토목','기계설비','전기','소방'].map(o => `<option${o==='{F}'?' selected':''}>${o}</option>`);
+  const gradeOpts = ['특급','고급','중급','초급'].map(o => `<option${o==='{G}'?' selected':''}>${o}</option>`);
+  extraDeployRows.forEach(row => {
+    const startD = row.startYM || defStartDisp;
+    const endD   = row.endYM   || defEndDisp;
+    const rsE = parseYMShort(startD) || projStart;
+    const reE = parseYMShort(endD)   || projEnd;
+    const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
+    const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
+    const po = placOpts.map(o => o.replace('{P}', row.placement||'분야별').replace('{P}','분야별')).join('');
+    const fo = fieldOpts.map(o => o.replace('{F}', row.field||'건축').replace('{F}','건축')).join('');
+    const go = gradeOpts.map(o => o.replace('{G}', row.grade||'특급').replace('{G}','특급')).join('');
+    const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
+    const foHtml = ['건축','토목','기계설비','전기','소방'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
+    const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
+    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
+      <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;${ISTY.split(';').slice(1).join(';')}" title="감리원 성명"
+        oninput="updateExtraRow('${row.id}','name',this.value)">
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
+      <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD"
+        oninput="updateExtraRow('${row.id}','startYM',this.value)"
+        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+'01';updateExtraRow('${row.id}','startYM',el.value);}})(this)">
+      ${btnPair(row.id,'start')}
+      <span style="font-size:10px;color:#666">~</span>
+      <input type="text" value="${endD}" placeholder="281231" maxlength="10" style="${ISTY}" title="YYMMDD"
+        oninput="updateExtraRow('${row.id}','endYM',this.value)"
+        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){const ld=lastDay(p.y,p.m);el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+String(ld).padStart(2,'0');updateExtraRow('${row.id}','endYM',el.value);}})(this)">
+      ${btnPair(row.id,'end')}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
+      <input type="number" value="${row.convRate||1.000}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
+        oninput="updateExtraRow('${row.id}','convRate',parseFloat(this.value)||1)">
+      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
+      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
+        oninput="updateExtraRow('${row.id}','months',this.value===''?'':parseFloat(this.value)||'')">
+      <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:13px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 2px;line-height:1" title="삭제">×</button>
+    </div>`;
+  });
+
+  // ── + 감리원 추가 버튼 ──
+  settingsHtml += `<div style="padding:5px 0 2px">
+    <button onclick="addExtraDeployRow()" style="font-size:11px;padding:2px 10px;border:1px dashed #60a5fa;border-radius:4px;background:#eff6ff;color:#1d4ed8;cursor:pointer">+ 감리원 추가</button>
+  </div>`;
+
   settingsEl.innerHTML = settingsHtml;
 }
 
@@ -4659,11 +4769,10 @@ function renderDeployTable() {
   roles.filter(r => r.placement !== '비상주').forEach(r => {
     const p = personnel[r.id];
     const ds = deployState[r.id] || {};
-    const auto = getDeployAutoRules(r);
-    const rs = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
-    const re = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
-      const dsM_f = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
-      const m_f = dsM_f !== null ? dsM_f : ((rs && re) ? calcDeployMonths(rs, re) : 0);
+    const rs = parseYMShort(ds.startYM) || start;
+    const re = parseYMShort(ds.endYM)   || end;
+    const dsM_f = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+    const m_f = dsM_f !== null ? dsM_f : ((rs && re) ? calcDeployMonths(rs, re) : 0);
     const grade = p.info.appliedGrade || p.info.grade || '중급';
     const defRate = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
@@ -4680,6 +4789,14 @@ function renderDeployTable() {
     const cr_e1 = (ds_e1.convRate !== undefined && ds_e1.convRate !== '') ? parseFloat(ds_e1.convRate) : 1.000;
     residentConvTotal += floorAt3(m_e1 * cr_e1);
   }
+  // 직접 추가 감리원 상주 인월수 포함
+  extraDeployRows.filter(row => row.placement !== '비상주').forEach(row => {
+    const rs = parseYMShort(row.startYM) || start;
+    const re = parseYMShort(row.endYM)   || end;
+    const dsM = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
+    const m = dsM !== null ? dsM : calcDeployMonths(rs, re);
+    residentConvTotal += floorAt3(m * (row.convRate || 1.000));
+  });
   // 비상주 상한: 법정인월수 × 15% (제6조②)
   const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
   const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
@@ -4691,9 +4808,8 @@ function renderDeployTable() {
   roles.forEach(r => {
     const p    = personnel[r.id];
     const ds   = deployState[r.id] || {};
-    const auto = getDeployAutoRules(r);
-    const rs   = auto.lockStart ? start : (parseYMShort(ds.startYM) || start);
-    const re   = auto.lockEnd   ? end   : (parseYMShort(ds.endYM)   || end);
+    const rs   = parseYMShort(ds.startYM) || start;
+    const re   = parseYMShort(ds.endYM)   || end;
 
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
@@ -4751,6 +4867,30 @@ function renderDeployTable() {
     rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'-',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:cr_e, convPM:cpm_e, note:note_e });
   }
+
+  // ── 직접 추가 감리원 행 ──
+  extraDeployRows.forEach(row => {
+    const rs_c = parseYMShort(row.startYM) || start;
+    const re_c = parseYMShort(row.endYM)   || end;
+    const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
+    const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
+    const cr_c   = row.convRate || 1.000;
+    let cpm_c = floorAt3(actM_c * cr_c);
+    if (row.placement === '비상주') {
+      cpm_c = Math.min(cpm_c, nonresMax); cpm_c = floorAt3(cpm_c); nonresPM += cpm_c;
+    }
+    totalConvPM += cpm_c;
+    const gantt_c = allMonths.map(({ y, m }) => {
+      const inside = (y > rs_c.y || (y === rs_c.y && m >= rs_c.m)) && (y < re_c.y || (y === re_c.y && m <= re_c.m));
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
+    }).join('');
+    const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
+    const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
+    const mDisp_c = dsM_c !== null ? dsM_c.toFixed(3) : (Number.isInteger(actM_c) ? actM_c : actM_c.toFixed(3));
+    rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: row.field || '건축',
+      name: row.name || '-', grade: row.grade || '-',
+      gantt: gantt_c, monthsDisp: mDisp_c, convRate: cr_c, convPM: cpm_c, note: note_c });
+  });
 
   // 구분 column: structLabel이 연속으로 같으면 합치기 (분야별 전체를 하나로)
   const structSpans = rowDataArr.map((d, i) => {
