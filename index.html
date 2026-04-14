@@ -4564,7 +4564,7 @@ function renderDeploySettings() {
              oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;renderDeployTable()"
              onblur="completeDate('${r.id}','end',this)">`}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
-      <input type="number" value="${convRate}" step="0.01" min="0.1" max="9.99" style="${NSTY}"
+      <input type="number" value="${convRate}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;renderDeployTable()">
     </div>`;
   }).join('');
@@ -4705,7 +4705,7 @@ function renderDeployTable() {
       <td style="${TD}">${escHtml(d.grade)}</td>
       ${d.gantt}
       <td style="${TD}">${d.monthsDisp}</td>
-      <td style="${TD}">${d.convRate.toFixed(2)}</td>
+      <td style="${TD}">${d.convRate.toFixed(3)}</td>
       <td style="${TD}">${d.convPM.toFixed(3)}</td>
       <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(d.note)}</td>
     </tr>`;
@@ -5696,7 +5696,7 @@ function renderByeolchum3() {
         <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
         <td ${tdS} style="font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
         <td ${tdS}>${c.days||0}</td>
-        <td ${tdS}>${rate.toFixed(1)}</td>
+        <td ${tdS}>${rate.toFixed(3)}</td>
         <td ${tdS}>${convDays}</td>
         ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="font-weight:700">${escHtml(p.info.appliedGrade||p.info.grade||'')}</td>
         <td rowspan="${rowCount}" ${tdS} style="font-weight:700">${(()=>{
