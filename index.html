@@ -4645,7 +4645,13 @@ function renderDeploySettings() {
   }).join('');
 
   // ── 직접 추가한 감리원 행 (추가배치 앞) ──
-  extraDeployRows.forEach(row => {
+  // 토목 순번 사전 계산: 토목 선택 extra row 중 몇 번째인지 (1→전, 2→후)
+  let civExtraIdx = 0;
+  const civExtraLabel = extraDeployRows.map(r => {
+    if (r.field === '토목') { civExtraIdx++; return civExtraIdx === 1 ? '토목(전)' : '토목(후)'; }
+    return r.field || '건축';
+  });
+  extraDeployRows.forEach((row, rowIdx) => {
     const startD = row.startYM || defStartDisp;
     const endD   = row.endYM   || defEndDisp;
     const rsE = parseYMShort(startD) || projStart;
@@ -4655,11 +4661,13 @@ function renderDeploySettings() {
     const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','기계설비','전기','소방'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
+    // 토목인 경우 (전)/(후) 표시
+    const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
     settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
       <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center" title="감리원 성명"
         oninput="updateExtraRow('${row.id}','name',this.value)">
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
-      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
       <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD"
         oninput="updateExtraRow('${row.id}','startYM',this.value)"
@@ -4834,6 +4842,8 @@ function renderDeployTable() {
   });
 
   // ── 직접 추가 감리원 행 (환산비·인월수 '-' 표기, 합계 제외) ──
+  // 토목 순번: 1→토목(전), 2→토목(후)
+  let civExtraIdxT = 0;
   extraDeployRows.forEach(row => {
     const rs_c = parseYMShort(row.startYM) || start;
     const re_c = parseYMShort(row.endYM)   || end;
@@ -4846,7 +4856,9 @@ function renderDeployTable() {
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
     const mDisp_c = dsM_c !== null ? dsM_c.toFixed(3) : (Number.isInteger(actM_c) ? actM_c : actM_c.toFixed(3));
-    rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: row.field || '건축',
+    let fieldLabel_c = row.field || '건축';
+    if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraIdxT === 1 ? '토목(전)' : '토목(후)'; }
+    rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: fieldLabel_c,
       name: row.name || '-', grade: row.grade || '-',
       gantt: gantt_c, monthsDisp: mDisp_c, convRate: '-', convPM: '-', note: note_c, noConv: true });
   });
