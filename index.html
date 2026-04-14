@@ -1201,19 +1201,22 @@ tbody tr:hover td { background: var(--ci-light); }
       <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">기술개발실적 배점 2점 (별표2) — 특허 보유 시 가점</span>
     </div>
     <div class="info-note" style="margin-bottom:12px;">
-      ※ 특허 만료 전 알림기간(개월) 이내 진입 시 주의 표시
+      ※ 건당 0.5점, 상한 2.0점 (4건 만점) &nbsp;|&nbsp; 경과기간 가중치: 3년미만 100% → 3~6년 80% → 6~10년 60% → 10년↑ 0점<br>
+      ※ 알림기간(월) 이내에 점수 하락 또는 만료 예정이면 주의 표시
     </div>
     <div id="patentTable">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
           <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
-            <th style="padding:8px 10px;text-align:left;width:15%">특허번호</th>
-            <th style="padding:8px 10px;text-align:left;width:25%">내용</th>
-            <th style="padding:8px 10px;text-align:center;width:14%">등록일</th>
-            <th style="padding:8px 10px;text-align:center;width:14%">만료일</th>
-            <th style="padding:8px 10px;text-align:center;width:10%">알림(월)</th>
-            <th style="padding:8px 10px;text-align:center;width:10%">상태</th>
-            <th style="padding:8px 10px;text-align:center;width:12%">관리</th>
+            <th style="padding:8px 10px;text-align:left;width:13%">특허번호</th>
+            <th style="padding:8px 10px;text-align:left;width:20%">내용</th>
+            <th style="padding:8px 10px;text-align:center;width:11%">등록일</th>
+            <th style="padding:8px 10px;text-align:center;width:11%">만료일</th>
+            <th style="padding:8px 10px;text-align:center;width:8%">현재점수</th>
+            <th style="padding:8px 10px;text-align:center;width:11%">다음 하락</th>
+            <th style="padding:8px 10px;text-align:center;width:7%">알림(월)</th>
+            <th style="padding:8px 10px;text-align:center;width:8%">상태</th>
+            <th style="padding:8px 10px;text-align:center;width:11%">관리</th>
           </tr>
         </thead>
         <tbody id="patentRows"></tbody>
@@ -5864,10 +5867,14 @@ function updateAlertBadge() {
     if (diff <= 180) count++;
   });
   getPatentData().forEach(r => {
-    if (!r.expiryDate) return;
     const alertDays = (r.alertMonths || 6) * 30;
-    const diff = Math.ceil((new Date(r.expiryDate) - today) / 86400000);
-    if (diff <= alertDays) count++;
+    const ps = calcPatentScore(r.regDate);
+    if (ps.weight === 0) { count++; return; }
+    if (ps.nextDropDays !== null && ps.nextDropDays <= alertDays) { count++; return; }
+    if (r.expiryDate) {
+      const diff = Math.ceil((new Date(r.expiryDate) - today) / 86400000);
+      if (diff <= alertDays) count++;
+    }
   });
   let badge = btn.querySelector('.alert-badge');
   if (count > 0) {
@@ -5956,16 +5963,56 @@ function deleteTrainingRow(i) {
 }
 
 // ── 특허·기술개발 ──────────────────────────────────────
+// 경과기간 가중치 및 다음 점수 하락일 계산
+function calcPatentScore(regDateStr) {
+  if (!regDateStr) return { score: null, weight: null, nextDropDate: null, nextDropDays: null };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const reg = new Date(regDateStr);
+  const years = (today - reg) / (365.25 * 86400000);
+  let weight, nextDropDate;
+  if (years < 3) {
+    weight = 1.0;
+    nextDropDate = new Date(reg); nextDropDate.setFullYear(nextDropDate.getFullYear() + 3);
+  } else if (years < 6) {
+    weight = 0.8;
+    nextDropDate = new Date(reg); nextDropDate.setFullYear(nextDropDate.getFullYear() + 6);
+  } else if (years < 10) {
+    weight = 0.6;
+    nextDropDate = new Date(reg); nextDropDate.setFullYear(nextDropDate.getFullYear() + 10);
+  } else {
+    weight = 0; nextDropDate = null;
+  }
+  const score = Math.round(0.5 * weight * 100) / 100;
+  const nextDropDays = nextDropDate ? Math.ceil((nextDropDate - today) / 86400000) : null;
+  const nextDropStr  = nextDropDate ? nextDropDate.toISOString().slice(0, 10) : null;
+  return { score, weight, nextDropStr, nextDropDays };
+}
+
 function renderPatentRows() {
   const tbody = document.getElementById('patentRows');
   if (!tbody) return;
   const rows = getPatentData();
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;color:#94a3b8;">특허 추가 버튼으로 항목을 등록하세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#94a3b8;">특허 추가 버튼으로 항목을 등록하세요.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map((r, i) => {
-    const st = calcAlertStatus(r.expiryDate, r.alertMonths || 6);
+    const ps = calcPatentScore(r.regDate);
+    const alertDays = (r.alertMonths || 6) * 30;
+    // 상태: 0점(10년↑), 점수하락 임박, 만료일 임박, 정상
+    let stBg, stColor, stLabel;
+    if (ps.weight === 0) {
+      stBg = '#dc2626'; stColor = '#fff'; stLabel = '0점';
+    } else if (ps.nextDropDays !== null && ps.nextDropDays <= alertDays) {
+      stBg = '#fef3c7'; stColor = '#7c2d12'; stLabel = `하락 D-${ps.nextDropDays}`;
+    } else if (r.expiryDate) {
+      const expSt = calcAlertStatus(r.expiryDate, r.alertMonths || 6);
+      stBg = expSt.bg; stColor = expSt.color; stLabel = expSt.label;
+    } else {
+      stBg = '#dcfce7'; stColor = '#166534'; stLabel = '정상';
+    }
+    const scoreDisplay = ps.score !== null ? `<strong>${ps.score.toFixed(2)}</strong><span style="font-size:10px;color:#94a3b8;">점 (${Math.round((ps.weight||0)*100)}%)</span>` : '-';
+    const nextDropDisplay = ps.nextDropStr ? `<span style="font-size:11px;">${ps.nextDropStr}<br><span style="color:#64748b;">D-${ps.nextDropDays}</span></span>` : '<span style="color:#dc2626;font-size:11px;">해당없음</span>';
     return `<tr style="border-bottom:1px solid #e2e8f0;">
       <td style="padding:7px 10px;">
         <input value="${r.patentNo||''}" placeholder="특허 제호" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px 6px;font-size:12px;"
@@ -5976,19 +6023,21 @@ function renderPatentRows() {
           onchange="updatePatentRow(${i},'content',this.value)">
       </td>
       <td style="padding:7px 10px;text-align:center;">
-        <input type="date" value="${r.regDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+        <input type="date" value="${r.regDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:11px;"
           onchange="updatePatentRow(${i},'regDate',this.value)">
       </td>
       <td style="padding:7px 10px;text-align:center;">
-        <input type="date" value="${r.expiryDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+        <input type="date" value="${r.expiryDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:11px;"
           onchange="updatePatentRow(${i},'expiryDate',this.value)">
       </td>
+      <td style="padding:7px 6px;text-align:center;">${scoreDisplay}</td>
+      <td style="padding:7px 6px;text-align:center;">${nextDropDisplay}</td>
       <td style="padding:7px 10px;text-align:center;">
-        <input type="number" value="${r.alertMonths||6}" min="1" max="24" style="width:52px;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;text-align:center;"
+        <input type="number" value="${r.alertMonths||6}" min="1" max="24" style="width:46px;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;text-align:center;"
           onchange="updatePatentRow(${i},'alertMonths',+this.value)">
       </td>
-      <td style="padding:7px 10px;text-align:center;">
-        <span style="display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${st.bg};color:${st.color};">${st.label}</span>
+      <td style="padding:7px 6px;text-align:center;">
+        <span style="display:inline-block;padding:3px 6px;border-radius:12px;font-size:11px;font-weight:700;background:${stBg};color:${stColor};">${stLabel}</span>
       </td>
       <td style="padding:7px 10px;text-align:center;">
         <button onclick="deletePatentRow(${i})" style="padding:3px 7px;background:#fee2e2;color:#dc2626;border:none;border-radius:4px;cursor:pointer;font-size:12px;">삭제</button>
