@@ -4616,16 +4616,42 @@ function removeExtraDeployRow(id) {
   extraDeployRows = extraDeployRows.filter(r => r.id !== id);
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
+// 분야 선택 시 해당 분야별 감리원의 배치기간 반환 (skipRowId: 본인 제외)
+function getFieldDeployPeriod(fieldName, skipRowId) {
+  const pj = getProjectData();
+  const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
+  const fmt6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+  const defS = ps ? fmt6(ps.y, ps.m, ps.d || 1) : '';
+  const defE = pe ? fmt6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '';
+  // fieldName → ROLES.field 매핑
+  const roleFieldMap = { '건축': '건축', '토목': '토목', '기계설비': '설비' };
+  const roleField = roleFieldMap[fieldName];
+  if (!roleField) return { startYM: defS, endYM: defE };
+  const candidates = getAllRoles().filter(r => r.placement === '분야별' && r.field === roleField);
+  if (!candidates.length) return { startYM: defS, endYM: defE };
+  // 토목처럼 복수 role이 있을 때: 이미 같은 분야 배정된 extra 수 기준으로 role 선택
+  const existingCount = extraDeployRows.filter(r => r.id !== skipRowId && r.field === fieldName).length;
+  const role = candidates[existingCount] || candidates[0];
+  const ds = deployState[role.id] || {};
+  return { startYM: ds.startYM || defS, endYM: ds.endYM || defE };
+}
 function updateExtraRow(id, field, value) {
   const row = extraDeployRows.find(r => r.id === id); if (!row) return;
   row[field] = value;
   if (field === 'grade') row.convRate = CONV_RATE_DEFAULTS[value] ?? 1.000;
   if (field === 'startYM' || field === 'endYM') row.months = '';
+  if (field === 'field') {
+    const period = getFieldDeployPeriod(value, id);
+    row.startYM = period.startYM;
+    row.endYM = period.endYM;
+    row.months = '';
+    setTimeout(() => renderDeploySettings(true), 0); // dropdown blur 후 강제 재렌더
+  }
   triggerAutoSave(); renderDeployTable();
 }
-function renderDeploySettings() {
+function renderDeploySettings(force = false) {
   const settingsEl = document.getElementById('deployPersonSettings');
-  if (!settingsEl || settingsEl.contains(document.activeElement)) return;
+  if (!settingsEl || (!force && settingsEl.contains(document.activeElement))) return;
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
