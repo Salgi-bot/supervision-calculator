@@ -4611,7 +4611,7 @@ function addExtraDeployRow() {
   const pj = getProjectData();
   const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
-  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'분야별', field:'건축', grade:'특급',
+  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'비평가', field:'건축', grade:'특급',
     startYM: ps ? _f6(ps.y, ps.m, ps.d || 1) : '',
     endYM:   pe ? _f6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '',
     convRate: 1.139, months: '' });
@@ -4657,10 +4657,6 @@ function updateExtraRow(id, field, value) {
 function renderDeploySettings(force = false) {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || (!force && settingsEl.contains(document.activeElement))) return;
-  // 이름 없는 비평가 행 자동 삭제
-  const _prevLen = extraDeployRows.length;
-  extraDeployRows = extraDeployRows.filter(r => (r.name || '').trim() || r.placement !== '비평가');
-  if (extraDeployRows.length < _prevLen) triggerAutoSave();
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
@@ -4854,10 +4850,6 @@ function renderDeploySettings(force = false) {
 
 function renderDeployTable() {
   syncPersonInfo();
-  // 이름 없는 비평가 행 자동 삭제 (설정 패널도 동기화)
-  const _prevLenDT = extraDeployRows.length;
-  extraDeployRows = extraDeployRows.filter(r => (r.name || '').trim() || r.placement !== '비평가');
-  if (extraDeployRows.length < _prevLenDT) { triggerAutoSave(); renderDeploySettings(true); }
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   const lawMonths = document.getElementById('deployLawMonths')?.value || '';
@@ -5179,7 +5171,7 @@ function renderCalcResult() {
   });
   const nonresMax2 = legalPM ? floorAt3(legalPM * 0.15) : 0; // 제6조②: 법정인월수 × 15%
 
-  let supervisorRows = '', totalConv = 0, nonresConv = 0;
+  let supervisorRows = '', totalConv = 0, nonresConv = 0, nonresRemaining2 = nonresMax2;
 
   roles.forEach(r => {
     const p  = personnel[r.id];
@@ -5193,8 +5185,10 @@ function renderCalcResult() {
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
     let convPM = floorAt3(actualMonths2 * convRate);
     if (r.placement==='비상주') {
-      convPM = floorAt3(Math.min(convPM, nonresMax2));
+      const rem2 = nonresMax2 > 0 ? Math.max(0, nonresRemaining2) : convPM;
+      convPM = floorAt3(Math.min(convPM, rem2));
       nonresConv += convPM;
+      nonresRemaining2 -= convPM;
     }
     totalConv += convPM;
     const structLabel = r.placement==='총괄'?'총괄':r.placement==='비상주'?'비상주':r.isNew?'신규':'분야별';
@@ -5220,7 +5214,7 @@ function renderCalcResult() {
   const isOk = totalConvFixed >= lawMonthsInput;
   const okSty  = 'padding:2px 10px;border-radius:3px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0';
   const ngSty  = 'padding:2px 10px;border-radius:3px;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca';
-  const nonresRate = totalConvFixed>0 ? (nonresConv/totalConvFixed*100).toFixed(1) : '0.0';
+  const nonresRate = lawMonthsInput>0 ? (nonresConv/lawMonthsInput*100).toFixed(1) : '0.0';
   const nonresOk = parseFloat(nonresRate)<=15;
   const TH2='border:1px solid #ccc;padding:5px 8px;font-size:8.5pt;background:#f5f5f5;font-weight:700;text-align:center';
 
@@ -5266,7 +5260,7 @@ function renderCalcResult() {
           </td></tr>
       <tr><td style="border:1px solid #ccc;padding:6px 10px;background:#f5f5f5;font-weight:700">⑥ 비상주 배치율</td>
           <td style="border:1px solid #ccc;padding:6px 10px">
-            비상주 ${nonresConv.toFixed(3)}인·월&ensp;/&ensp;총 투입 ${totalConvFixed.toFixed(3)}인·월 = ${nonresRate}%
+            비상주 ${nonresConv.toFixed(3)}인·월&ensp;/&ensp;법정 ${lawMonthsInput.toFixed(3)}인·월 × 15% = ${nonresRate}%
             <span style="margin-left:10px;${nonresOk?okSty:ngSty}">${nonresOk?'✓ 15% 이내':'✗ 15% 초과'}</span>
           </td></tr>
     </table>
