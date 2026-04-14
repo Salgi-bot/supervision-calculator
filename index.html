@@ -4454,11 +4454,10 @@ function getRoleFieldLabel(r) {
   if (r.id === 'civil2') return '토목(후)';
   return personnel[r.id]?.info?.field || r.field || '';
 }
-// 배치기간 자동 잠금 규칙 (기본 5역할만, 추가 감리원은 수동)
+// 배치기간 자동 잠금 규칙
+// 총괄·비상주만 고정(readonly), 나머지는 모두 편집 가능 + 공사기간 기본값 표시
 function getDeployAutoRules(r) {
-  if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true,  lockEnd:true  };
-  if (r.id === 'civil')                                   return { lockStart:true,  lockEnd:false }; // 전: 시작=공사시작
-  if (r.id === 'civil2' || r.id === 'mech')              return { lockStart:false, lockEnd:true  }; // 후·설비: 종료=공사종료
+  if (r.placement === '총괄' || r.placement === '비상주') return { lockStart:true, lockEnd:true };
   return { lockStart:false, lockEnd:false };
 }
 // 환산비 기본값 — 한국건설엔지니어링협회 2026년도 건설사업관리기술인 노임 기준 (중급 350,580원 = 1.000)
@@ -4532,18 +4531,19 @@ function renderDeploySettings() {
   const ISTY = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   const ISTY_LOCK = ISTY + ';background:#f0f0f0;color:#888;cursor:default';
   const NSTY = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  settingsEl.innerHTML = roles.map(r => {
+  // fmt6, 기본 날짜 표시값을 map 바깥에서 계산 (추가배치 행에서도 재사용)
+  const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
+  const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, 1) : '';
+  const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   lastDay(projEnd.y, projEnd.m)) : '';
+
+  let settingsHtml = roles.map(r => {
     const p  = personnel[r.id];
     const ds = deployState[r.id] || {};
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
     const auto     = getDeployAutoRules(r);
-    // 잠금 필드: 일까지 표시 (시작=1일, 종료=말일)
-    const fmt6 = (y, m, d) => String(y).slice(-2) + String(m).padStart(2,'0') + String(d).padStart(2,'0');
     // 수동 미설정 시 공사기간 날짜를 기본값으로 표시
-    const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, 1) : '';
-    const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   lastDay(projEnd.y, projEnd.m)) : '';
     const startDisp = auto.lockStart ? defStartDisp : (ds.startYM || defStartDisp);
     const endDisp   = auto.lockEnd   ? defEndDisp   : (ds.endYM   || defEndDisp);
     // 개월값: 저장값 우선, 없으면 날짜 기반 자동 계산
@@ -4576,6 +4576,40 @@ function renderDeploySettings() {
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';renderDeployTable()">
     </div>`;
   }).join('');
+
+  // ── 추가배치 감리원 행 (300세대 이상 자동 추가) ──
+  const sizeClassSetting = document.getElementById('pj_sizeClass')?.value || '';
+  if (sizeClassSetting !== '300미만') {
+    const ds_e = deployState['extra_arch'] || {};
+    const convRate_e = (ds_e.convRate !== undefined && ds_e.convRate !== '') ? ds_e.convRate : 1.000;
+    const startDisp_e = ds_e.startYM || defStartDisp;
+    const endDisp_e   = ds_e.endYM   || defEndDisp;
+    const rsDisp_e = parseYMShort(startDisp_e) || projStart;
+    const reDisp_e = parseYMShort(endDisp_e)   || projEnd;
+    const calcM_e  = (rsDisp_e && reDisp_e) ? calcDeployMonths(rsDisp_e, reDisp_e) : 0;
+    const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? calcM_e.toFixed(3) : '');
+    settingsHtml += `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4">
+      <span style="min-width:90px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
+      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:60px">(추가배치·-)</span>
+      <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${ISTY}"
+        title="YYMMDD(260101) 또는 YYYY.MM.DD"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';renderDeployTable()"
+        onblur="completeDate('extra_arch','start',this)">
+      <span style="font-size:10px;color:#666">~</span>
+      <input type="text" value="${endDisp_e}" placeholder="281231" maxlength="10" style="${ISTY}"
+        title="YYMMDD(281231) 또는 YYYY.MM.DD"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';renderDeployTable()"
+        onblur="completeDate('extra_arch','end',this)">
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">환산비</span>
+      <input type="number" value="${convRate_e}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].convRate=parseFloat(this.value)||1;renderDeployTable()">
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:4px">개월</span>
+      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;"
+        title="비워두면 날짜 기반 자동 계산"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';renderDeployTable()">
+    </div>`;
+  }
+  settingsEl.innerHTML = settingsHtml;
 }
 
 function renderDeployTable() {
@@ -4635,6 +4669,17 @@ function renderDeployTable() {
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
     residentConvTotal += floorAt3(m_f * cr);
   });
+  // 추가배치 상주 인월수 포함
+  const sizeClass_1p = document.getElementById('pj_sizeClass')?.value || '';
+  if (sizeClass_1p !== '300미만') {
+    const ds_e1 = deployState['extra_arch'] || {};
+    const rs_e1 = parseYMShort(ds_e1.startYM) || start;
+    const re_e1 = parseYMShort(ds_e1.endYM)   || end;
+    const dsM_e1 = (ds_e1.months !== undefined && ds_e1.months !== '' && !isNaN(parseFloat(ds_e1.months))) ? parseFloat(ds_e1.months) : null;
+    const m_e1 = dsM_e1 !== null ? dsM_e1 : calcDeployMonths(rs_e1, re_e1);
+    const cr_e1 = (ds_e1.convRate !== undefined && ds_e1.convRate !== '') ? parseFloat(ds_e1.convRate) : 1.000;
+    residentConvTotal += floorAt3(m_e1 * cr_e1);
+  }
   // 비상주 상한: 법정인월수 × 15% (제6조②)
   const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
   const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
@@ -4683,6 +4728,29 @@ function renderDeployTable() {
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
+
+  // ── 추가배치 감리원 행 (300세대 이상 자동 추가, 별지1호와 동일 순서) ──
+  const sizeClass_d = document.getElementById('pj_sizeClass')?.value || '';
+  if (sizeClass_d !== '300미만') {
+    const ds_e   = deployState['extra_arch'] || {};
+    const rs_e   = parseYMShort(ds_e.startYM) || start;
+    const re_e   = parseYMShort(ds_e.endYM)   || end;
+    const dsM_e  = (ds_e.months !== undefined && ds_e.months !== '' && !isNaN(parseFloat(ds_e.months))) ? parseFloat(ds_e.months) : null;
+    const actM_e = dsM_e !== null ? dsM_e : calcDeployMonths(rs_e, re_e);
+    const cr_e   = (ds_e.convRate !== undefined && ds_e.convRate !== '') ? parseFloat(ds_e.convRate) : 1.000;
+    const cpm_e  = floorAt3(actM_e * cr_e);
+    totalConvPM += cpm_e;
+    const gantt_e = allMonths.map(({ y, m }) => {
+      const inside = (y > rs_e.y || (y === rs_e.y && m >= rs_e.m)) && (y < re_e.y || (y === re_e.y && m <= re_e.m));
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
+    }).join('');
+    const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
+    const note_e = (ds_e.note !== undefined && ds_e.note !== '') ? ds_e.note
+                   : `${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
+    const mDisp_e = dsM_e !== null ? dsM_e.toFixed(3) : (Number.isInteger(actM_e) ? actM_e : actM_e.toFixed(3));
+    rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'-',
+      gantt:gantt_e, monthsDisp:mDisp_e, convRate:cr_e, convPM:cpm_e, note:note_e });
+  }
 
   // 구분 column: structLabel이 연속으로 같으면 합치기 (분야별 전체를 하나로)
   const structSpans = rowDataArr.map((d, i) => {
