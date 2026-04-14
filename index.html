@@ -1151,6 +1151,9 @@ tbody tr:hover td { background: var(--ci-light); }
         <input type="text" id="deployLawMonths" placeholder="00.0" style="width:56px;font-size:12px" oninput="renderDeployTable()">
         <span style="font-size:11px;color:#666">인·월</span>
         <button onclick="autoCalcLegalMonths()" style="font-size:11px;padding:2px 8px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;white-space:nowrap">공사비로 자동계산</button>
+        <label style="white-space:nowrap;margin-left:8px">투입 인·월수</label>
+        <span id="deployTotalConvPM" style="font-weight:600;color:#1d4ed8">—</span>
+        <span style="font-size:11px;color:#666">인·월</span>
       </div>
       <button class="btn" onclick="printDeployOnly()" style="margin-left:auto">🖨 배치계획표 인쇄</button>
       <button class="btn" onclick="printCalcResult()" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🖨 산출근거 인쇄</button>
@@ -4702,7 +4705,7 @@ function renderDeploySettings(force = false) {
     const eErr = !isChief && cr.end   && endDisp   && endDisp   > cr.end;
     const sTitle = sErr ? `총괄 시작일(${cr.start}) 이전` : 'YYMMDD 또는 YYYY.MM.DD';
     const eTitle = eErr ? `총괄 종료일(${cr.end}) 이후`   : 'YYMMDD 또는 YYYY.MM.DD';
-    return `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
       <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(${r.placement}·${grade})</span>
       <input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${sErr?ISTY_ERR:ISTY}" title="${sTitle}"
@@ -4745,7 +4748,7 @@ function renderDeploySettings(force = false) {
     const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
     const sErrR = cr.start && startD && startD < cr.start;
     const eErrR = cr.end   && endD   && endD   > cr.end;
-    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
+    settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
       <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center" title="감리원 성명"
         oninput="updateExtraRow('${row.id}','name',this.value)">
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
@@ -4783,7 +4786,7 @@ function renderDeploySettings(force = false) {
     const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? calcM_e.toFixed(3) : '');
     const sErrE = cr.start && startDisp_e && startDisp_e < cr.start;
     const eErrE = cr.end   && endDisp_e   && endDisp_e   > cr.end;
-    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
+    settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
       <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(추가배치·-)</span>
       <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${sErrE?ISTY_ERR:ISTY}" title="${sErrE?`총괄 시작일(${cr.start}) 이전`:'YYMMDD 또는 YYYY.MM.DD'}"
@@ -4808,6 +4811,8 @@ function renderDeploySettings(force = false) {
 
 function renderDeployTable() {
   syncPersonInfo();
+  // 이름 없는 비평가 행 자동 삭제
+  extraDeployRows = extraDeployRows.filter(r => (r.name || '').trim() || r.placement !== '비평가');
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   const lawMonths = document.getElementById('deployLawMonths')?.value || '';
@@ -4963,7 +4968,7 @@ function renderDeployTable() {
     const note_e = (ds_e.note !== undefined && ds_e.note !== '') ? ds_e.note
                    : `${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
     const mDisp_e = fmtMonths(actM_e);
-    rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'-',
+    rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
   }
 
@@ -5019,6 +5024,10 @@ function renderDeployTable() {
 
   const nonresRate = (_lp4cap > 0 && nonresPM > 0) ? (nonresPM / _lp4cap * 100).toFixed(1) : '0.0';
   const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
+
+  // 투입 인·월수 표시 (extra_arch 제외한 합계)
+  const tcEl = document.getElementById('deployTotalConvPM');
+  if (tcEl) tcEl.textContent = fmtMonths(totalConvPM);
 
   document.getElementById('deployTablePreview').innerHTML = `
   <div class="a4-preview" id="deployDoc" style="padding:38px 30px 12px 30px;min-height:0;overflow-x:auto">
