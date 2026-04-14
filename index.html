@@ -4442,6 +4442,8 @@ function parseYMShort(s) {
 }
 function lastDay(y, m) { return new Date(y, m, 0).getDate(); }
 function fmtYMD(y, m, d) { return String(y).slice(-2)+'.'+String(m).padStart(2,'0')+'.'+String(d).padStart(2,'0'); }
+// 개월 표시: toFixed(3) 후 불필요한 trailing zero 제거 (31.000→31, 24.900→24.9, 24.903→24.903)
+function fmtMonths(v) { return parseFloat(v.toFixed(3)).toString(); }
 // 실제 일수 기반 인·월수 계산 (부분월 포함)
 function calcDeployMonths(rs, re) {
   const sd = rs.d || 1;
@@ -4915,7 +4917,7 @@ function renderDeployTable() {
                         r.placement === '비평가' ? '비평가' :
                         r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r);
-    const monthsDisp = Number.isInteger(actualMonths) ? actualMonths : actualMonths.toFixed(3);
+    const monthsDisp = fmtMonths(actualMonths);
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
@@ -4934,7 +4936,7 @@ function renderDeployTable() {
     }).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
-    const mDisp_c = dsM_c !== null ? dsM_c.toFixed(3) : (Number.isInteger(actM_c) ? actM_c : actM_c.toFixed(3));
+    const mDisp_c = fmtMonths(actM_c);
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraIdxT === 1 ? '토목(전)' : '토목(후)'; }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
@@ -4960,7 +4962,7 @@ function renderDeployTable() {
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
     const note_e = (ds_e.note !== undefined && ds_e.note !== '') ? ds_e.note
                    : `${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
-    const mDisp_e = dsM_e !== null ? dsM_e.toFixed(3) : (Number.isInteger(actM_e) ? actM_e : actM_e.toFixed(3));
+    const mDisp_e = fmtMonths(actM_e);
     rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'-',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
   }
@@ -5137,7 +5139,7 @@ function renderCalcResult() {
     const sd2 = rs ? (rs.d || 1) : 1;
     const ed2 = re ? (re.d || lastDay(re.y, re.m)) : 0;
     const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,sd2)}~\n${fmtYMD(re.y,re.m,ed2)}` : '—';
-    const monthsDisp2 = Number.isInteger(actualMonths2) ? actualMonths2 : actualMonths2.toFixed(3);
+    const monthsDisp2 = fmtMonths(actualMonths2);
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
     supervisorRows+=`<tr>
       <td style="${TD2}">${structLabel}</td>
