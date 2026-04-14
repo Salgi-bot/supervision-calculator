@@ -4087,14 +4087,19 @@ function renderByeolji2Cover() {
 
   // 300세대 미만: 건축 값 0, 토목·기타설비가 건축 점수 50%씩 가산
   const is300미만 = _mode === '미만';
-  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e','fa_ad'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
+  ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e','fa_ad','fa_r','fa_qb'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
+  if (!is300미만) {
+    Object.keys(b2EgState).forEach(k => {
+      if (['300세대 미만 — 해당없음','건축 배점 토목·기타설비에 각 50% 배분'].includes(b2EgState[k])) delete b2EgState[k];
+    });
+  }
   const fcBase    = !!(personnel['civil']?.info?.name && (personnel['civil']?.careers||[]).length>0);
   const faGrade   = is300미만 ? 0 : arch.gradeScore;
-  const faExp     = is300미만 ? 0 : arch.expScore;
+  const faExp     = is300미만 ? 0 : 7;
   const fcGradeB  = fcBase ? civil.gradeScore : 2;
   const fmGradeB  = mech.gradeScore;
-  const fcExpB    = fcBase ? civil.expScore : 7;
-  const fmExpB    = mech.expScore;
+  const fcExpB    = 7;
+  const fmExpB    = 7;
   const fcGrade   = is300미만 ? fcGradeB + arch.gradeScore * 0.5 : fcGradeB;
   const fmGrade   = is300미만 ? fmGradeB + arch.gradeScore * 0.5 : fmGradeB;
   const fcExp     = is300미만 ? fcExpB   + arch.expScore   * 0.5 : fcExpB;
