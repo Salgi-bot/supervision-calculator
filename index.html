@@ -2366,6 +2366,9 @@ function calcConstructionDays() {
   } else {
     el.value = '';
   }
+  // 공사기간 변경 시 배치계획표 날짜 기본값 갱신
+  renderDeploySettings();
+  renderDeployTable();
 }
 
 
@@ -4588,15 +4591,15 @@ function renderDeploySettings() {
 
   const ISTY  = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
   const NSTY  = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  const BSTY  = 'height:16px;width:15px;padding:0;font-size:9px;border:1px solid #bbb;border-radius:2px;background:#f8f8f8;cursor:pointer;line-height:1;display:block';
+  const BSTY  = 'height:16px;width:17px;padding:0;font-size:9px;border:1px solid #bbb;border-radius:2px;background:#f8f8f8;cursor:pointer;line-height:1';
   const SELSTY = 'font-size:10px;padding:1px 2px;border:1px solid #ccc;border-radius:3px;height:20px;background:#fff';
 
-  // ↑↓ 버튼 (날짜 ±1개월 조정)
+  // ◀▶ 버튼 (날짜 ±1개월 조정, 수평 배치)
   const btnPair = (roleId, field) =>
-    `<div style="display:inline-flex;flex-direction:column;gap:1px;vertical-align:middle">
-      <button onclick="adjustDeployDate('${roleId}','${field}',1)" style="${BSTY}" title="+1개월">▲</button>
-      <button onclick="adjustDeployDate('${roleId}','${field}',-1)" style="${BSTY}" title="-1개월">▼</button>
-    </div>`;
+    `<span style="display:inline-flex;flex-direction:row;gap:1px;vertical-align:middle">
+      <button onclick="adjustDeployDate('${roleId}','${field}',-1)" style="${BSTY}" title="-1개월">◀</button>
+      <button onclick="adjustDeployDate('${roleId}','${field}',1)" style="${BSTY}" title="+1개월">▶</button>
+    </span>`;
 
   const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
   let settingsHtml = '';
@@ -4640,7 +4643,40 @@ function renderDeploySettings() {
     </div>`;
   }).join('');
 
-  // ── 추가배치 감리원 행 (300세대 이상 자동 추가) ──
+  // ── 직접 추가한 감리원 행 (추가배치 앞) ──
+  extraDeployRows.forEach(row => {
+    const startD = row.startYM || defStartDisp;
+    const endD   = row.endYM   || defEndDisp;
+    const rsE = parseYMShort(startD) || projStart;
+    const reE = parseYMShort(endD)   || projEnd;
+    const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
+    const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
+    const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
+    const foHtml = ['건축','토목','기계설비','전기','소방'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
+    const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
+    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
+      <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center" title="감리원 성명"
+        oninput="updateExtraRow('${row.id}','name',this.value)">
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
+      <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD"
+        oninput="updateExtraRow('${row.id}','startYM',this.value)"
+        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+'01';updateExtraRow('${row.id}','startYM',el.value);}})(this)">
+      ${btnPair(row.id,'start')}
+      <span style="font-size:10px;color:#666">~</span>
+      <input type="text" value="${endD}" placeholder="281231" maxlength="10" style="${ISTY}" title="YYMMDD"
+        oninput="updateExtraRow('${row.id}','endYM',this.value)"
+        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){const ld=lastDay(p.y,p.m);el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+String(ld).padStart(2,'0');updateExtraRow('${row.id}','endYM',el.value);}})(this)">
+      ${btnPair(row.id,'end')}
+      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">개월</span>
+      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
+        oninput="updateExtraRow('${row.id}','months',this.value===''?'':parseFloat(this.value)||'')">
+      <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:13px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 2px;line-height:1" title="삭제">×</button>
+    </div>`;
+  });
+
+  // ── 추가배치 감리원 행 (300세대 이상, 원칙상 제일 마지막) ──
   const sizeClassSetting = document.getElementById('pj_sizeClass')?.value || '';
   if (sizeClassSetting !== '300미만') {
     const ds_e = deployState['extra_arch'] || {};
@@ -4671,48 +4707,6 @@ function renderDeploySettings() {
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }
-
-  // ── 직접 추가한 감리원 행 ──
-  const placOpts = ['총괄','분야별','비상주','비평가'].map(o => `<option${o==='{P}'?' selected':''}>${o}</option>`);
-  const fieldOpts = ['건축','토목','기계설비','전기','소방'].map(o => `<option${o==='{F}'?' selected':''}>${o}</option>`);
-  const gradeOpts = ['특급','고급','중급','초급'].map(o => `<option${o==='{G}'?' selected':''}>${o}</option>`);
-  extraDeployRows.forEach(row => {
-    const startD = row.startYM || defStartDisp;
-    const endD   = row.endYM   || defEndDisp;
-    const rsE = parseYMShort(startD) || projStart;
-    const reE = parseYMShort(endD)   || projEnd;
-    const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
-    const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
-    const po = placOpts.map(o => o.replace('{P}', row.placement||'분야별').replace('{P}','분야별')).join('');
-    const fo = fieldOpts.map(o => o.replace('{F}', row.field||'건축').replace('{F}','건축')).join('');
-    const go = gradeOpts.map(o => o.replace('{G}', row.grade||'특급').replace('{G}','특급')).join('');
-    const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
-    const foHtml = ['건축','토목','기계설비','전기','소방'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
-    const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
-    settingsHtml += `<div style="display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
-      <input type="text" value="${escHtml(row.name||'')}" placeholder="성명" style="width:64px;${ISTY.split(';').slice(1).join(';')}" title="감리원 성명"
-        oninput="updateExtraRow('${row.id}','name',this.value)">
-      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
-      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>
-      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
-      <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${ISTY}" title="YYMMDD"
-        oninput="updateExtraRow('${row.id}','startYM',this.value)"
-        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+'01';updateExtraRow('${row.id}','startYM',el.value);}})(this)">
-      ${btnPair(row.id,'start')}
-      <span style="font-size:10px;color:#666">~</span>
-      <input type="text" value="${endD}" placeholder="281231" maxlength="10" style="${ISTY}" title="YYMMDD"
-        oninput="updateExtraRow('${row.id}','endYM',this.value)"
-        onblur="(function(el){const v=el.value.trim();if(!v)return;const p=parseYMShort(v);if(p&&!p.d){const ld=lastDay(p.y,p.m);el.value=String(p.y).slice(-2)+String(p.m).padStart(2,'0')+String(ld).padStart(2,'0');updateExtraRow('${row.id}','endYM',el.value);}})(this)">
-      ${btnPair(row.id,'end')}
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
-      <input type="number" value="${row.convRate||1.000}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
-        oninput="updateExtraRow('${row.id}','convRate',parseFloat(this.value)||1)">
-      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
-      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
-        oninput="updateExtraRow('${row.id}','months',this.value===''?'':parseFloat(this.value)||'')">
-      <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:13px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 2px;line-height:1" title="삭제">×</button>
-    </div>`;
-  });
 
   // ── + 감리원 추가 버튼 ──
   settingsHtml += `<div style="padding:5px 0 2px">
@@ -4789,14 +4783,7 @@ function renderDeployTable() {
     const cr_e1 = (ds_e1.convRate !== undefined && ds_e1.convRate !== '') ? parseFloat(ds_e1.convRate) : 1.000;
     residentConvTotal += floorAt3(m_e1 * cr_e1);
   }
-  // 직접 추가 감리원 상주 인월수 포함
-  extraDeployRows.filter(row => row.placement !== '비상주').forEach(row => {
-    const rs = parseYMShort(row.startYM) || start;
-    const re = parseYMShort(row.endYM)   || end;
-    const dsM = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
-    const m = dsM !== null ? dsM : calcDeployMonths(rs, re);
-    residentConvTotal += floorAt3(m * (row.convRate || 1.000));
-  });
+  // 직접 추가 감리원은 환산비·인월수 '-' 표기이므로 합계 제외
   // 비상주 상한: 법정인월수 × 15% (제6조②)
   const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
   const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
@@ -4845,7 +4832,25 @@ function renderDeployTable() {
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
 
-  // ── 추가배치 감리원 행 (300세대 이상 자동 추가, 별지1호와 동일 순서) ──
+  // ── 직접 추가 감리원 행 (환산비·인월수 '-' 표기, 합계 제외) ──
+  extraDeployRows.forEach(row => {
+    const rs_c = parseYMShort(row.startYM) || start;
+    const re_c = parseYMShort(row.endYM)   || end;
+    const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
+    const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
+    const gantt_c = allMonths.map(({ y, m }) => {
+      const inside = (y > rs_c.y || (y === rs_c.y && m >= rs_c.m)) && (y < re_c.y || (y === re_c.y && m <= re_c.m));
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
+    }).join('');
+    const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
+    const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
+    const mDisp_c = dsM_c !== null ? dsM_c.toFixed(3) : (Number.isInteger(actM_c) ? actM_c : actM_c.toFixed(3));
+    rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: row.field || '건축',
+      name: row.name || '-', grade: row.grade || '-',
+      gantt: gantt_c, monthsDisp: mDisp_c, convRate: '-', convPM: '-', note: note_c, noConv: true });
+  });
+
+  // ── 추가배치 감리원 행 (300세대 이상, 원칙상 제일 마지막) ──
   const sizeClass_d = document.getElementById('pj_sizeClass')?.value || '';
   if (sizeClass_d !== '300미만') {
     const ds_e   = deployState['extra_arch'] || {};
@@ -4867,30 +4872,6 @@ function renderDeployTable() {
     rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'-',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:cr_e, convPM:cpm_e, note:note_e });
   }
-
-  // ── 직접 추가 감리원 행 ──
-  extraDeployRows.forEach(row => {
-    const rs_c = parseYMShort(row.startYM) || start;
-    const re_c = parseYMShort(row.endYM)   || end;
-    const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
-    const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
-    const cr_c   = row.convRate || 1.000;
-    let cpm_c = floorAt3(actM_c * cr_c);
-    if (row.placement === '비상주') {
-      cpm_c = Math.min(cpm_c, nonresMax); cpm_c = floorAt3(cpm_c); nonresPM += cpm_c;
-    }
-    totalConvPM += cpm_c;
-    const gantt_c = allMonths.map(({ y, m }) => {
-      const inside = (y > rs_c.y || (y === rs_c.y && m >= rs_c.m)) && (y < re_c.y || (y === re_c.y && m <= re_c.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
-    }).join('');
-    const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
-    const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
-    const mDisp_c = dsM_c !== null ? dsM_c.toFixed(3) : (Number.isInteger(actM_c) ? actM_c : actM_c.toFixed(3));
-    rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: row.field || '건축',
-      name: row.name || '-', grade: row.grade || '-',
-      gantt: gantt_c, monthsDisp: mDisp_c, convRate: cr_c, convPM: cpm_c, note: note_c });
-  });
 
   // 구분 column: structLabel이 연속으로 같으면 합치기 (분야별 전체를 하나로)
   const structSpans = rowDataArr.map((d, i) => {
@@ -4923,8 +4904,8 @@ function renderDeployTable() {
       <td style="${TD}">${escHtml(d.grade)}</td>
       ${d.gantt}
       <td style="${TD}">${d.monthsDisp}</td>
-      <td style="${TD}">${d.convRate.toFixed(3)}</td>
-      <td style="${TD}">${d.convPM.toFixed(3)}</td>
+      <td style="${TD}">${d.noConv ? '-' : (typeof d.convRate === 'number' ? d.convRate.toFixed(3) : d.convRate)}</td>
+      <td style="${TD}">${d.noConv ? '-' : (typeof d.convPM === 'number' ? d.convPM.toFixed(3) : d.convPM)}</td>
       <td style="${TD};font-size:6.5pt;white-space:pre-line">${escHtml(d.note)}</td>
     </tr>`;
   });
