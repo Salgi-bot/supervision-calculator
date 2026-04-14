@@ -4100,10 +4100,10 @@ function renderByeolji2Cover() {
   const fmGradeB  = mech.gradeScore;
   const fcExpB    = 7;
   const fmExpB    = 7;
-  const fcGrade   = is300미만 ? fcGradeB + arch.gradeScore * 0.5 : fcGradeB;
-  const fmGrade   = is300미만 ? fmGradeB + arch.gradeScore * 0.5 : fmGradeB;
-  const fcExp     = is300미만 ? fcExpB   + arch.expScore   * 0.5 : fcExpB;
-  const fmExp     = is300미만 ? fmExpB   + arch.expScore   * 0.5 : fmExpB;
+  const fcGrade   = is300미만 ? fcGradeB + 1.0 : fcGradeB;
+  const fmGrade   = is300미만 ? fmGradeB + 1.0 : fmGradeB;
+  const fcExp     = is300미만 ? fcExpB   + 3.5 : fcExpB;
+  const fmExp     = is300미만 ? fmExpB   + 3.5 : fmExpB;
 
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
