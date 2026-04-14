@@ -666,7 +666,8 @@ tbody tr:hover td { background: var(--ci-light); }
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(7)"><span class="tab-icon">📋</span>위임장</button>
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(8)"><span class="tab-icon">📈</span>수행실적</button>
   <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(9)"><span class="tab-icon">👤</span>감리원경력</button>
-  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(10)"><span class="tab-icon">📖</span>고시참조</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(10)" id="alertTabBtn"><span class="tab-icon">🔔</span>관리알림</button>
+  <button class="tab-btn" role="tab" aria-selected="false" onclick="switchTab(11)"><span class="tab-icon">📖</span>고시참조</button>
 </div>
 
 <!-- ── PDF MODAL ── -->
@@ -1163,6 +1164,67 @@ tbody tr:hover td { background: var(--ci-light); }
 </div>
 
 <!-- ══════════ TAB 7: 고시 참조 ══════════ -->
+<!-- ══════════ TAB 관리알림: 교육훈련·특허 관리 ══════════ -->
+<div class="tab-content" id="tab_alert" role="tabpanel">
+  <!-- ── 교육훈련 관리 ── -->
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">🎓</span>감리원 교육훈련 관리
+      <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">건설기술진흥법 제21조 — 3년마다 계속교육 (70시간 또는 35시간)</span>
+    </div>
+    <div class="info-note" style="margin-bottom:12px;">
+      ※ 만료일 = 최근 수료일 + 3년 &nbsp;|&nbsp; 만료 <strong>6개월 이내</strong>는 주의, 만료 시 경고
+    </div>
+    <div id="trainingTable">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
+            <th style="padding:8px 10px;text-align:left;width:15%">감리원</th>
+            <th style="padding:8px 10px;text-align:center;width:15%">교육종류</th>
+            <th style="padding:8px 10px;text-align:center;width:16%">최근 수료일</th>
+            <th style="padding:8px 10px;text-align:center;width:16%">만료일</th>
+            <th style="padding:8px 10px;text-align:center;width:10%">상태</th>
+            <th style="padding:8px 10px;text-align:center;width:28%">비고</th>
+          </tr>
+        </thead>
+        <tbody id="trainingRows"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" onclick="addTrainingRow()">+ 감리원 추가</button>
+      <button class="btn btn-sm" onclick="renderAlertTab()">새로고침</button>
+    </div>
+  </div>
+
+  <!-- ── 특허·기술개발 관리 ── -->
+  <div class="card no-print">
+    <div class="card-title"><span class="icon">💡</span>특허·기술개발 관리
+      <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">기술개발실적 배점 2점 (별표2) — 특허 보유 시 가점</span>
+    </div>
+    <div class="info-note" style="margin-bottom:12px;">
+      ※ 특허 만료 전 알림기간(개월) 이내 진입 시 주의 표시
+    </div>
+    <div id="patentTable">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
+            <th style="padding:8px 10px;text-align:left;width:15%">특허번호</th>
+            <th style="padding:8px 10px;text-align:left;width:25%">내용</th>
+            <th style="padding:8px 10px;text-align:center;width:14%">등록일</th>
+            <th style="padding:8px 10px;text-align:center;width:14%">만료일</th>
+            <th style="padding:8px 10px;text-align:center;width:10%">알림(월)</th>
+            <th style="padding:8px 10px;text-align:center;width:10%">상태</th>
+            <th style="padding:8px 10px;text-align:center;width:12%">관리</th>
+          </tr>
+        </thead>
+        <tbody id="patentRows"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary btn-sm" onclick="addPatentRow()">+ 특허 추가</button>
+    </div>
+  </div>
+</div>
+
 <div class="tab-content" id="tab7" role="tabpanel">
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;gap:10px;"><span><span class="icon">📖</span>환산비율표 (부표 나.(2) 분야별감리원)</span><button onclick="openLawArticle('주택건설공사 감리자 지정기준')" style="padding:2px 8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap;">📄 조문 원문</button></div>
@@ -1907,7 +1969,8 @@ function switchTab(visualIdx) {
     ['tab11'],                     // 7: 위임장·재직증명서
     ['tab12'],                     // 8: 별첨2 수행실적
     ['tab13'],                     // 9: 별첨3 감리원경력
-    ['tab7'],                      // 10: 고시참조
+    ['tab_alert'],                 // 10: 관리알림
+    ['tab7'],                      // 11: 고시참조
   ];
   const activeIds = tabMap[visualIdx] || ['tab0'];
   document.querySelectorAll('.tab-content').forEach(el => {
@@ -1936,6 +1999,7 @@ function switchTab(visualIdx) {
   if (visualIdx === 6) renderSayongIngam();
   if (visualIdx === 7) renderDelegation();
   if (visualIdx === 9) renderByeolchum3();
+  if (visualIdx === 10) renderAlertTab();
 }
 
 // ══════════════════════════════════════════════════════
@@ -5750,7 +5814,206 @@ window.addEventListener('DOMContentLoaded', async () => {
   initCloud();
   await checkCloudUrl();
   startCloudAutoSave();
+  updateAlertBadge();
 });
+
+// ══════════════════════════════════════════════════════
+//  관리알림 탭 — 교육훈련·특허 관리
+// ══════════════════════════════════════════════════════
+
+const ALERT_LS_TRAINING = 'hb_alert_training';
+const ALERT_LS_PATENT   = 'hb_alert_patent';
+
+function getTrainingData() {
+  try { return JSON.parse(localStorage.getItem(ALERT_LS_TRAINING) || '[]'); } catch(e) { return []; }
+}
+function saveTrainingData(arr) {
+  localStorage.setItem(ALERT_LS_TRAINING, JSON.stringify(arr));
+}
+function getPatentData() {
+  try { return JSON.parse(localStorage.getItem(ALERT_LS_PATENT) || '[]'); } catch(e) { return []; }
+}
+function savePatentData(arr) {
+  localStorage.setItem(ALERT_LS_PATENT, JSON.stringify(arr));
+}
+
+// 상태 계산: 오늘 기준 만료일까지 남은 일수
+function calcAlertStatus(expiryDateStr, alertMonths) {
+  if (!expiryDateStr) return { label: '미입력', color: '#94a3b8', bg: '#f8fafc', days: null };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp   = new Date(expiryDateStr);
+  const diffMs = exp - today;
+  const diffDays = Math.ceil(diffMs / 86400000);
+  const alertDays = (alertMonths || 6) * 30;
+  if (diffDays < 0)          return { label: '만료', color: '#fff', bg: '#dc2626', days: diffDays };
+  if (diffDays <= alertDays) return { label: `D-${diffDays}`, color: '#7c2d12', bg: '#fef3c7', days: diffDays };
+  return { label: `D-${diffDays}`, color: '#166534', bg: '#dcfce7', days: diffDays };
+}
+
+// 탭 뱃지 업데이트
+function updateAlertBadge() {
+  const btn = document.getElementById('alertTabBtn');
+  if (!btn) return;
+  let count = 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  getTrainingData().forEach(r => {
+    if (!r.completionDate) return;
+    const exp = new Date(r.completionDate);
+    exp.setFullYear(exp.getFullYear() + 3);
+    const diff = Math.ceil((exp - today) / 86400000);
+    if (diff <= 180) count++;
+  });
+  getPatentData().forEach(r => {
+    if (!r.expiryDate) return;
+    const alertDays = (r.alertMonths || 6) * 30;
+    const diff = Math.ceil((new Date(r.expiryDate) - today) / 86400000);
+    if (diff <= alertDays) count++;
+  });
+  let badge = btn.querySelector('.alert-badge');
+  if (count > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'alert-badge';
+      badge.style.cssText = 'display:inline-block;background:#dc2626;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;margin-left:4px;vertical-align:middle;';
+      btn.appendChild(badge);
+    }
+    badge.textContent = count;
+  } else {
+    if (badge) badge.remove();
+  }
+}
+
+function renderAlertTab() {
+  renderTrainingRows();
+  renderPatentRows();
+  updateAlertBadge();
+}
+
+// ── 교육훈련 ──────────────────────────────────────────
+function renderTrainingRows() {
+  const tbody = document.getElementById('trainingRows');
+  if (!tbody) return;
+  const rows = getTrainingData();
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:#94a3b8;">감리원 추가 버튼으로 항목을 등록하세요.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => {
+    let expiry = '';
+    if (r.completionDate) {
+      const d = new Date(r.completionDate);
+      d.setFullYear(d.getFullYear() + 3);
+      expiry = d.toISOString().slice(0, 10);
+    }
+    const st = calcAlertStatus(expiry, 6);
+    return `<tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:7px 10px;">
+        <input value="${r.name||''}" placeholder="성명" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px 6px;font-size:12px;"
+          onchange="updateTrainingRow(${i},'name',this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <select style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+          onchange="updateTrainingRow(${i},'type',this.value)">
+          <option value="70시간" ${r.type==='70시간'?'selected':''}>70시간</option>
+          <option value="35시간" ${r.type==='35시간'?'selected':''}>35시간</option>
+        </select>
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="date" value="${r.completionDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+          onchange="updateTrainingRow(${i},'completionDate',this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:#475569;">${expiry||'-'}</td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${st.bg};color:${st.color};">${st.label}</span>
+      </td>
+      <td style="padding:7px 10px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input value="${r.note||''}" placeholder="메모" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:4px 6px;font-size:12px;"
+            onchange="updateTrainingRow(${i},'note',this.value)">
+          <button onclick="deleteTrainingRow(${i})" style="padding:3px 7px;background:#fee2e2;color:#dc2626;border:none;border-radius:4px;cursor:pointer;font-size:12px;">삭제</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function addTrainingRow() {
+  const arr = getTrainingData();
+  arr.push({ name:'', type:'70시간', completionDate:'', note:'' });
+  saveTrainingData(arr);
+  renderTrainingRows();
+}
+function updateTrainingRow(i, key, val) {
+  const arr = getTrainingData();
+  if (arr[i]) { arr[i][key] = val; saveTrainingData(arr); renderTrainingRows(); updateAlertBadge(); }
+}
+function deleteTrainingRow(i) {
+  const arr = getTrainingData();
+  arr.splice(i, 1);
+  saveTrainingData(arr);
+  renderTrainingRows();
+  updateAlertBadge();
+}
+
+// ── 특허·기술개발 ──────────────────────────────────────
+function renderPatentRows() {
+  const tbody = document.getElementById('patentRows');
+  if (!tbody) return;
+  const rows = getPatentData();
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;text-align:center;color:#94a3b8;">특허 추가 버튼으로 항목을 등록하세요.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => {
+    const st = calcAlertStatus(r.expiryDate, r.alertMonths || 6);
+    return `<tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="padding:7px 10px;">
+        <input value="${r.patentNo||''}" placeholder="특허 제호" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px 6px;font-size:12px;"
+          onchange="updatePatentRow(${i},'patentNo',this.value)">
+      </td>
+      <td style="padding:7px 10px;">
+        <input value="${r.content||''}" placeholder="특허 내용" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px 6px;font-size:12px;"
+          onchange="updatePatentRow(${i},'content',this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="date" value="${r.regDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+          onchange="updatePatentRow(${i},'regDate',this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="date" value="${r.expiryDate||''}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;"
+          onchange="updatePatentRow(${i},'expiryDate',this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="number" value="${r.alertMonths||6}" min="1" max="24" style="width:52px;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;text-align:center;"
+          onchange="updatePatentRow(${i},'alertMonths',+this.value)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${st.bg};color:${st.color};">${st.label}</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <button onclick="deletePatentRow(${i})" style="padding:3px 7px;background:#fee2e2;color:#dc2626;border:none;border-radius:4px;cursor:pointer;font-size:12px;">삭제</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function addPatentRow() {
+  const arr = getPatentData();
+  arr.push({ patentNo:'', content:'', regDate:'', expiryDate:'', alertMonths:6 });
+  savePatentData(arr);
+  renderPatentRows();
+}
+function updatePatentRow(i, key, val) {
+  const arr = getPatentData();
+  if (arr[i]) { arr[i][key] = val; savePatentData(arr); renderPatentRows(); updateAlertBadge(); }
+}
+function deletePatentRow(i) {
+  const arr = getPatentData();
+  arr.splice(i, 1);
+  savePatentData(arr);
+  renderPatentRows();
+  updateAlertBadge();
+}
 
 // ══════════════════════════════════════════════════════
 //  기준값 편집 모달 (법령 개정 시 업데이트)
