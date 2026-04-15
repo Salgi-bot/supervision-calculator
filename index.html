@@ -1417,6 +1417,16 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearRecipientAlignRight" onclick="setSwearAlign('recipient','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">공고번호 노출:</span>
+        <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">켜기</button>
+          <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">끄기</button>
+        </div>
+        <input type="text" id="swearNoticeNumberInput" placeholder="예) 대전광역시-2026-감리-001"
+          oninput="swearNoticeNumber=this.value;triggerAutoSave();renderByeolchum1();"
+          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;">
+      </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
@@ -1729,6 +1739,8 @@ let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,
 let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능)
 let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】」 정렬: 'left' | 'right'
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
+let swearNoticeEnabled = false;   // 별첨1 서약서 상단 「□ 공 고 번 호」 노출 여부
+let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입력값
 // ── 상단 라벨 / 하단 수신처 정렬 (각 서식별 독립 상태) ──
 let byeolji1HeaderAlign    = 'left'; // 별지1호 상단 「[별지 제1호서식]」 정렬
 let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 정렬
@@ -1859,6 +1871,8 @@ function doAutoSave() {
     swearBodyHtml: swearBodyHtml,
     swearHeaderAlign: swearHeaderAlign,
     swearRecipientAlign: swearRecipientAlign,
+    swearNoticeEnabled: swearNoticeEnabled,
+    swearNoticeNumber: swearNoticeNumber,
     byeolji1HeaderAlign: byeolji1HeaderAlign,
     byeolji1RecipientAlign: byeolji1RecipientAlign,
     byeolji2HeaderAlign: byeolji2HeaderAlign,
@@ -1953,6 +1967,11 @@ function loadAutoSave() {
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
     if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
     if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+    if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
+    if (typeof data.swearNoticeNumber === 'string') {
+      swearNoticeNumber = data.swearNoticeNumber;
+      const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
+    }
     if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
     if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
     if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -2600,6 +2619,11 @@ function loadPersonnelJSON(input) {
       if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
       if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
       if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+      if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
+      if (typeof data.swearNoticeNumber === 'string') {
+        swearNoticeNumber = data.swearNoticeNumber;
+        const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
+      }
       if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
       if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
       if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -2692,6 +2716,11 @@ function loadV2Data(data) {
   if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
   if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
   if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+  if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
+  if (typeof data.swearNoticeNumber === 'string') {
+    swearNoticeNumber = data.swearNoticeNumber;
+    const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
+  }
   if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
   if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
   if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -5642,11 +5671,15 @@ function renderByeolchum1() {
   const authority = pj.submitTo || pj.authority || '○○시장';
   const headerAlign = (swearHeaderAlign === 'right') ? 'right' : 'left';
   const recipientAlign = (swearRecipientAlign === 'right') ? 'right' : 'left';
+  const noticeLine = (swearNoticeEnabled && (swearNoticeNumber||'').trim())
+    ? `<div style="margin-bottom:10px;">□ 공 고 번 호 : ${escHtml(swearNoticeNumber.trim())}</div>`
+    : '';
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
         <div style="font-size:14px;font-weight:bold;margin-bottom:30px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:20px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+        ${noticeLine}
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
         <div style="margin-bottom:30px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
         <div id="swearBodyDiv" contenteditable="true" spellcheck="false"
@@ -5687,6 +5720,22 @@ function updateSwearAlignButtons() {
   setActive('swearHeaderAlignRight',    swearHeaderAlign === 'right');
   setActive('swearRecipientAlignLeft',  swearRecipientAlign !== 'right');
   setActive('swearRecipientAlignRight', swearRecipientAlign === 'right');
+  setActive('swearNoticeOn',  swearNoticeEnabled === true);
+  setActive('swearNoticeOff', swearNoticeEnabled !== true);
+  const inp = document.getElementById('swearNoticeNumberInput');
+  if (inp) {
+    if (inp.value !== (swearNoticeNumber||'')) inp.value = swearNoticeNumber || '';
+    inp.disabled = !swearNoticeEnabled;
+    inp.style.opacity  = swearNoticeEnabled ? '1' : '0.5';
+    inp.style.background = swearNoticeEnabled ? '#fff' : '#f1f5f9';
+  }
+}
+
+// 별첨1 서약서 공고번호 노출 토글
+function setSwearNotice(on) {
+  swearNoticeEnabled = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
 }
 
 // ══════════════════════════════════════════════════════
