@@ -1360,7 +1360,23 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title"><span class="icon">📜</span>별첨1 — 서약서</div>
     <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「【별첨 1】」 정렬:</span>
+        <div role="group" aria-label="별첨1 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearHeaderAlignLeft"  onclick="setSwearAlign('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="swearHeaderAlignRight" onclick="setSwearAlign('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">하단 「○○ 귀하」 정렬:</span>
+        <div role="group" aria-label="별첨1 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearRecipientAlignLeft"  onclick="setSwearAlign('recipient','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="swearRecipientAlignRight" onclick="setSwearAlign('recipient','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
       <button class="btn" onclick="saveTabAsWord('byeolchum1Preview', renderByeolchum1, '별첨1 — 서약서', '별첨1_서약서')">📄 Word 저장</button>
@@ -1651,6 +1667,8 @@ let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미�
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,placement,field,grade,startYM,endYM,convRate,months }]
 let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능)
+let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】」 정렬: 'left' | 'right'
+let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
 
 // ── Cloud Save (Supabase) ──
 const SUPABASE_URL = 'https://osnpmbwkeskjpykloktq.supabase.co';
@@ -1772,6 +1790,8 @@ function doAutoSave() {
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
     swearBodyHtml: swearBodyHtml,
+    swearHeaderAlign: swearHeaderAlign,
+    swearRecipientAlign: swearRecipientAlign,
     savedAt: new Date().toISOString(),
   };
   try {
@@ -1858,6 +1878,8 @@ function loadAutoSave() {
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
+    if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
+    if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     renderDeploySettings();
@@ -2497,6 +2519,8 @@ function loadPersonnelJSON(input) {
       if (data.deployState) deployState = data.deployState;
       if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
       if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
+      if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
+      if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
       renderPersonCards();
@@ -2581,6 +2605,8 @@ function loadV2Data(data) {
   if (data.deployState) deployState = data.deployState;
   if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
   if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
+  if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
+  if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
@@ -5440,10 +5466,12 @@ function renderByeolchum1() {
   const pj = getProjectData(), co = getCompanyData();
   const dateStr = getSubmitDateStr();
   const authority = pj.submitTo || pj.authority || '○○시장';
+  const headerAlign = (swearHeaderAlign === 'right') ? 'right' : 'left';
+  const recipientAlign = (swearRecipientAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
-        <div style="font-size:14px;font-weight:bold;margin-bottom:30px;">【별첨 1】</div>
+        <div style="font-size:14px;font-weight:bold;margin-bottom:30px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:20px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
         <div style="margin-bottom:30px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
@@ -5460,9 +5488,31 @@ function renderByeolchum1() {
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
           <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
         </div>
-        <div style="margin-top:50px;font-size:18px;font-weight:bold;"><u>${escHtml(authority)} 귀하</u></div>
+        <div style="margin-top:50px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
       </div>
     </div>`;
+  updateSwearAlignButtons();
+}
+
+// 별첨1 서약서 정렬 토글
+function setSwearAlign(target, align) {
+  if (target === 'header') swearHeaderAlign = (align === 'right') ? 'right' : 'left';
+  else if (target === 'recipient') swearRecipientAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+function updateSwearAlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('swearHeaderAlignLeft',     swearHeaderAlign !== 'right');
+  setActive('swearHeaderAlignRight',    swearHeaderAlign === 'right');
+  setActive('swearRecipientAlignLeft',  swearRecipientAlign !== 'right');
+  setActive('swearRecipientAlignRight', swearRecipientAlign === 'right');
 }
 
 // ══════════════════════════════════════════════════════
