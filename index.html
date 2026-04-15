@@ -1398,33 +1398,30 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 8: 별첨1 서약서 ══════════ -->
 <div class="tab-content" id="tab8" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title" style="justify-content:space-between">
+    <div class="card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <span><span class="icon">📜</span>별첨1 — 서약서</span>
-      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;flex-wrap:wrap;">
         <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별첨1 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="swearHeaderAlignLeft"  onclick="setSwearAlign('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="swearHeaderAlignRight" onclick="setSwearAlign('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
-        <span style="color:#64748b;margin-left:6px;">하단:</span>
+        <span style="color:#64748b;margin-left:4px;">하단:</span>
         <div role="group" aria-label="별첨1 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="swearRecipientAlignLeft"  onclick="setSwearAlign('recipient','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="swearRecipientAlignRight" onclick="setSwearAlign('recipient','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <span style="color:#64748b;margin-left:4px;">공고번호:</span>
+        <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
+          <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
+        </div>
+        <input type="text" id="swearNoticeNumberInput" readonly
+          title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
+          style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
       </div>
     </div>
     <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;">
-      <span style="font-size:13px;font-weight:600;color:#374151;">공고번호 노출:</span>
-      <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-        <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">켜기</button>
-        <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">끄기</button>
-      </div>
-      <input type="text" id="swearNoticeNumberInput" readonly
-        title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
-        style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;background:#f1f5f9;color:#475569;cursor:not-allowed;">
-      <span style="font-size:11px;color:#64748b;">※ 데이터입력 탭의 공고번호를 자동 사용</span>
-    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
