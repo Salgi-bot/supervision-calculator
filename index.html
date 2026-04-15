@@ -633,6 +633,9 @@ tbody tr:hover td { background: var(--ci-light); }
   .person-upload-zone, .upload-zone { display: none !important; }
   body.print-deploy-only #calcResultPreview { display: none !important; }
   #swearBodyDiv { border-bottom: none !important; }
+  /* 관리알림 탭 인쇄 시: no-print 카드도 보이도록 (alert-print 마커가 있는 경우만) */
+  body.print-alert .no-print.alert-print { display: block !important; }
+  body.print-alert #tab_alert .no-print.alert-print .btn { display: none !important; }
   @page { margin: 0; size: A4; }
 }
 </style>
@@ -1171,8 +1174,13 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 7: 고시 참조 ══════════ -->
 <!-- ══════════ TAB 관리알림: 교육훈련·특허 관리 ══════════ -->
 <div class="tab-content" id="tab_alert" role="tabpanel">
+  <!-- ── 인쇄 버튼 영역 ── -->
+  <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+    <button class="btn" onclick="printAlertTab()">🖨 A4 인쇄 / PDF 저장</button>
+  </div>
+
   <!-- ── 교육훈련 관리 ── -->
-  <div class="card no-print">
+  <div class="card no-print alert-print">
     <div class="card-title"><span class="icon">🎓</span>감리원 교육훈련 관리
       <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">건설기술진흥법 제21조 — 3년마다 계속교육 (70시간 또는 35시간)</span>
     </div>
@@ -1201,7 +1209,7 @@ tbody tr:hover td { background: var(--ci-light); }
   </div>
 
   <!-- ── 특허·기술개발 관리 ── -->
-  <div class="card no-print">
+  <div class="card no-print alert-print">
     <div class="card-title"><span class="icon">💡</span>특허·기술개발 관리
       <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">기술개발실적 배점 2점 (별표2) — 특허 보유 시 가점</span>
     </div>
@@ -5445,6 +5453,20 @@ function printTab(tabId) {
   tab.classList.add('print-target');
   window.print();
   setTimeout(() => tab.classList.remove('print-target'), 500);
+}
+
+// ── 관리알림 탭 전용 인쇄 (no-print 카드를 일시적으로 표시) ──
+function printAlertTab() {
+  const tab = document.getElementById('tab_alert');
+  if (!tab) return;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
+  tab.classList.add('print-target');
+  document.body.classList.add('print-alert');
+  window.print();
+  setTimeout(() => {
+    tab.classList.remove('print-target');
+    document.body.classList.remove('print-alert');
+  }, 500);
 }
 
 // ── Sub-tab scroll navigation ──
