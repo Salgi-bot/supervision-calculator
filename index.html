@@ -1112,24 +1112,22 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 4: 별지1호 ══════════ -->
 <div class="tab-content" id="tab4" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</div>
-    <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별지 제1호서식]」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별지1호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="byeolji1HeaderAlignRight" onclick="setByeolji1Align('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolji1HeaderAlignRight" onclick="setByeolji1Align('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">하단 「○○ 귀하」 정렬:</span>
+        <span style="color:#64748b;margin-left:6px;">하단:</span>
         <div role="group" aria-label="별지1호 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="byeolji1RecipientAlignLeft"  onclick="setByeolji1Align('recipient','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="byeolji1RecipientAlignRight" onclick="setByeolji1Align('recipient','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="byeolji1RecipientAlignLeft"  onclick="setByeolji1Align('recipient','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolji1RecipientAlignRight" onclick="setByeolji1Align('recipient','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
     </div>
+    <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolji1()">미리보기 갱신</button>
       <button class="btn" onclick="printByeolji(1)">인쇄 / PDF 저장</button>
@@ -1142,18 +1140,18 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 5: 별지2호 ══════════ -->
 <div class="tab-content" id="tab5" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📊</span>별지 제2호 — 자기평가서 (총괄표)</div>
-    <div class="info-note">
-      감리자(회사) + 감리원 합산 100점 자기평가서가 자동 생성됩니다.
-    </div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별지 제2호서식]」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">📊</span>별지 제2호 — 자기평가서 (총괄표)</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별지2호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="byeolji2HeaderAlignLeft"  onclick="setByeolji2Align('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="byeolji2HeaderAlignRight" onclick="setByeolji2Align('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="byeolji2HeaderAlignLeft"  onclick="setByeolji2Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolji2HeaderAlignRight" onclick="setByeolji2Align('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
+    </div>
+    <div class="info-note">
+      감리자(회사) + 감리원 합산 100점 자기평가서가 자동 생성됩니다.
     </div>
     <div style="margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
@@ -1169,13 +1167,13 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 6: 감리원 배치계획표 ══════════ -->
 <div class="tab-content" id="tab6" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📅</span>감리원 배치계획표 [별첨]</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 10px 0;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 N]」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">📅</span>감리원 배치계획표 [별첨]</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="배치계획표 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="deployHeaderAlignLeft"  onclick="setDeployAlign('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="deployHeaderAlignRight" onclick="setDeployAlign('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="deployHeaderAlignLeft"  onclick="setDeployAlign('left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="deployHeaderAlignRight" onclick="setDeployAlign('right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
     </div>
@@ -1400,34 +1398,32 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 8: 별첨1 서약서 ══════════ -->
 <div class="tab-content" id="tab8" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📜</span>별첨1 — 서약서</div>
-    <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「【별첨 1】」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">📜</span>별첨1 — 서약서</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별첨1 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="swearHeaderAlignLeft"  onclick="setSwearAlign('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="swearHeaderAlignRight" onclick="setSwearAlign('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="swearHeaderAlignLeft"  onclick="setSwearAlign('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="swearHeaderAlignRight" onclick="setSwearAlign('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">하단 「○○ 귀하」 정렬:</span>
+        <span style="color:#64748b;margin-left:6px;">하단:</span>
         <div role="group" aria-label="별첨1 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="swearRecipientAlignLeft"  onclick="setSwearAlign('recipient','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="swearRecipientAlignRight" onclick="setSwearAlign('recipient','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="swearRecipientAlignLeft"  onclick="setSwearAlign('recipient','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="swearRecipientAlignRight" onclick="setSwearAlign('recipient','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">공고번호 노출:</span>
-        <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">켜기</button>
-          <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">끄기</button>
-        </div>
-        <input type="text" id="swearNoticeNumberInput" readonly
-          title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
-          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;background:#f1f5f9;color:#475569;cursor:not-allowed;">
-        <span style="font-size:11px;color:#64748b;">※ 데이터입력 탭의 공고번호를 자동 사용</span>
+    </div>
+    <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+      <span style="font-size:13px;font-weight:600;color:#374151;">공고번호 노출:</span>
+      <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+        <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">켜기</button>
+        <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">끄기</button>
       </div>
+      <input type="text" id="swearNoticeNumberInput" readonly
+        title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
+        style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;background:#f1f5f9;color:#475569;cursor:not-allowed;">
+      <span style="font-size:11px;color:#64748b;">※ 데이터입력 탭의 공고번호를 자동 사용</span>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
@@ -1523,17 +1519,17 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 12: 별첨2 수행실적 ══════════ -->
 <div class="tab-content" id="tab12" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">📈</span>별첨2 — 감리업무 수행실적</div>
-    <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 2]」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">📈</span>별첨2 — 감리업무 수행실적</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별첨2 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="byeolchum2HeaderAlignLeft"  onclick="setByeolchum2Align('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="byeolchum2HeaderAlignRight" onclick="setByeolchum2Align('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="byeolchum2HeaderAlignLeft"  onclick="setByeolchum2Align('left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolchum2HeaderAlignRight" onclick="setByeolchum2Align('right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
     </div>
+    <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
     <div class="person-upload-zone" onclick="document.getElementById('perfPdfInput').click()" style="margin:10px 0"
          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
          ondrop="event.preventDefault();this.classList.remove('dragover');handlePerfPdfDrop(event)">
@@ -1580,17 +1576,17 @@ tbody tr:hover td { background: var(--ci-light); }
 <!-- ══════════ TAB 13: 별첨3 감리원경력 ══════════ -->
 <div class="tab-content" id="tab13" role="tabpanel">
   <div class="card no-print">
-    <div class="card-title"><span class="icon">👤</span>별첨3 — 감리원 경력실적 + 별첨4 신규감리원</div>
-    <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 3]·[별첨 4]」 정렬:</span>
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="icon">👤</span>별첨3 — 감리원 경력실적 + 별첨4 신규감리원</span>
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+        <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별첨3 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="byeolchum3HeaderAlignLeft"  onclick="setByeolchum3Align('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
-          <button type="button" id="byeolchum3HeaderAlignRight" onclick="setByeolchum3Align('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+          <button type="button" id="byeolchum3HeaderAlignLeft"  onclick="setByeolchum3Align('left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolchum3HeaderAlignRight" onclick="setByeolchum3Align('right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
       </div>
     </div>
+    <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum3()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab13')">인쇄 / PDF 저장</button>
