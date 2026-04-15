@@ -4096,7 +4096,7 @@ function renderByeolji1() {
       </table>
 
       <!-- 2. 감리자(감리회사) -->
-      <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">2. 감리자(감리회사)</div>
+      <div style="font-weight:700;font-size:10pt;margin:6px 0 3px">2. 감리자(감리회사)</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 상단은 주응모자, 하단은 부응모자를 기재함</div>
       <table style="margin-bottom:0;font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
         <colgroup><col style="width:8%"><col style="width:44%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:16%"></colgroup>
@@ -4115,7 +4115,7 @@ function renderByeolji1() {
       </table>
 
       <!-- 3. 감리원 -->
-      <div style="font-weight:700;font-size:10pt;margin:12px 0 4px">3. 감리원</div>
+      <div style="font-weight:700;font-size:10pt;margin:6px 0 3px">3. 감리원</div>
       <div style="font-size:8pt;color:#555;margin-bottom:4px">※ 공동응모시 소속회사를 기재함</div>
       <table style="font-size:9pt;border-collapse:collapse;width:100%;table-layout:fixed">
         <colgroup><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:13%"><col style="width:8%"><col style="width:15%"><col style="width:30%"></colgroup>
@@ -4133,19 +4133,19 @@ function renderByeolji1() {
         <tbody>${personnelRows}</tbody>
       </table>
 
-      <div style="text-align:center;font-size:9.5pt;line-height:2.0;margin:28px 0 16px">
+      <div style="text-align:center;font-size:9.5pt;line-height:1.7;margin:14px 0 8px">
         「주택법」 제43조, 같은 법 시행령 제47조 및 '주택건설공사 감리자지정기준' 제6조에 따라 위<br>
         주택건설공사의 감리자 지정을 신청합니다.
       </div>
 
-      <div style="text-align:right;font-size:10pt;margin:10px 20px 6px 0">
+      <div style="text-align:right;font-size:10pt;margin:6px 20px 3px 0">
         ${y}년 &ensp;${mo}월 &ensp;${d}일
       </div>
-      <div style="text-align:right;font-size:10pt;margin:4px 20px 0 0">
+      <div style="text-align:right;font-size:10pt;margin:2px 20px 0 0">
         입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
       </div>
 
-      <div style="font-size:13pt;font-weight:800;margin:10px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
+      <div style="font-size:13pt;font-weight:800;margin:6px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
         ${escHtml(pj.authority || '')} 귀하
       </div>
 
