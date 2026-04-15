@@ -5578,6 +5578,7 @@ function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
 function printAllForSubmit() {
   renderByeolji1();
   renderByeolji2Cover();
+  if (typeof calcB2 === 'function') calcB2();
   renderByeolchum1();
   renderDeploySettings();
   renderDeployTable();
@@ -6435,7 +6436,7 @@ function renderByeolchum2() {
         <td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
         <td ${tdS}>${floorAt2(c.calcAmount).toFixed(2)}</td></tr>`;
     });
-    html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="7" ${tdS}></td>
+    html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="8" ${tdS}></td>
       <td ${tdS}></td>
       <td ${tdS}>${floorAt2(calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
       <td ${tdS}>${floorAt2(calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
