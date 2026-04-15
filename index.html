@@ -1433,31 +1433,29 @@ tbody tr:hover td { background: var(--ci-light); }
       <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
       <button class="btn" onclick="saveTabAsWord('byeolchum1Preview', renderByeolchum1, '별첨1 — 서약서', '별첨1_서약서')">📄 Word 저장</button>
     </div>
-    <!-- ── 본문 템플릿 다중 선택 ── -->
-    <div style="margin-top:18px;padding:14px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:700;color:#374151;">본문 템플릿</span>
-        <span style="font-size:12px;color:#64748b;">사용중 템플릿을 선택하거나 추가·편집·삭제할 수 있습니다 (최대 10개).</span>
-      </div>
-      <div id="swearTemplateTabs" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;"></div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-        <span style="font-size:13px;color:#374151;">이름:</span>
-        <input type="text" id="swearTemplateName" placeholder="템플릿 이름"
-          oninput="updateSwearTemplateName(this.value)"
-          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:200px;">
-        <button type="button" class="btn" onclick="duplicateSwearTemplate()" style="padding:5px 12px;font-size:13px;">복제</button>
-        <button type="button" class="btn" onclick="resetSwearTemplateBody()" style="padding:5px 12px;font-size:13px;">기본으로 초기화</button>
-        <button type="button" id="swearTemplateDelBtn" class="btn" onclick="deleteSwearTemplate()" style="padding:5px 12px;font-size:13px;">삭제</button>
-      </div>
-      <div style="margin-bottom:6px;font-size:12px;color:#64748b;">
-        강조 표기: <code>**굵게**</code>, <code>__밑줄__</code>, <code>**__굵은 밑줄__**</code> · 빈 줄(Enter 2회)은 단락 분리
-      </div>
-      <textarea id="swearTemplateBody" rows="12"
-        oninput="updateSwearTemplateBody(this.value)"
-        style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;line-height:1.7;font-family:'Batang','바탕',serif;box-sizing:border-box;"></textarea>
-    </div>
   </div>
   <div id="byeolchum1Preview"></div>
+  <!-- ── 본문 템플릿 다중 선택 (서약서 하단) ── -->
+  <div class="card no-print" style="margin-top:16px;">
+    <div class="card-title"><span class="icon">📝</span>본문 템플릿</div>
+    <div class="info-note">사용중 템플릿을 선택하거나 추가·편집·삭제할 수 있습니다 (최대 10개).</div>
+    <div id="swearTemplateTabs" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0;"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="font-size:13px;color:#374151;">이름:</span>
+      <input type="text" id="swearTemplateName" placeholder="템플릿 이름"
+        oninput="updateSwearTemplateName(this.value)"
+        style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:200px;">
+      <button type="button" class="btn" onclick="duplicateSwearTemplate()" style="padding:5px 12px;font-size:13px;">복제</button>
+      <button type="button" class="btn" onclick="resetSwearTemplateBody()" style="padding:5px 12px;font-size:13px;">기본으로 초기화</button>
+      <button type="button" id="swearTemplateDelBtn" class="btn" onclick="deleteSwearTemplate()" style="padding:5px 12px;font-size:13px;">삭제</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:12px;color:#64748b;">
+      강조 표기: <code>**굵게**</code>, <code>__밑줄__</code>, <code>**__굵은 밑줄__**</code> · 빈 줄(Enter 2회)은 단락 분리
+    </div>
+    <textarea id="swearTemplateBody" rows="12"
+      oninput="updateSwearTemplateBody(this.value)"
+      style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;line-height:1.7;font-family:'Batang','바탕',serif;box-sizing:border-box;"></textarea>
+  </div>
 </div>
 
 <!-- ══════════ TAB 9: 별지3호 입찰서 ══════════ -->
