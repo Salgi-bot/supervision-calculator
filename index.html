@@ -731,7 +731,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="form-grid">
       <div class="form-group" style="grid-column: span 2">
         <label>공고번호</label>
-        <input type="text" id="pj_noticeNo" placeholder="예) 전주시 공고 제2025-1948호">
+        <input type="text" id="pj_noticeNo" placeholder="예) 전주시 공고 제2025-1948호" oninput="triggerAutoSave();if(typeof updateSwearAlignButtons==='function')updateSwearAlignButtons();if(document.getElementById('tab8')?.classList.contains('active'))renderByeolchum1();">
       </div>
       <div class="form-group">
         <label>공고일</label>
@@ -1423,9 +1423,10 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">켜기</button>
           <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">끄기</button>
         </div>
-        <input type="text" id="swearNoticeNumberInput" placeholder="예) 대전광역시-2026-감리-001"
-          oninput="swearNoticeNumber=this.value;triggerAutoSave();renderByeolchum1();"
-          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;">
+        <input type="text" id="swearNoticeNumberInput" readonly
+          title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
+          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:240px;background:#f1f5f9;color:#475569;cursor:not-allowed;">
+        <span style="font-size:11px;color:#64748b;">※ 데이터입력 탭의 공고번호를 자동 사용</span>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
@@ -5709,8 +5710,9 @@ function renderByeolchum1() {
   const authority = pj.submitTo || pj.authority || '○○시장';
   const headerAlign = (swearHeaderAlign === 'right') ? 'right' : 'left';
   const recipientAlign = (swearRecipientAlign === 'right') ? 'right' : 'left';
-  const noticeLine = (swearNoticeEnabled && (swearNoticeNumber||'').trim())
-    ? `<div style="margin-bottom:10px;">□ 공 고 번 호 : ${escHtml(swearNoticeNumber.trim())}</div>`
+  const _pjNotice = (pj.noticeNo || '').trim();
+  const noticeLine = (swearNoticeEnabled && _pjNotice)
+    ? `<div style="margin-bottom:10px;">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
     : '';
   const activeTpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
   const rawBody = (activeTpl && typeof activeTpl.body === 'string') ? activeTpl.body : '';
@@ -5766,10 +5768,10 @@ function updateSwearAlignButtons() {
   setActive('swearNoticeOff', swearNoticeEnabled !== true);
   const inp = document.getElementById('swearNoticeNumberInput');
   if (inp) {
-    if (inp.value !== (swearNoticeNumber||'')) inp.value = swearNoticeNumber || '';
-    inp.disabled = !swearNoticeEnabled;
-    inp.style.opacity  = swearNoticeEnabled ? '1' : '0.5';
-    inp.style.background = swearNoticeEnabled ? '#fff' : '#f1f5f9';
+    const pjNo = (document.getElementById('pj_noticeNo')?.value || '').trim();
+    inp.value = pjNo;
+    inp.style.opacity    = swearNoticeEnabled ? '1' : '0.5';
+    inp.style.background = swearNoticeEnabled ? '#eef2ff' : '#f1f5f9';
   }
 }
 
