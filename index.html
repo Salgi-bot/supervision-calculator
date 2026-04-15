@@ -1433,6 +1433,29 @@ tbody tr:hover td { background: var(--ci-light); }
       <button class="btn" onclick="printTab('tab8')">인쇄 / PDF 저장</button>
       <button class="btn" onclick="saveTabAsWord('byeolchum1Preview', renderByeolchum1, '별첨1 — 서약서', '별첨1_서약서')">📄 Word 저장</button>
     </div>
+    <!-- ── 본문 템플릿 다중 선택 ── -->
+    <div style="margin-top:18px;padding:14px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:700;color:#374151;">본문 템플릿</span>
+        <span style="font-size:12px;color:#64748b;">사용중 템플릿을 선택하거나 추가·편집·삭제할 수 있습니다 (최대 10개).</span>
+      </div>
+      <div id="swearTemplateTabs" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <span style="font-size:13px;color:#374151;">이름:</span>
+        <input type="text" id="swearTemplateName" placeholder="템플릿 이름"
+          oninput="updateSwearTemplateName(this.value)"
+          style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;min-width:200px;">
+        <button type="button" class="btn" onclick="duplicateSwearTemplate()" style="padding:5px 12px;font-size:13px;">복제</button>
+        <button type="button" class="btn" onclick="resetSwearTemplateBody()" style="padding:5px 12px;font-size:13px;">기본으로 초기화</button>
+        <button type="button" id="swearTemplateDelBtn" class="btn" onclick="deleteSwearTemplate()" style="padding:5px 12px;font-size:13px;">삭제</button>
+      </div>
+      <div style="margin-bottom:6px;font-size:12px;color:#64748b;">
+        강조 표기: <code>**굵게**</code>, <code>__밑줄__</code>, <code>**__굵은 밑줄__**</code> · 빈 줄(Enter 2회)은 단락 분리
+      </div>
+      <textarea id="swearTemplateBody" rows="12"
+        oninput="updateSwearTemplateBody(this.value)"
+        style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;line-height:1.7;font-family:'Batang','바탕',serif;box-sizing:border-box;"></textarea>
+    </div>
   </div>
   <div id="byeolchum1Preview"></div>
 </div>
@@ -1736,11 +1759,16 @@ let b2EgState미만 = {};  // 별지2호 산출근거 (300세대 미만)
 let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미만'
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,placement,field,grade,startYM,endYM,convRate,months }]
-let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능)
+let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능) — (레거시, 마이그레이션용)
 let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】」 정렬: 'left' | 'right'
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
 let swearNoticeEnabled = false;   // 별첨1 서약서 상단 「□ 공 고 번 호」 노출 여부
 let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입력값
+// ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
+const SYSTEM_DEFAULT_SWEAR_BODY = `본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, **__자기평가서__**는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 **"허위·거짓 등"**의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 **__참여감리원(평가대상 및 비평가대상감리원)__**은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.`;
+const SWEAR_TEMPLATE_MAX = 10;
+let swearBodyTemplates = [ { id: 'default', name: '기본', body: SYSTEM_DEFAULT_SWEAR_BODY } ];
+let swearBodyActiveId = 'default';
 // ── 상단 라벨 / 하단 수신처 정렬 (각 서식별 독립 상태) ──
 let byeolji1HeaderAlign    = 'left'; // 별지1호 상단 「[별지 제1호서식]」 정렬
 let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 정렬
@@ -1873,6 +1901,8 @@ function doAutoSave() {
     swearRecipientAlign: swearRecipientAlign,
     swearNoticeEnabled: swearNoticeEnabled,
     swearNoticeNumber: swearNoticeNumber,
+    swearBodyTemplates: swearBodyTemplates,
+    swearBodyActiveId: swearBodyActiveId,
     byeolji1HeaderAlign: byeolji1HeaderAlign,
     byeolji1RecipientAlign: byeolji1RecipientAlign,
     byeolji2HeaderAlign: byeolji2HeaderAlign,
@@ -1972,6 +2002,9 @@ function loadAutoSave() {
       swearNoticeNumber = data.swearNoticeNumber;
       const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
     }
+    if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
+    if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
+    ensureSwearTemplateDefault();
     if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
     if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
     if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -2624,6 +2657,9 @@ function loadPersonnelJSON(input) {
         swearNoticeNumber = data.swearNoticeNumber;
         const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
       }
+      if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
+      if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
+      ensureSwearTemplateDefault();
       if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
       if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
       if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -2721,6 +2757,9 @@ function loadV2Data(data) {
     swearNoticeNumber = data.swearNoticeNumber;
     const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
   }
+  if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
+  if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
+  ensureSwearTemplateDefault();
   if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
   if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
   if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -5666,6 +5705,7 @@ function scrollToSection(tabId, sectionId) {
 //  별첨1 서약서
 // ══════════════════════════════════════════════════════
 function renderByeolchum1() {
+  ensureSwearTemplateDefault();
   const pj = getProjectData(), co = getCompanyData();
   const dateStr = getSubmitDateStr();
   const authority = pj.submitTo || pj.authority || '○○시장';
@@ -5674,6 +5714,11 @@ function renderByeolchum1() {
   const noticeLine = (swearNoticeEnabled && (swearNoticeNumber||'').trim())
     ? `<div style="margin-bottom:10px;">□ 공 고 번 호 : ${escHtml(swearNoticeNumber.trim())}</div>`
     : '';
+  const activeTpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
+  const rawBody = (activeTpl && typeof activeTpl.body === 'string') ? activeTpl.body : '';
+  const bodyInner = rawBody.trim()
+    ? markupToBodyHtml(rawBody)
+    : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
@@ -5682,11 +5727,8 @@ function renderByeolchum1() {
         ${noticeLine}
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
         <div style="margin-bottom:30px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
-        <div id="swearBodyDiv" contenteditable="true" spellcheck="false"
-          style="text-indent:2em;text-align:justify;line-height:2.4;outline:none;cursor:text;border-bottom:1px dashed #aaa;"
-          oninput="swearBodyHtml=this.innerHTML;triggerAutoSave()"
-          title="클릭하여 본문 수정 가능">${swearBodyHtml || `본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, <b><u>자기평가서</u></b>는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 <b>"허위·거짓 등"</b>의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 <b><u>참여감리원(평가대상 및 비평가대상감리원)</u></b>은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.`}
-        </div>
+        <div id="swearBodyDiv"
+          style="text-indent:2em;text-align:justify;line-height:2.4;">${bodyInner}</div>
       </div>
       <div>
         <div style="text-align:center;margin:40px 0 60px;font-size:16px;">${dateStr}</div>
@@ -5699,6 +5741,8 @@ function renderByeolchum1() {
       </div>
     </div>`;
   updateSwearAlignButtons();
+  renderSwearTemplateTabs();
+  syncSwearTemplateEditor();
 }
 
 // 별첨1 서약서 정렬 토글
@@ -5736,6 +5780,204 @@ function setSwearNotice(on) {
   swearNoticeEnabled = !!on;
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolchum1();
+}
+
+// ══════════════════════════════════════════════════════
+//  별첨1 서약서 본문 템플릿 (다중 선택)
+// ══════════════════════════════════════════════════════
+// 마크업 → 안전한 HTML 변환
+//   **__텍스트__** / __**텍스트**__ → <strong><u>..</u></strong>
+//   **텍스트** → <strong>..</strong>
+//   __텍스트__ → <u>..</u>
+//   빈줄(\n\n+) → 단락 분리, 단일 \n → <br>
+//   그 외 HTML 태그는 escape
+function markupToBodyHtml(text) {
+  const src = String(text == null ? '' : text);
+  // 1) HTML escape 먼저 (XSS 차단)
+  const esc = src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  // 2) 단락 분리 (빈 줄 기준)
+  const paragraphs = esc.split(/\n\s*\n/);
+  const applyInline = (p) => {
+    let s = p;
+    // 굵은 밑줄 (양방향)
+    s = s.replace(/\*\*__([\s\S]+?)__\*\*/g, '<strong><u>$1</u></strong>');
+    s = s.replace(/__\*\*([\s\S]+?)\*\*__/g, '<strong><u>$1</u></strong>');
+    // 굵게
+    s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+    // 밑줄
+    s = s.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
+    // 단일 줄바꿈은 <br>
+    s = s.replace(/\n/g, '<br>');
+    return s;
+  };
+  return paragraphs.map(p => {
+    const inner = applyInline(p).trim();
+    if (!inner) return '';
+    return `<p style="margin:0 0 12px;text-indent:2em;">${inner}</p>`;
+  }).filter(Boolean).join('');
+}
+
+// default 보장 + 최대 10개 클램프
+function ensureSwearTemplateDefault() {
+  if (!Array.isArray(swearBodyTemplates)) swearBodyTemplates = [];
+  // default 항목이 없으면 추가
+  if (!swearBodyTemplates.some(t => t && t.id === 'default')) {
+    swearBodyTemplates.unshift({ id: 'default', name: '기본', body: SYSTEM_DEFAULT_SWEAR_BODY });
+  }
+  // 최대 개수 클램프
+  if (swearBodyTemplates.length > SWEAR_TEMPLATE_MAX) {
+    swearBodyTemplates = swearBodyTemplates.slice(0, SWEAR_TEMPLATE_MAX);
+  }
+  // 활성 ID가 유효하지 않으면 default로 전환
+  if (!swearBodyTemplates.some(t => t.id === swearBodyActiveId)) {
+    swearBodyActiveId = 'default';
+  }
+}
+
+function renderSwearTemplateTabs() {
+  const wrap = document.getElementById('swearTemplateTabs');
+  if (!wrap) return;
+  ensureSwearTemplateDefault();
+  const parts = swearBodyTemplates.map(t => {
+    const active = (t.id === swearBodyActiveId);
+    const bg = active ? '#0f766e' : '#fff';
+    const fg = active ? '#fff' : '#0f172a';
+    const fw = active ? '700' : '400';
+    const mark = active ? '●' : '○';
+    const label = escHtml(t.name || '(이름없음)');
+    return `<button type="button" onclick="selectSwearTemplate('${escHtml(t.id)}')" title="${label}"
+      style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;background:${bg};color:${fg};font-weight:${fw};font-size:13px;cursor:pointer;">${mark} ${label}</button>`;
+  });
+  const canAdd = swearBodyTemplates.length < SWEAR_TEMPLATE_MAX;
+  const addBtnStyle = canAdd
+    ? 'padding:5px 12px;border:1px dashed #0f766e;border-radius:6px;background:#ecfdf5;color:#0f766e;font-weight:700;font-size:13px;cursor:pointer;'
+    : 'padding:5px 12px;border:1px dashed #cbd5e1;border-radius:6px;background:#f1f5f9;color:#94a3b8;font-weight:400;font-size:13px;cursor:not-allowed;';
+  parts.push(`<button type="button" onclick="addSwearTemplate()" ${canAdd?'':'disabled'} style="${addBtnStyle}">+ 추가 (${swearBodyTemplates.length}/${SWEAR_TEMPLATE_MAX})</button>`);
+  wrap.innerHTML = parts.join('');
+}
+
+function syncSwearTemplateEditor() {
+  ensureSwearTemplateDefault();
+  const tpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
+  const nameEl = document.getElementById('swearTemplateName');
+  const bodyEl = document.getElementById('swearTemplateBody');
+  const delBtn = document.getElementById('swearTemplateDelBtn');
+  if (nameEl && document.activeElement !== nameEl) nameEl.value = tpl ? (tpl.name||'') : '';
+  if (bodyEl && document.activeElement !== bodyEl) bodyEl.value = tpl ? (tpl.body||'') : '';
+  if (delBtn) {
+    const isDefault = (swearBodyActiveId === 'default');
+    delBtn.disabled = isDefault;
+    delBtn.style.opacity = isDefault ? '0.45' : '1';
+    delBtn.style.cursor  = isDefault ? 'not-allowed' : 'pointer';
+    delBtn.title = isDefault ? '「기본」 템플릿은 삭제할 수 없습니다.' : '현재 템플릿 삭제';
+  }
+}
+
+function selectSwearTemplate(id) {
+  ensureSwearTemplateDefault();
+  if (!swearBodyTemplates.some(t => t.id === id)) return;
+  swearBodyActiveId = id;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+
+function _genSwearTemplateId() {
+  return 'tpl_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+}
+
+function _genSwearTemplateName() {
+  let n = swearBodyTemplates.length;
+  let name;
+  do {
+    name = `템플릿 ${n}`;
+    n++;
+  } while (swearBodyTemplates.some(t => t.name === name));
+  return name;
+}
+
+function addSwearTemplate() {
+  ensureSwearTemplateDefault();
+  if (swearBodyTemplates.length >= SWEAR_TEMPLATE_MAX) {
+    alert(`템플릿은 최대 ${SWEAR_TEMPLATE_MAX}개까지 저장할 수 있습니다.`);
+    return;
+  }
+  const cur = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
+  const newTpl = {
+    id: _genSwearTemplateId(),
+    name: _genSwearTemplateName(),
+    body: cur ? (cur.body || '') : SYSTEM_DEFAULT_SWEAR_BODY
+  };
+  swearBodyTemplates.push(newTpl);
+  swearBodyActiveId = newTpl.id;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+
+function duplicateSwearTemplate() {
+  ensureSwearTemplateDefault();
+  if (swearBodyTemplates.length >= SWEAR_TEMPLATE_MAX) {
+    alert(`템플릿은 최대 ${SWEAR_TEMPLATE_MAX}개까지 저장할 수 있습니다.`);
+    return;
+  }
+  const cur = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
+  if (!cur) return;
+  const baseName = (cur.name || '템플릿') + ' 복사본';
+  let name = baseName, i = 2;
+  while (swearBodyTemplates.some(t => t.name === name)) { name = baseName + ' ' + i; i++; }
+  const newTpl = { id: _genSwearTemplateId(), name, body: cur.body || '' };
+  swearBodyTemplates.push(newTpl);
+  swearBodyActiveId = newTpl.id;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+
+function deleteSwearTemplate() {
+  ensureSwearTemplateDefault();
+  if (swearBodyActiveId === 'default') {
+    alert('「기본」 템플릿은 삭제할 수 없습니다.');
+    return;
+  }
+  const idx = swearBodyTemplates.findIndex(t => t.id === swearBodyActiveId);
+  if (idx < 0) return;
+  const tpl = swearBodyTemplates[idx];
+  if (!confirm(`템플릿 「${tpl.name}」을(를) 삭제하시겠습니까?`)) return;
+  swearBodyTemplates.splice(idx, 1);
+  swearBodyActiveId = 'default';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+
+function resetSwearTemplateBody() {
+  ensureSwearTemplateDefault();
+  const tpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId);
+  if (!tpl) return;
+  if (!confirm(`템플릿 「${tpl.name}」의 본문을 시스템 기본 텍스트로 되돌리시겠습니까? (이름은 유지)`)) return;
+  tpl.body = SYSTEM_DEFAULT_SWEAR_BODY;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+
+function updateSwearTemplateName(name) {
+  ensureSwearTemplateDefault();
+  const tpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId);
+  if (!tpl) return;
+  tpl.name = String(name || '').slice(0, 40);
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderSwearTemplateTabs();
+}
+
+let _swearBodyDebounce = null;
+function updateSwearTemplateBody(body) {
+  ensureSwearTemplateDefault();
+  const tpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId);
+  if (!tpl) return;
+  tpl.body = String(body == null ? '' : body);
+  // 미리보기 즉시 갱신 (렌더는 저렴), 자동저장은 debounce
+  renderByeolchum1();
+  if (_swearBodyDebounce) clearTimeout(_swearBodyDebounce);
+  _swearBodyDebounce = setTimeout(() => {
+    if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  }, 400);
 }
 
 // ══════════════════════════════════════════════════════
