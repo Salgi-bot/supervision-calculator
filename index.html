@@ -1114,6 +1114,22 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title"><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</div>
     <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별지 제1호서식]」 정렬:</span>
+        <div role="group" aria-label="별지1호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="byeolji1HeaderAlignRight" onclick="setByeolji1Align('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">하단 「○○ 귀하」 정렬:</span>
+        <div role="group" aria-label="별지1호 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji1RecipientAlignLeft"  onclick="setByeolji1Align('recipient','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="byeolji1RecipientAlignRight" onclick="setByeolji1Align('recipient','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolji1()">미리보기 갱신</button>
       <button class="btn" onclick="printByeolji(1)">인쇄 / PDF 저장</button>
@@ -1130,6 +1146,15 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="info-note">
       감리자(회사) + 감리원 합산 100점 자기평가서가 자동 생성됩니다.
     </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별지 제2호서식]」 정렬:</span>
+        <div role="group" aria-label="별지2호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji2HeaderAlignLeft"  onclick="setByeolji2Align('header','left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="byeolji2HeaderAlignRight" onclick="setByeolji2Align('header','right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
     <div style="margin:6px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="printByeolji(2)" style="background:#1e40af;font-size:14px;padding:10px 24px">🖨 별지2호 인쇄 / PDF 저장</button>
       <button class="btn" onclick="saveTabAsWord('byeolji2Preview', renderByeolji2Cover, '별지 제2호 — 자기평가서', '별지제2호_자기평가서')">📄 Word 저장</button>
@@ -1145,6 +1170,15 @@ tbody tr:hover td { background: var(--ci-light); }
 <div class="tab-content" id="tab6" role="tabpanel">
   <div class="card no-print">
     <div class="card-title"><span class="icon">📅</span>감리원 배치계획표 [별첨]</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 10px 0;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 N]」 정렬:</span>
+        <div role="group" aria-label="배치계획표 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="deployHeaderAlignLeft"  onclick="setDeployAlign('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="deployHeaderAlignRight" onclick="setDeployAlign('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px">
         <label style="white-space:nowrap">별첨 번호</label>
@@ -1459,6 +1493,15 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title"><span class="icon">📈</span>별첨2 — 감리업무 수행실적</div>
     <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 2]」 정렬:</span>
+        <div role="group" aria-label="별첨2 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolchum2HeaderAlignLeft"  onclick="setByeolchum2Align('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="byeolchum2HeaderAlignRight" onclick="setByeolchum2Align('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
     <div class="person-upload-zone" onclick="document.getElementById('perfPdfInput').click()" style="margin:10px 0"
          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
          ondrop="event.preventDefault();this.classList.remove('dragover');handlePerfPdfDrop(event)">
@@ -1507,6 +1550,15 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title"><span class="icon">👤</span>별첨3 — 감리원 경력실적 + 별첨4 신규감리원</div>
     <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;font-weight:600;color:#374151;">상단 「[별첨 3]·[별첨 4]」 정렬:</span>
+        <div role="group" aria-label="별첨3 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolchum3HeaderAlignLeft"  onclick="setByeolchum3Align('left')"  style="padding:5px 12px;border:none;background:#fff;cursor:pointer;font-size:13px;">좌측</button>
+          <button type="button" id="byeolchum3HeaderAlignRight" onclick="setByeolchum3Align('right')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:13px;">우측</button>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum3()">미리보기 갱신</button>
       <button class="btn" onclick="printTab('tab13')">인쇄 / PDF 저장</button>
@@ -1677,6 +1729,13 @@ let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,
 let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능)
 let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】」 정렬: 'left' | 'right'
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
+// ── 상단 라벨 / 하단 수신처 정렬 (각 서식별 독립 상태) ──
+let byeolji1HeaderAlign    = 'left'; // 별지1호 상단 「[별지 제1호서식]」 정렬
+let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 정렬
+let byeolji2HeaderAlign    = 'left'; // 별지2호(총괄·세부 공통) 상단 「[별지 제2호서식]」 정렬
+let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별첨 N]」 정렬
+let byeolchum2HeaderAlign  = 'left'; // 별첨2 감리업무 수행실적 상단 「[별첨 2]」 정렬
+let byeolchum3HeaderAlign  = 'left'; // 별첨3 감리원 업무수행실적 상단 「[별첨 3]·[별첨 4]」 정렬
 
 // ── Cloud Save (Supabase) ──
 const SUPABASE_URL = 'https://osnpmbwkeskjpykloktq.supabase.co';
@@ -1800,6 +1859,12 @@ function doAutoSave() {
     swearBodyHtml: swearBodyHtml,
     swearHeaderAlign: swearHeaderAlign,
     swearRecipientAlign: swearRecipientAlign,
+    byeolji1HeaderAlign: byeolji1HeaderAlign,
+    byeolji1RecipientAlign: byeolji1RecipientAlign,
+    byeolji2HeaderAlign: byeolji2HeaderAlign,
+    deployHeaderAlign: deployHeaderAlign,
+    byeolchum2HeaderAlign: byeolchum2HeaderAlign,
+    byeolchum3HeaderAlign: byeolchum3HeaderAlign,
     savedAt: new Date().toISOString(),
   };
   try {
@@ -1888,6 +1953,12 @@ function loadAutoSave() {
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
     if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
     if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+    if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+    if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
+    if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
+    if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
+    if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
+    if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     renderDeploySettings();
@@ -2529,6 +2600,12 @@ function loadPersonnelJSON(input) {
       if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
       if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
       if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+      if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+      if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
+      if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
+      if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
+      if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
+      if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
       renderPersonCards();
@@ -2615,6 +2692,12 @@ function loadV2Data(data) {
   if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
   if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
   if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+  if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+  if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
+  if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
+  if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
+  if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
+  if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
@@ -3892,10 +3975,12 @@ function renderByeolji1() {
   const tdVal = (s, colspan) => `<td ${colspan?`colspan="${colspan}"`:''}style="padding:4px 10px;font-size:9.5pt;border:1px solid #bbb">${escHtml(s)}</td>`;
   const tdColHeader = s => `<td style="text-align:center;background:#f5f5f5;font-weight:600;font-size:8.5pt;padding:3px 2px;border:1px solid #bbb">${s}</td>`;
 
+  const b1hAlign = (byeolji1HeaderAlign === 'right') ? 'right' : 'left';
+  const b1rAlign = (byeolji1RecipientAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:0">
-      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>
-      <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
+      <div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>
+      <div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:2px;line-height:1.1">(앞 쪽)</div>
 
@@ -3994,7 +4079,7 @@ function renderByeolji1() {
         입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
       </div>
 
-      <div style="font-size:13pt;font-weight:800;margin:10px 0 0 0;line-height:1.2">
+      <div style="font-size:13pt;font-weight:800;margin:10px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
         ${escHtml(pj.authority || '')} 귀하
       </div>
 
@@ -4005,6 +4090,28 @@ function renderByeolji1() {
       </div>
       <div style="text-align:right;font-size:7pt;color:#666;margin-top:2px;line-height:1.1">210㎜×297㎜[백상지(80g/㎡)]</div>
     </div>`;
+  updateByeolji1AlignButtons();
+}
+
+// 별지1호 정렬 토글
+function setByeolji1Align(target, align) {
+  if (target === 'header')    byeolji1HeaderAlign    = (align === 'right') ? 'right' : 'left';
+  else if (target === 'recipient') byeolji1RecipientAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolji1();
+}
+function updateByeolji1AlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('byeolji1HeaderAlignLeft',     byeolji1HeaderAlign !== 'right');
+  setActive('byeolji1HeaderAlignRight',    byeolji1HeaderAlign === 'right');
+  setActive('byeolji1RecipientAlignLeft',  byeolji1RecipientAlign !== 'right');
+  setActive('byeolji1RecipientAlignRight', byeolji1RecipientAlign === 'right');
 }
 
 function calcPersonScore(roleId) {
@@ -4084,9 +4191,10 @@ function buildByeolji2Html(roleId) {
   const sp2 = submitStr2.match(/(\d{4})년\s*(\d+)월\s*(\d+)일/) || [];
   const y = sp2[1] || new Date().getFullYear(), mo = sp2[2] ? String(sp2[2]).padStart(2,' ') : String(new Date().getMonth()+1).padStart(2,' '), d = sp2[3] ? String(sp2[3]).padStart(2,' ') : String(new Date().getDate()).padStart(2,' ');
 
+  const b2hAlign2 = (byeolji2HeaderAlign === 'right') ? 'right' : 'left';
   return `
     <div class="a4-preview" style="padding:38px 30px 12px 30px;min-height:0;margin-bottom:20px">
-      <div style="text-align:right;font-size:9pt;color:#666;margin-bottom:8px">별지 제2호서식 (제8조 관련)</div>
+      <div style="text-align:${b2hAlign2};font-size:9pt;color:#666;margin-bottom:8px">별지 제2호서식 (제8조 관련)</div>
       <h2 style="text-align:center;font-size:18pt;letter-spacing:8px;margin:20px 0 30px;font-weight:800">자 기 평 가 서</h2>
 
       <div style="font-weight:700;font-size:11pt;margin-bottom:8px">1. 인적사항</div>
@@ -4276,11 +4384,12 @@ function renderByeolji2Cover() {
   const fcExp     = is300미만 ? fcExpB   + 3.5 : fcExpB;
   const fmExp     = is300미만 ? fmExpB   + 3.5 : fmExpB;
 
+  const b2hAlign = (byeolji2HeaderAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
-    <div style="text-align:right;font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>
-    <div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4">Ⅰ. 총괄표</div>
-    <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
+    <div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>
+    <div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>
+    <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
     <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:13px;table-layout:fixed">
       <colgroup>
@@ -4407,11 +4516,34 @@ function renderByeolji2Cover() {
     </div>
   </div>`;
   setTimeout(calcB2, 50);
+  updateByeolji2AlignButtons();
+}
+
+// 별지2호 정렬 토글 (총괄표·세부평가서 공통 적용)
+function setByeolji2Align(target, align) {
+  if (target === 'header') byeolji2HeaderAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  // 현재 미리보기가 총괄표인지 세부평가서인지에 따라 재렌더
+  const prev = document.getElementById('byeolji2Preview');
+  if (prev && prev.querySelector('#byeolji2Doc')) renderByeolji2Cover();
+  else renderByeolji2All();
+}
+function updateByeolji2AlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('byeolji2HeaderAlignLeft',  byeolji2HeaderAlign !== 'right');
+  setActive('byeolji2HeaderAlignRight', byeolji2HeaderAlign === 'right');
 }
 
 function renderByeolji2() {
   syncPersonInfo();
   document.getElementById('byeolji2Preview').innerHTML = buildByeolji2Html(currentPersonId);
+  updateByeolji2AlignButtons();
 }
 
 function renderByeolji2All() {
@@ -4422,6 +4554,7 @@ function renderByeolji2All() {
   });
   if (!html) html = '<div class="a4-placeholder"><div style="font-size:16px;color:var(--gray4)">감리원 정보를 입력한 후 생성하세요.</div></div>';
   document.getElementById('byeolji2Preview').innerHTML = html;
+  updateByeolji2AlignButtons();
 }
 function formatBidAmount(el) {
   const v = el.value.replace(/[^0-9]/g, '');
@@ -5131,9 +5264,10 @@ function renderDeployTable() {
     sumEl.innerHTML = b1 + b2;
   } else if (sumEl) { sumEl.innerHTML = ''; }
 
+  const dpHAlign = (deployHeaderAlign === 'right') ? 'right' : 'left';
   document.getElementById('deployTablePreview').innerHTML = `
   <div class="a4-preview" id="deployDoc" style="padding:38px 30px 12px 30px;min-height:0;overflow-x:auto">
-    <div style="text-align:right;font-size:8.5pt;color:#555;margin-bottom:6px">[별첨 ${escHtml(annexNo)}]</div>
+    <div style="text-align:${dpHAlign};font-size:8.5pt;color:#555;margin-bottom:6px">[별첨 ${escHtml(annexNo)}]</div>
     <div style="text-align:center;margin-bottom:14px">
       <span style="font-size:14pt;font-weight:800;letter-spacing:3px;color:#111">&lt;감&nbsp;리&nbsp;원&nbsp;배&nbsp;치&nbsp;계&nbsp;획&nbsp;표&gt;</span>
     </div>
@@ -5171,6 +5305,24 @@ function renderDeployTable() {
     </div>
   </div>`;
   renderCalcResult();
+  updateDeployAlignButtons();
+}
+// 배치계획표 정렬 토글
+function setDeployAlign(align) {
+  deployHeaderAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderDeployTable();
+}
+function updateDeployAlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('deployHeaderAlignLeft',  deployHeaderAlign !== 'right');
+  setActive('deployHeaderAlignRight', deployHeaderAlign === 'right');
 }
 function renderCalcResult() {
   const pj = getProjectData();
@@ -5930,10 +6082,11 @@ function renderByeolchum2() {
   let html = '';
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
+  const b2cAlign = (byeolchum2HeaderAlign === 'right') ? 'right' : 'left';
   // 간략 버전
   if(mode==='simple'||mode==='both') {
     html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-      <div style="font-size:12pt;margin-bottom:4px;">[별첨 2]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
+      <div style="font-size:12pt;margin-bottom:4px;text-align:${b2cAlign};">[별첨 2]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
       <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리자 감리업무수행 실적</div>
       <table style="border-collapse:collapse;width:100%;">
         <thead>
@@ -5967,7 +6120,7 @@ function renderByeolchum2() {
   // 상세 버전
   if(mode==='detail'||mode==='both') {
     html += `<div class="a4-page" style="padding:40px 20px;font-family:'Batang','바탕',serif;color:#000;">
-      <div style="font-size:12pt;font-weight:bold;margin-bottom:4px;">[별첨 2]</div>
+      <div style="font-size:12pt;font-weight:bold;margin-bottom:4px;text-align:${b2cAlign};">[별첨 2]</div>
       <div style="font-size:13pt;font-weight:bold;margin-bottom:4px;">○감리자 감리업무수행 실적</div>
       <div style="font-size:9pt;margin-bottom:8px;">※ 아래실적만 인정 받고자 합니다.</div>
       <table style="border-collapse:collapse;width:100%;font-size:7.5pt;">
@@ -6076,6 +6229,24 @@ function renderByeolchum2() {
     </div>`;
   }
   document.getElementById('byeolchum2Preview').innerHTML = html || '<div class="card" style="padding:20px;text-align:center;color:var(--gray4)">수행실적 데이터를 입력하세요.</div>';
+  updateByeolchum2AlignButtons();
+}
+// 별첨2 정렬 토글
+function setByeolchum2Align(align) {
+  byeolchum2HeaderAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum2();
+}
+function updateByeolchum2AlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('byeolchum2HeaderAlignLeft',  byeolchum2HeaderAlign !== 'right');
+  setActive('byeolchum2HeaderAlignRight', byeolchum2HeaderAlign === 'right');
 }
 
 function getB2Score(roleId) {
@@ -6105,6 +6276,7 @@ function renderByeolchum3() {
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5;color:#000"';
   const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt;color:#000"';
   let html = '';
+  const b3Align = (byeolchum3HeaderAlign === 'right') ? 'right' : 'left';
   const _b3mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
   // 평가대상 감리원 (chief, arch/civil/mech, nonres)
   const evalRoles = [...ROLES, ...nonEvalList];
@@ -6120,7 +6292,7 @@ function renderByeolchum3() {
     const placementLabel = role.placement === '총괄' ? '총괄감리원' : role.placement === '비상주' ? '비상주감리원' : '분야별감리원';
     const fieldLabel = role.field;
     html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-      <div style="font-size:12pt;margin-bottom:2px;">[별첨 3]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
+      <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 3]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
       <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리원 업무수행 실적</div>
       <table style="border-collapse:collapse;width:100%;">
         <thead>
@@ -6167,7 +6339,7 @@ function renderByeolchum3() {
   const newRoles = newEvalList;
   const hasNew = newRoles.some(r => personnel[r.id] && personnel[r.id].info.name);
   html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-    <div style="font-size:12pt;margin-bottom:2px;">[별첨 4]</div>
+    <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 4]</div>
     <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○신규감리원</div>`;
   if(!hasNew) {
     html += `
@@ -6234,6 +6406,24 @@ function renderByeolchum3() {
   }
   html += '</div>';
   document.getElementById('byeolchum3Preview').innerHTML = html;
+  updateByeolchum3AlignButtons();
+}
+// 별첨3 정렬 토글
+function setByeolchum3Align(align) {
+  byeolchum3HeaderAlign = (align === 'right') ? 'right' : 'left';
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum3();
+}
+function updateByeolchum3AlignButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('byeolchum3HeaderAlignLeft',  byeolchum3HeaderAlign !== 'right');
+  setActive('byeolchum3HeaderAlignRight', byeolchum3HeaderAlign === 'right');
 }
 
 // ══════════════════════════════════════════════════════
