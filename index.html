@@ -3871,8 +3871,13 @@ function parseAnnouncementText(rawText) {
 
     // 설계자 대표이사: 설계자 위치 ~ +800자 구간
     if (designerPosR >= 0) {
-      const ceos = findAllCeos(rawJoined.slice(designerPosR, designerPosR + 800));
+      const seg = rawJoined.slice(designerPosR, designerPosR + 800);
+      const ceos = findAllCeos(seg);
       if (ceos.length) result.designerName = ceos.join(', ');
+
+      // 설계자 주소: 동일 구간에서 도/시 시작 주소 패턴 추출
+      const addrM = seg.match(/((?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\s*\S+\s*[가-힣0-9\-,\s]+?(?:층|호|빌딩|타워|센터|\d+호|\d+층))/);
+      if (addrM) result.designerAddress = addrM[1].replace(/\s{2,}/g, ' ').trim();
     }
   }
 
@@ -3910,6 +3915,7 @@ function showAnnouncementResult(parsed, rawText) {
     { key: 'clientCeo', label: '대표자', target: 'pj_clientCeo' },
     { key: 'designerCompany', label: '설계자', target: 'pj_designerCompany' },
     { key: 'designerName', label: '대표자 (설계)', target: 'pj_designerName' },
+    { key: 'designerAddress', label: '설계자 주소', target: 'pj_designerAddress' },
     { key: 'location', label: '위치', target: 'pj_location' },
     { key: 'siteArea', label: '대지면적', target: 'pj_siteArea' },
     { key: 'area', label: '연면적', target: 'pj_area' },
