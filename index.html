@@ -3735,20 +3735,22 @@ function parseAnnouncementText(rawText) {
   m = joined.match(/(\d[\d,]*)\s*세대/);
   if (m) result.units = m[1].replace(/,/g, '');
 
-  // ── 동수 ──
-  m = joined.match(/(\d+)\s*개?동(?:[\s,]|$)/);
+  // ── 동수 ── (OCR 공백 대응: "1 개동", "1동")
+  m = joined.match(/동\s*수\s*[:：]?\s*(\d+)\s*개?동/) || joined.match(/(\d+)\s*개?\s*동(?:[\s,]|$)/);
   if (m) result.blocks = m[1] + '개동';
 
   // ── 면적: ㎡ 숫자 전체 추출 후 분류 ──
-  // ㎡ 또는 OCR 변형(m2, ㎡ 유사) 모두 처리
-  const SQM = '(?:㎡|m2|㎡|m²)';
+  // OCR 변형 포함: ㎡/m2/m²/m 2 등, 숫자-단위 사이 공백 허용
+  const SQM = '(?:㎡|m\\s*[2²㎡]|㎡)';
   const areaMatches = [];
-  const areaRe = new RegExp(`([\\d,.]+)\\s*${SQM}`, 'g');
+  const areaRe = new RegExp(`([\\d][\\d,.\\s]{0,12}[\\d])\\s*${SQM}`, 'g');
   let am;
-  while ((am = areaRe.exec(joined)) !== null) areaMatches.push(am[1]);
-  // 대지면적 라벨 확인
-  m = joined.match(new RegExp(`대지면적\\s*(?:[:：]?\\s*)?(\\d[\\d,.]+)\\s*${SQM}`));
-  if (m) result.siteArea = m[1];
+  while ((am = areaRe.exec(joined)) !== null) {
+    const v = am[1].replace(/\s/g, ''); areaMatches.push(v);
+  }
+  // 대지면적 라벨 확인 (라벨~값 사이 공백/줄바꿈 허용)
+  m = joined.match(new RegExp(`대\\s*지\\s*면\\s*적\\s*(?:[:：]?\\s*)?([\\d][\\d,.\\s]{0,12}[\\d])\\s*${SQM}`));
+  if (m) result.siteArea = m[1].replace(/\s/g, '');
   // 연면적: 대지면적이 아닌 ㎡ 값 중 가장 큰 것
   if (areaMatches.length > 0) {
     const siteVal = result.siteArea ? parseFloat(result.siteArea.replace(/,/g, '')) : 0;
@@ -3867,8 +3869,8 @@ function parseAnnouncementText(rawText) {
       const strip = s => s.replace(/\s/g, '');
       // [가-힣](공백 선택)(가-힣) 반복 2~4자 — 이름 사이 공백 유무 무관
       const nameRe = '[가-힣](?: ?[가-힣]){1,3}';
-      // 1순위: 대표이사/대표자 키워드
-      { const re = new RegExp(`(?:대표이사|대표자)\\s*[:：]?\\s*(${nameRe})(?!\\s*[가-힣])`, 'g');
+      // 1순위: 대표이사/대표자/조합장/이사장 키워드
+      { const re = new RegExp(`(?:대표이사|대표자|조합장|이사장|추진위원장)\\s*[:：]?\\s*(${nameRe})(?!\\s*[가-힣])`, 'g');
         let nm; while ((nm = re.exec(text)) !== null) {
           const n = strip(nm[1]); if (n.length >= 2 && !excl.test(n)) results.push(n); } }
       if (results.length) return results;
