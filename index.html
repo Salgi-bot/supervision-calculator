@@ -4166,7 +4166,7 @@ function renderByeolji1() {
             <th ${thStyle} style="width:30%">소속회사</th>
           </tr>
         </thead>
-        <tbody>${personnelRows}</tbody>
+        <tbody id="b1PersonnelTbody">${personnelRows}</tbody>
       </table>
 
       <div style="text-align:justify;text-justify:inter-word;word-break:keep-all;font-size:9.5pt;line-height:1.7;margin:14px 24px 8px">
@@ -7610,12 +7610,29 @@ async function openLawSearch(query) {
   window.addEventListener('beforeprint', function () {
     _saved = [];
     document.querySelectorAll('.a4-page, .a4-preview').forEach(function (page) {
-      var rows = Array.from(page.querySelectorAll('tbody tr')).filter(function (r) {
-        return r.offsetHeight > 0;
-      });
-      if (!rows.length) return;
       var gap = page.offsetHeight - page.scrollHeight;
       if (gap < 4) return;
+
+      // 별지1호: 감리원 tbody 행만 스트레치 (공사개요·감리회사 행 제외)
+      if (page.id === 'byeolji1Doc') {
+        var tbody = page.querySelector('#b1PersonnelTbody');
+        if (!tbody) return;
+        var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r.offsetHeight > 0; });
+        if (!rows.length) return;
+        var add = Math.floor(gap / rows.length);
+        var MAX_ADD = 70; // 행당 최대 70px 추가 (약 18.5mm)
+        add = Math.min(add, MAX_ADD);
+        if (add < 1) return;
+        rows.forEach(function (r) {
+          _saved.push({ el: r, h: r.style.height });
+          r.style.height = (r.offsetHeight + add) + 'px';
+        });
+        return;
+      }
+
+      // 기타 페이지: 모든 tbody 행에 균등 분배 (기존 동작)
+      var rows = Array.from(page.querySelectorAll('tbody tr')).filter(function (r) { return r.offsetHeight > 0; });
+      if (!rows.length) return;
       var add = Math.floor(gap / rows.length);
       if (add < 1) return;
       rows.forEach(function (r) {
