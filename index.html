@@ -734,129 +734,100 @@ tbody tr:hover td { background: var(--ci-light); }
         <input type="text" id="pj_noticeNo" placeholder="예) 전주시 공고 제2025-1948호" oninput="triggerAutoSave();if(typeof updateSwearAlignButtons==='function')updateSwearAlignButtons();if(document.getElementById('tab8')?.classList.contains('active'))renderByeolchum1();">
       </div>
       <div class="form-group">
-        <label>공고일</label>
+        <label>모집공고일</label>
         <input type="text" id="pj_noticeDate" placeholder="예) 2025.09.01" onchange="triggerAutoSave()">
       </div>
       <div class="form-group">
-        <label>제출처</label>
-        <input type="text" id="pj_submitTo" placeholder="예) 전주시장">
+        <label>지정권자</label>
+        <input type="text" id="pj_authority" placeholder="예) 전주시장" oninput="triggerAutoSave();var _s=document.getElementById('pj_submitTo');if(_s)_s.value=this.value;">
       </div>
-      <div class="form-group">
-        <label>제출일 (입찰서 제출 마감일)</label>
-        <input type="text" id="pj_submitDate" placeholder="예) 2025.09.11" onchange="triggerAutoSave()">
-      </div>
+      <input type="hidden" id="pj_submitTo">
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title"><span class="icon">🏗</span>공사 개요</div>
+    <div class="card-title"><span class="icon">🏗</span>공사·사업 정보</div>
     <div class="form-grid">
-      <div class="form-group" style="grid-column: span 2">
-        <label>현장명 *</label>
+      <div class="form-group" style="grid-column: 1 / -1">
+        <label>사업명 *</label>
         <input type="text" id="pj_name" placeholder="예) 전주 송천동 아르티엠 더 숲 공동주택 신축공사">
       </div>
       <div class="form-group" style="grid-column: span 2">
-        <label>소재지</label>
+        <label>사업주체</label>
+        <input type="text" id="pj_client" placeholder="예) ㈜세승주택건설">
+      </div>
+      <div class="form-group">
+        <label>대표자</label>
+        <input type="text" id="pj_clientCeo" placeholder="예) 박정환">
+      </div>
+      <div class="form-group">
+        <label>설계자</label>
+        <input type="text" id="pj_designerCompany" placeholder="예) ㈜길종합건축사사무소이엔지">
+      </div>
+      <div class="form-group">
+        <label>대표자</label>
+        <input type="text" id="pj_designerName" placeholder="예) 이길환">
+      </div>
+      <div class="form-group" style="grid-column: span 2">
+        <label>주소</label>
+        <input type="text" id="pj_designerAddress" placeholder="예) 전북특별자치도 전주시 완산구 ○○로 123">
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1">
+        <label>위치</label>
         <input type="text" id="pj_location" placeholder="예) 전북특별자치도 전주시 덕진구 송천동1가 12-4번지 일원">
-      </div>
-      <div class="form-group">
-        <label>세대수 *</label>
-        <input type="number" id="pj_units" placeholder="예) 244">
-      </div>
-      <div class="form-group">
-        <label>동수</label>
-        <input type="text" id="pj_blocks" placeholder="예) 3개동">
-      </div>
-      <div class="form-group">
-        <label>공사규모 구분</label>
-        <select id="pj_sizeClass" onchange="syncProjectData();onSizeClassChange()">
-          <option value="1500이상">1,500세대 이상</option>
-          <option value="1000이상">1,000세대 이상 ~ 1,500세대 미만</option>
-          <option value="800이상">800세대 이상 ~ 1,000세대 미만</option>
-          <option value="500이상">500세대 이상 ~ 800세대 미만</option>
-          <option value="300이상">300세대 이상 ~ 500세대 미만</option>
-          <option value="300미만">300세대 미만</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>연면적 (m²)</label>
-        <input type="text" id="pj_area" placeholder="예) 40,027">
       </div>
       <div class="form-group">
         <label>대지면적 (m²)</label>
         <input type="text" id="pj_siteArea" placeholder="예) 11,339">
       </div>
       <div class="form-group">
+        <label>연면적 (m²)</label>
+        <input type="text" id="pj_area" placeholder="예) 40,027">
+      </div>
+      <div class="form-group">
+        <label>동수</label>
+        <input type="text" id="pj_blocks" placeholder="예) 3개동">
+      </div>
+      <div class="form-group">
+        <label>세대수 *</label>
+        <input type="number" id="pj_units" placeholder="예) 244" oninput="syncSizeClass();triggerAutoSave()">
+      </div>
+      <div class="form-group">
         <label>층수</label>
         <input type="text" id="pj_stories" placeholder="예) 지하2층/지상28층">
       </div>
       <div class="form-group">
-        <label>공사기간 시작일</label>
+        <label>사업기간 시작</label>
         <input type="text" id="pj_startDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays();syncLockedRoleDates()">
       </div>
       <div class="form-group">
-        <label>공사기간 종료일</label>
+        <label>사업기간 종료</label>
         <input type="text" id="pj_endDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays();syncLockedRoleDates()">
       </div>
       <div class="form-group">
-        <label>공사일수</label>
+        <label>개월</label>
         <input type="text" id="pj_constructionDays" readonly style="background:#f0f7ff;font-weight:700;color:var(--ci)" placeholder="자동계산">
       </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><span class="icon">🏛</span>발주처 · 사업주체 정보</div>
-    <div class="form-grid">
-      <div class="form-group" style="grid-column: span 2">
-        <label>발주처 (공고 주최 = 귀하 란)</label>
-        <input type="text" id="pj_authority" placeholder="예) 전주시장 (공고를 낸 시장·구청장)">
-      </div>
-      <div class="form-group" style="grid-column: span 2">
-        <label>사업주체 상호</label>
-        <input type="text" id="pj_client" placeholder="예) ㈜세승주택건설">
-      </div>
-      <div class="form-group">
-        <label>사업주체 대표이사</label>
-        <input type="text" id="pj_clientCeo" placeholder="예) 박정환">
-      </div>
-    </div>
-  </div>
-
-
-  <div class="card">
-    <div class="card-title"><span class="icon">✏️</span>설계자 정보</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>설계자</label>
-        <input type="text" id="pj_designerCompany" placeholder="예) ㈜길종합건축사사무소이엔지">
-      </div>
-      <div class="form-group">
-        <label>설계자 대표이사</label>
-        <input type="text" id="pj_designerName" placeholder="예) 이길환">
-      </div>
-      <div class="form-group" style="grid-column: span 2">
-        <label>설계자 주소</label>
-        <input type="text" id="pj_designerAddress" placeholder="예) 전북특별자치도 전주시 완산구 ○○로 123">
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><span class="icon">💰</span>감리비용 정보</div>
-    <div class="form-grid">
       <div class="form-group">
         <label>감리대상 공사비 (천원)</label>
         <input type="text" id="pj_supervisionCost" placeholder="예) 25,000,000" oninput="formatBidAmount(this)">
       </div>
       <div class="form-group">
-        <label>감리대가 기준 (원)</label>
-        <input type="text" id="pj_supervisionFee" placeholder="예) 1,200,000,000" oninput="formatBidAmount(this)">
+        <label>접수일자</label>
+        <input type="text" id="pj_submitDate" placeholder="예) 2025.09.11" onchange="triggerAutoSave()">
       </div>
-      <div class="form-group">
-        <label>기초금액 (원)</label>
-        <input type="text" id="pj_baseFee" placeholder="예) 1,150,000,000" oninput="formatBidAmount(this)">
-      </div>
+      <!-- 공사규모 구분: 세대수 기준 자동 설정 (UI 숨김) -->
+      <select id="pj_sizeClass" style="display:none" onchange="syncProjectData();onSizeClassChange()">
+        <option value="1500이상">1,500세대 이상</option>
+        <option value="1000이상">1,000세대 이상 ~ 1,500세대 미만</option>
+        <option value="800이상">800세대 이상 ~ 1,000세대 미만</option>
+        <option value="500이상">500세대 이상 ~ 800세대 미만</option>
+        <option value="300이상">300세대 이상 ~ 500세대 미만</option>
+        <option value="300미만">300세대 미만</option>
+      </select>
+      <!-- 감리대가·기초금액: 숨김 보존 (저장 호환성) -->
+      <input type="hidden" id="pj_supervisionFee">
+      <input type="hidden" id="pj_baseFee">
     </div>
   </div>
 
@@ -1749,6 +1720,19 @@ function _syncArchEnabled() {
     return true; // changed
   }
   return false;
+}
+function syncSizeClass() {
+  const units = parseInt(document.getElementById('pj_units')?.value) || 0;
+  const sel = document.getElementById('pj_sizeClass');
+  if (!sel) return;
+  let val;
+  if (units >= 1500) val = '1500이상';
+  else if (units >= 1000) val = '1000이상';
+  else if (units >= 800) val = '800이상';
+  else if (units >= 500) val = '500이상';
+  else if (units >= 300) val = '300이상';
+  else val = '300미만';
+  if (sel.value !== val) { sel.value = val; onSizeClassChange(); }
 }
 function onSizeClassChange() {
   const changed = _syncArchEnabled();
@@ -2742,6 +2726,15 @@ function loadV2Data(data) {
       if (el) el.value = v || '';
     });
     _syncArchEnabled(); // archEnabled sync (렌더는 loadV2Data 끝에서)
+    // 구버전 호환: authority 없고 submitTo만 있는 경우 authority에 복사
+    const _auth = document.getElementById('pj_authority');
+    const _sub  = document.getElementById('pj_submitTo');
+    if (_auth && _sub) {
+      if (!_auth.value && _sub.value) _auth.value = _sub.value;
+      else if (_auth.value) _sub.value = _auth.value;
+    }
+    // 세대수 기준 공사규모 구분 자동 동기화
+    if (typeof syncSizeClass === 'function') syncSizeClass();
   }
   // Company
   if (data.company) {
