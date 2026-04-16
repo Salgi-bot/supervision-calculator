@@ -3679,8 +3679,8 @@ function parseAnnouncementText(rawText) {
 
   let m;
 
-  // ── 공고번호 ──
-  m = joined.match(/([가-힣]+\s*공고\s*제\s*\d{4}\s*[-‐–]\s*\d+\s*호)/);
+  // ── 공고번호 ── (광역시+구 형식: "서울특별시 양천구 공고 제2026–711호" 포함)
+  m = joined.match(/([가-힣]+(?:\s+[가-힣]+)*\s*공고\s*제\s*\d{4}\s*[-‐–]\s*\d+\s*호)/);
   if (m) result.noticeNo = m[1].trim().replace(/\s+/g, ' ');
 
   // ── 공고일 ──
@@ -3699,13 +3699,19 @@ function parseAnnouncementText(rawText) {
   if (!m) m = allJoined.match(/일\s*시\s*[:：][^~\n]*~[^0-9]*(\d{4})\s*[.\s]*(\d{1,2})\s*[.\s]*(\d{1,2})/);
   if (m) result.submitDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
 
-  // ── 공사명: "XX 공동주택 신축공사" 패턴 (규정 제목 제외) ──
-  const nameRe = /([가-힣a-zA-Z0-9\s·‧\-_]+(?:신축|증축|리모델링|개축|대수선)공사)/g;
-  let nm;
-  while ((nm = nameRe.exec(raw)) !== null) {
-    const candidate = nm[1].trim();
-    if (candidate.length >= 8 && !/감리자|지정기준|주택건설공사\s*감리/.test(candidate)) {
-      result.name = candidate; break;
+  // ── 공사명/사업명: 신축공사·정비사업·재건축 등 다양한 패턴 ──
+  // 1순위: "사 업 명 :" 라벨 직후 값
+  { const r = /사\s*업\s*명\s*[:：]\s*([^\n]+?)(?=\n|$|가\.|나\.|다\.)/; const rm = joined.match(r);
+    if (rm) { const c = rm[1].trim(); if (c.length >= 4 && !/감리자지정/.test(c)) result.name = c; } }
+  // 2순위: 신축/증축/개축/정비사업/재건축/재개발 패턴
+  if (!result.name) {
+    const nameRe = /([가-힣a-zA-Z0-9\s·‧\-_]+(?:신축|증축|리모델링|개축|대수선)공사|[가-힣a-zA-Z0-9\s·‧\-_]+(?:정비사업|재건축사업|재개발사업|가로주택정비사업))/g;
+    let nm;
+    while ((nm = nameRe.exec(raw)) !== null) {
+      const candidate = nm[1].trim();
+      if (candidate.length >= 8 && !/감리자|지정기준|주택건설공사\s*감리/.test(candidate)) {
+        result.name = candidate; break;
+      }
     }
   }
 
@@ -3807,17 +3813,26 @@ function parseAnnouncementText(rawText) {
     }
     if (clientList.length > 0) result.client = clientList.join(', ');
   }
-  // 폴백: 건설/주택/개발 끝말 패턴
+  // 폴백: 사업주체 라벨 뒤 내용 직접 추출 (조합·공사 포함, joined 전체 아닌 라벨 이후 구간)
   if (!result.client) {
+    // 사업주체 라벨~설계자 라벨 구간으로 제한
+    const cStart = joined.search(/(?:사업주체|시행사|사업시행자)/);
+    const cEnd = joined.search(/설\s*계\s*자/);
+    const cSeg = cStart >= 0 ? joined.slice(cStart, cEnd > cStart ? cEnd : cStart + 600) : joined.slice(0, 600);
     const compRe = /(?:(?:㈜|\(주\))\s*([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))|([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))\s*(?:㈜|\(주\)))/g;
     let cm;
     const clientList2 = [];
-    while ((cm = compRe.exec(joined)) !== null) {
+    while ((cm = compRe.exec(cSeg)) !== null) {
       const rawName = cm[1] || cm[2];
       const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
       if (!/아이팝|건축사사무소|감리|^상호$/.test(name)) clientList2.push(name);
     }
     if (clientList2.length > 0) result.client = clientList2.join(', ');
+  }
+  // 마지막 폴백: 사업주체 라벨 이후 첫 회사/조합명 직접 추출
+  if (!result.client) {
+    const m2 = joined.match(/(?:사업주체|시행사|사업시행자)\s*[:：]?\s*([가-힣a-zA-Z0-9\s\-·번지()+]+?(?:조합|공사|건설|주택|개발|회사))/);
+    if (m2) result.client = m2[1].trim();
   }
 
   // ── 설계자 상호 (건축사사무소, 자사 제외) ──
@@ -3884,8 +3899,9 @@ function parseAnnouncementText(rawText) {
       const ceos = findAllCeos(seg);
       if (ceos.length) result.designerName = ceos.join(', ');
 
-      // 설계자 주소: 동일 구간에서 도/시 시작 주소 패턴 추출
-      const addrM = seg.match(/((?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\s*\S+\s*[가-힣0-9\-,\s]+?(?:층|호|빌딩|타워|센터|\d+호|\d+층))/);
+      // 설계자 주소: 도/시 접두어부터 호/층으로 끝나는 주소 (pdfjsLib 공백 포함 형식 대응)
+      const CITY_RE = '(?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)';
+      const addrM = seg.match(new RegExp(`(${CITY_RE}.{4,60}?(?:호|층|빌딩|타워))`));
       if (addrM) result.designerAddress = addrM[1].replace(/\s{2,}/g, ' ').trim();
     }
     // 설계자 주소 미추출 시 '-' 기본값
