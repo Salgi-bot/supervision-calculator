@@ -810,7 +810,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <div class="form-group">
         <label>감리대상 공사비 (천원)</label>
-        <input type="text" id="pj_supervisionCost" placeholder="예) 25,000,000" oninput="formatBidAmount(this)">
+        <input type="text" id="pj_supervisionCost" placeholder="예) 25,000,000" oninput="formatBidAmount(this);syncDeployLawMonths()">
       </div>
       <div class="form-group">
         <label>접수일자</label>
@@ -2803,6 +2803,8 @@ function loadV2Data(data) {
   if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
   if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
+  // 저장된 개월수 없으면 공사비 기준 자동 계산
+  else { syncDeployLawMonths(); }
   renderDeploySettings();
   loadPersonToForm(currentPersonId);
   renderCareerTable();
@@ -4841,6 +4843,13 @@ function calcLegalMonths(costStr) {
     }
   }
   return null;
+}
+function syncDeployLawMonths() {
+  const pj = getProjectData();
+  const pm = calcLegalMonths(pj.supervisionCost);
+  if (pm === null) return;
+  const el = document.getElementById('deployLawMonths');
+  if (el && String(el.value) !== String(pm)) { el.value = pm; renderDeployTable(); }
 }
 function autoCalcLegalMonths() {
   const pj = getProjectData();
