@@ -3861,6 +3861,14 @@ function parseAnnouncementText(rawText) {
       const dm = re.exec(rawJoined);
       if (dm) designerPosR = dm.index;
     }
+    // 시공자 위치: 설계자 이후에서 탐색 (설계자 구간 종료 경계)
+    let constructorPosR = -1;
+    {
+      const re = /시\s*공\s*자/g;
+      re.lastIndex = designerPosR >= 0 ? designerPosR + 10 : 0;
+      const dm = re.exec(rawJoined);
+      if (dm) constructorPosR = dm.index;
+    }
 
     // 사업주체 대표이사: 사업주체 위치 ~ 설계자 위치(또는 +800자) 구간
     if (clientPosR >= 0) {
@@ -3869,9 +3877,10 @@ function parseAnnouncementText(rawText) {
       if (ceos.length) result.clientCeo = ceos.join(', ');
     }
 
-    // 설계자 대표이사: 설계자 위치 ~ +800자 구간
+    // 설계자 대표이사: 설계자 위치 ~ 시공자 위치(또는 +400자) 구간
     if (designerPosR >= 0) {
-      const seg = rawJoined.slice(designerPosR, designerPosR + 800);
+      const dEnd = (constructorPosR > designerPosR) ? constructorPosR : designerPosR + 400;
+      const seg = rawJoined.slice(designerPosR, dEnd);
       const ceos = findAllCeos(seg);
       if (ceos.length) result.designerName = ceos.join(', ');
 
@@ -3879,6 +3888,8 @@ function parseAnnouncementText(rawText) {
       const addrM = seg.match(/((?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\s*\S+\s*[가-힣0-9\-,\s]+?(?:층|호|빌딩|타워|센터|\d+호|\d+층))/);
       if (addrM) result.designerAddress = addrM[1].replace(/\s{2,}/g, ' ').trim();
     }
+    // 설계자 주소 미추출 시 '-' 기본값
+    if (!result.designerAddress) result.designerAddress = '-';
   }
 
   // ── 감리비용 ──
