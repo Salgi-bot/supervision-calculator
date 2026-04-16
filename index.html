@@ -4853,6 +4853,7 @@ function completeDate(roleId, field, el) {
       if (!deployState[roleId]) deployState[roleId] = {};
       if (field === 'start') deployState[roleId].startYM = forced;
       else                   deployState[roleId].endYM   = forced;
+      deployState[roleId].months = ''; // 개월 자동재계산
       renderDeploySettings(); renderDeployTable();
     }
     return;
@@ -5055,7 +5056,13 @@ function renderDeploySettings(force = false) {
     const rsDisp = parseYMShort(startDisp) || projStart;
     const reDisp = parseYMShort(endDisp)   || projEnd;
     const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
-    const monthsVal = (ds.months !== undefined && ds.months !== '') ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
+    // 총괄·비상주: 날짜 고정이므로 개월도 항상 자동계산 (잔존 수동값 제거)
+    const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
+    if (isLockedRole && ds.months !== '' && ds.months !== undefined) {
+      if (deployState[r.id]) deployState[r.id].months = '';
+    }
+    const monthsVal = (!isLockedRole && ds.months !== undefined && ds.months !== '')
+      ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
     // 총괄 범위 초과 여부 표시 (총괄 본인 제외)
     const isChief = r.id === cr.chiefId;
     const sErr = !isChief && cr.start && startDisp && startDisp < cr.start;
@@ -5078,8 +5085,11 @@ function renderDeploySettings(force = false) {
       <input type="number" value="${convRate}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
       <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
-      <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 날짜 기반 자동 계산"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
+      <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동"
+        style="${NSTY};width:52px;${isLockedRole?'background:#f1f5f9;color:#64748b;':''}}"
+        title="${isLockedRole?'공사기간 기반 자동 계산 (수정 불가)':'비워두면 날짜 기반 자동 계산'}"
+        ${isLockedRole?'readonly':''}
+        oninput="${isLockedRole?'':'if(!deployState[\''+r.id+'\'])deployState[\''+r.id+'\']={}; deployState[\''+r.id+'\'].months=this.value===\'\'?\'\':parseFloat(this.value)||\'\';triggerAutoSave();renderDeployTable()'}">
     </div>`;
   }).join('');
 
