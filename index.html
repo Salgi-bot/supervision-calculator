@@ -3625,25 +3625,27 @@ async function extractAnnouncementPDF(file) {
     if (p === 1) page1Text = pageText;
     else restText += pageText + '\n';
   }
-  // 텍스트 추출 실패 시 OCR
+  // OCR 필요 여부 판단: 텍스트 추출 실패 OR 한글은 있지만 핵심 숫자가 없는 경우 (font 인코딩 문제)
   const nonEmpty = (page1Text + restText).replace(/\s/g, '');
-  if (nonEmpty.length < 20) {
+  const hasKorean = /[가-힣]{10}/.test(page1Text);
+  const hasCritNums = /\d[\d,]*\s*(?:세대|㎡|천원|원|층)/.test(page1Text);
+  const hasCritLabels = /(?:세\s*대\s*수|연\s*면\s*적|대지\s*면적|층\s*수|감리대상)/.test(page1Text);
+  const needsOCR = nonEmpty.length < 20 || (hasKorean && hasCritLabels && !hasCritNums);
+  if (needsOCR) {
     const statusEl = document.getElementById('announceStatus');
-    statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중...</div>';
+    statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중... (1페이지)</div>';
     let worker;
     try { worker = await Tesseract.createWorker('kor+eng'); }
     catch { worker = await Tesseract.createWorker('kor'); }
-    page1Text = ''; restText = '';
-    for (let p = 1; p <= pdf.numPages; p++) {
-      const page = await pdf.getPage(p);
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width; canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      const { data: { text } } = await worker.recognize(canvas);
-      if (p === 1) page1Text = text;
-      else restText += text + '\n';
-    }
+    // 1페이지만 OCR (핵심 정보 집중, 속도 우선)
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 2.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const { data: { text } } = await worker.recognize(canvas);
+    page1Text = text;
+    // 2페이지 이후는 기존 pdfjsLib 텍스트 유지 (날짜 등 일반 숫자는 정상 추출됨)
     await worker.terminate();
   }
   // 1페이지와 이후 페이지를 구분자로 연결
