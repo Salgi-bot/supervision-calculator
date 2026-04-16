@@ -3791,7 +3791,7 @@ function parseAnnouncementText(rawText) {
       const n = cm2[1].trim();
       if (n && !/아이팝|건축사사무소|감리/.test(n)) clientList.push(n);
     }
-    if (clientList.length > 0) result.client = clientList[0];
+    if (clientList.length > 0) result.client = clientList.join(', ');
   }
   // 폴백: 건설/주택/개발 끝말 패턴
   if (!result.client) {
@@ -3803,7 +3803,7 @@ function parseAnnouncementText(rawText) {
       const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
       if (!/아이팝|건축사사무소|감리/.test(name)) clientList2.push(name);
     }
-    if (clientList2.length > 0) result.client = clientList2[0];
+    if (clientList2.length > 0) result.client = clientList2.join(', ');
   }
 
   // ── 설계자 상호 (건축사사무소, 자사 제외) ──
@@ -3811,8 +3811,8 @@ function parseAnnouncementText(rawText) {
   if (m) {
     const ext = m.filter(n => !/아이팝/.test(n));
     if (ext.length > 0) {
-      // 대표이사/대표 이후 문자 제거 (PDF 줄바꿈 없이 붙는 경우 방지)
-      result.designerCompany = ext[0].replace(/\s/g, '').replace(/대표이사.*$|대표.*$/, '');
+      // 대표이사/대표 이후 문자 제거, 여러 개면 , 구분
+      result.designerCompany = ext.map(n => n.replace(/\s/g,'').replace(/대표이사.*$|대표.*$/, '')).join(', ');
     }
   }
 
@@ -3821,19 +3821,21 @@ function parseAnnouncementText(rawText) {
   // joined는 \n이 공백으로 치환되어 있어 \s+로 줄경계를 넘을 수 있음
   {
     const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝/;
-    const findCeo = (text) => {
-      // 1순위: "대표이사" / "대표자" + 붙은 이름
-      let nm = text.match(/대표이사\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/)
-             || text.match(/대표자\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/);
-      if (nm && !excl.test(nm[1])) return nm[1];
-      // 2순위: "대표 홍 길 동" (이름 글자 사이 공백) 패턴
-      const nm2 = text.match(/대\s*표\s*[:：]?\s*([가-힣])\s*([가-힣])\s*([가-힣])/)
-               || text.match(/대\s*표\s*[:：]?\s*([가-힣])\s*([가-힣])/);
-      if (nm2) {
-        const name = nm2[3] ? nm2[1]+nm2[2]+nm2[3] : nm2[1]+nm2[2];
-        if (!excl.test(name)) return name;
-      }
-      return null;
+    // 구간 내 모든 대표자 이름 수집 (복수 허용)
+    const findAllCeos = (text) => {
+      const results = [];
+      // 1순위: 대표이사/대표자 + 붙은 이름
+      { const re = /(?:대표이사|대표자)\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/g;
+        let nm; while ((nm = re.exec(text)) !== null) { if (!excl.test(nm[1])) results.push(nm[1]); } }
+      if (results.length) return results;
+      // 2순위: "대표 홍 길 동" (공백 구분 3자)
+      { const re = /대\s*표\s*[:：]?\s*([가-힣])\s+([가-힣])\s+([가-힣])(?!\s*[가-힣])/g;
+        let nm; while ((nm = re.exec(text)) !== null) { const n=nm[1]+nm[2]+nm[3]; if(!excl.test(n)) results.push(n); } }
+      if (results.length) return results;
+      // 3순위: "대표 홍 길" (공백 구분 2자)
+      { const re = /대\s*표\s*[:：]?\s*([가-힣])\s+([가-힣])(?!\s*[가-힣])/g;
+        let nm; while ((nm = re.exec(text)) !== null) { const n=nm[1]+nm[2]; if(!excl.test(n)) results.push(n); } }
+      return results;
     };
 
     const clientPos = joined.search(/사\s*업\s*주\s*체/);
@@ -3850,12 +3852,14 @@ function parseAnnouncementText(rawText) {
     // 사업주체 대표이사: 사업주체 위치 ~ 설계자 위치(또는 +800자) 구간
     if (clientPos >= 0) {
       const sEnd = (designerPos > clientPos) ? designerPos : clientPos + 800;
-      result.clientCeo = findCeo(joined.slice(clientPos, sEnd)) || result.clientCeo;
+      const ceos = findAllCeos(joined.slice(clientPos, sEnd));
+      if (ceos.length) result.clientCeo = ceos.join(', ');
     }
 
     // 설계자 대표이사: 설계자 위치 ~ +800자 구간
     if (designerPos >= 0) {
-      result.designerName = findCeo(joined.slice(designerPos, designerPos + 800)) || result.designerName;
+      const ceos = findAllCeos(joined.slice(designerPos, designerPos + 800));
+      if (ceos.length) result.designerName = ceos.join(', ');
     }
   }
 
