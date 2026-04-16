@@ -3893,6 +3893,9 @@ function parseAnnouncementText(rawText) {
   // 폴백: 입찰서 내 금액 패턴 (금XXX원정)
   if (!result.bidAmount) { m = joined.match(/금\s*([\d,]+)\s*원\s*정/); if (m) result.bidAmount = m[1]; }
 
+  // 위치 미추출 시 '-' 기본값
+  if (!result.location) result.location = '-';
+
   return result;
 }
 
