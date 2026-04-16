@@ -5075,13 +5075,19 @@ function renderDeploySettings(force = false) {
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
-    const startDisp = ds.startYM || defStartDisp;
-    const endDisp   = ds.endYM   || defEndDisp;
+    // 총괄·비상주: 항상 공사기간으로 강제 (stale deployState 무시)
+    const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
+    const startDisp = isLockedRole ? (defStartDisp || ds.startYM) : (ds.startYM || defStartDisp);
+    const endDisp   = isLockedRole ? (defEndDisp   || ds.endYM)   : (ds.endYM   || defEndDisp);
+    if (isLockedRole && (ds.startYM !== startDisp || ds.endYM !== endDisp)) {
+      if (!deployState[r.id]) deployState[r.id] = {};
+      if (startDisp) deployState[r.id].startYM = startDisp;
+      if (endDisp)   deployState[r.id].endYM   = endDisp;
+    }
     const rsDisp = parseYMShort(startDisp) || projStart;
     const reDisp = parseYMShort(endDisp)   || projEnd;
     const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
-    // 총괄·비상주: 날짜 고정이므로 개월도 항상 자동계산 (잔존 수동값 제거)
-    const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
+    // 총괄·비상주: 개월도 항상 자동계산 (잔존 수동값 제거)
     if (isLockedRole && ds.months !== '' && ds.months !== undefined) {
       if (deployState[r.id]) deployState[r.id].months = '';
     }
