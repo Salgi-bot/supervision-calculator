@@ -4859,13 +4859,24 @@ function syncLockedRoleDates() {
   const ps = _projDateForced('start');
   const pe = _projDateForced('end');
   if (!ps || !pe) return;
+  // 공사기간 변경 시 전체 초기화: customized 플래그 제거 → 모두 총괄 기준으로 재렌더
   getAllRoles().forEach(r => {
-    if (r.placement !== '총괄' && r.placement !== '비상주') return;
     if (!deployState[r.id]) deployState[r.id] = {};
     deployState[r.id].startYM = ps;
     deployState[r.id].endYM   = pe;
     deployState[r.id].months  = '';
+    delete deployState[r.id].customized;
   });
+  extraDeployRows.forEach(r => {
+    r.startYM = ps; r.endYM = pe; r.months = '';
+    delete r.customized;
+  });
+  if (deployState['extra_arch']) {
+    deployState['extra_arch'].startYM = ps;
+    deployState['extra_arch'].endYM   = pe;
+    deployState['extra_arch'].months  = '';
+    delete deployState['extra_arch'].customized;
+  }
   renderDeploySettings();
   renderDeployTable();
 }
@@ -4908,6 +4919,7 @@ function completeDate(roleId, field, el) {
   if (!deployState[roleId]) deployState[roleId] = {};
   if (field === 'start') deployState[roleId].startYM = completed;
   else                   deployState[roleId].endYM   = completed;
+  deployState[roleId].customized = true;
   renderDeploySettings();
   renderDeployTable();
 }
@@ -4934,6 +4946,8 @@ function completeDateExtra(rowId, field, el) {
   completed = clampYYMMDD(completed, cr.start, cr.end);
   el.value = completed;
   updateExtraRow(rowId, field === 'start' ? 'startYM' : 'endYM', completed);
+  const _rowC = extraDeployRows.find(r => r.id === rowId);
+  if (_rowC) _rowC.customized = true;
   renderDeploySettings();
 }
 // 배치기간 ±1개월 조정
@@ -5100,10 +5114,11 @@ function renderDeploySettings(force = false) {
       startDisp = defStartDisp || ds.startYM;
       endDisp   = defEndDisp   || ds.endYM;
     } else {
-      // 기본값: 총괄 시작/종료
-      startDisp = ds.startYM || chiefStart;
-      endDisp   = ds.endYM   || chiefEnd;
-      // 총괄 범위 초과 시 자동 clamp
+      // customized=true(사용자 직접 수정)만 저장값 사용, 나머지는 총괄 기준 기본값
+      const isCustom = ds.customized === true;
+      startDisp = isCustom ? (ds.startYM || chiefStart) : chiefStart;
+      endDisp   = isCustom ? (ds.endYM   || chiefEnd)   : chiefEnd;
+      // 총괄 범위 초과 시 자동 clamp (customized여도 범위 밖은 보정)
       if (!isChiefRole && chiefStart && startDisp && startDisp < chiefStart) startDisp = chiefStart;
       if (!isChiefRole && chiefEnd   && endDisp   && endDisp   > chiefEnd)   endDisp   = chiefEnd;
     }
@@ -5132,12 +5147,12 @@ function renderDeploySettings(force = false) {
       <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(${r.placement}·${grade})</span>
       <input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${sErr?ISTY_ERR:ISTY}" title="${sTitle}"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].customized=true;deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('${r.id}','start',this)">
       ${btnPair(r.id,'start')}
       <span style="font-size:10px;color:#666">~</span>
       <input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${eErr?ISTY_ERR:ISTY}" title="${eTitle}"
-        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].customized=true;deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('${r.id}','end',this)">
       ${btnPair(r.id,'end')}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
@@ -5164,9 +5179,10 @@ function renderDeploySettings(force = false) {
     return r.field || '건축';
   });
   extraDeployRows.forEach((row, rowIdx) => {
-    // 기본값: 총괄 시작/종료 / 범위 초과 시 자동 clamp
-    let startD = row.startYM || chiefStart;
-    let endD   = row.endYM   || chiefEnd;
+    // customized=true면 저장값 사용, 아니면 총괄 기준 + 범위 초과 시 clamp
+    const isRowCustom = row.customized === true;
+    let startD = isRowCustom ? (row.startYM || chiefStart) : chiefStart;
+    let endD   = isRowCustom ? (row.endYM   || chiefEnd)   : chiefEnd;
     if (cr.start && startD && startD < cr.start) startD = cr.start;
     if (cr.end   && endD   && endD   > cr.end)   endD   = cr.end;
     if (row.startYM !== startD || row.endYM !== endD) {
@@ -5190,12 +5206,12 @@ function renderDeploySettings(force = false) {
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
       <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${sErrR?ISTY_ERR:ISTY}" title="${sErrR?`총괄 시작일(${cr.start}) 이전`:'YYMMDD'}"
-        oninput="updateExtraRow('${row.id}','startYM',this.value)"
+        oninput="updateExtraRow('${row.id}','startYM',this.value);(extraDeployRows.find(r=>r.id==='${row.id}')||{}).customized=true"
         onblur="completeDateExtra('${row.id}','start',this)">
       ${btnPair(row.id,'start')}
       <span style="font-size:10px;color:#666">~</span>
       <input type="text" value="${endD}" placeholder="281231" maxlength="10" style="${eErrR?ISTY_ERR:ISTY}" title="${eErrR?`총괄 종료일(${cr.end}) 이후`:'YYMMDD'}"
-        oninput="updateExtraRow('${row.id}','endYM',this.value)"
+        oninput="updateExtraRow('${row.id}','endYM',this.value);(extraDeployRows.find(r=>r.id==='${row.id}')||{}).customized=true"
         onblur="completeDateExtra('${row.id}','end',this)">
       ${btnPair(row.id,'end')}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
@@ -5213,8 +5229,9 @@ function renderDeploySettings(force = false) {
   if (sizeClassSetting !== '300미만') {
     const ds_e = deployState['extra_arch'] || {};
     const convRate_e = (ds_e.convRate !== undefined && ds_e.convRate !== '') ? ds_e.convRate : 1.000;
-    let startDisp_e = ds_e.startYM || chiefStart;
-    let endDisp_e   = ds_e.endYM   || chiefEnd;
+    const isExtraCustom = ds_e.customized === true;
+    let startDisp_e = isExtraCustom ? (ds_e.startYM || chiefStart) : chiefStart;
+    let endDisp_e   = isExtraCustom ? (ds_e.endYM   || chiefEnd)   : chiefEnd;
     if (cr.start && startDisp_e && startDisp_e < cr.start) startDisp_e = cr.start;
     if (cr.end   && endDisp_e   && endDisp_e   > cr.end)   endDisp_e   = cr.end;
     if (ds_e.startYM !== startDisp_e || ds_e.endYM !== endDisp_e) {
@@ -5233,12 +5250,12 @@ function renderDeploySettings(force = false) {
       <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
       <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(추가배치·-)</span>
       <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${sErrE?ISTY_ERR:ISTY}" title="${sErrE?`총괄 시작일(${cr.start}) 이전`:'YYMMDD 또는 YYYY.MM.DD'}"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].customized=true;deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','start',this)">
       ${btnPair('extra_arch','start')}
       <span style="font-size:10px;color:#666">~</span>
       <input type="text" value="${endDisp_e}" placeholder="281231" maxlength="10" style="${eErrE?ISTY_ERR:ISTY}" title="${eErrE?`총괄 종료일(${cr.end}) 이후`:'YYMMDD 또는 YYYY.MM.DD'}"
-        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
+        oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].customized=true;deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','end',this)">
       ${btnPair('extra_arch','end')}
       <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">개월</span>
