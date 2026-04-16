@@ -4986,9 +4986,10 @@ function adjustDeployDate(roleId, field, delta) {
   const nv = clampYYMMDD(_f6(ny, nm, nd), cr.start, cr.end);
   if (isExtra) {
     const row = extraDeployRows.find(r => r.id === roleId);
-    if (row) { row[fKey] = nv; row.months = ''; }
+    if (row) { row[fKey] = nv; row.months = ''; row.customized = true; }
   } else {
     deployState[roleId][fKey] = nv; deployState[roleId].months = '';
+    deployState[roleId].customized = true;
   }
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
