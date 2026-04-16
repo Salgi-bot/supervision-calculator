@@ -1130,6 +1130,11 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji1HeaderOn"  onclick="setByeoljiHeader(1,true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji1HeaderOff" onclick="setByeoljiHeader(1,false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;">도장:</span>
+        <div role="group" aria-label="법인 도장 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="stampOn"  onclick="setShowStamp(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
+          <button type="button" id="stampOff" onclick="setShowStamp(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
       </div>
     </div>
     <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.</div>
@@ -1425,11 +1430,6 @@ tbody tr:hover td { background: var(--ci-light); }
         <div role="group" aria-label="별첨1 공고번호 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
           <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
-        </div>
-        <span style="color:#64748b;margin-left:4px;">도장:</span>
-        <div role="group" aria-label="법인 도장 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
-          <button type="button" id="stampOn"  onclick="setShowStamp(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
-          <button type="button" id="stampOff" onclick="setShowStamp(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
         <input type="text" id="swearNoticeNumberInput" readonly
           title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
@@ -4203,13 +4203,15 @@ function updateByeolji1AlignButtons() {
   setActive('byeolji1RecipientAlignRight', byeolji1RecipientAlign === 'right');
   setActive('byeolji1HeaderOn',  showByeolji1Header === true);
   setActive('byeolji1HeaderOff', showByeolji1Header !== true);
+  setActive('stampOn',  showStamp === true);
+  setActive('stampOff', showStamp !== true);
 }
 function setByeoljiHeader(num, on) {
   if (num === 1) showByeolji1Header = !!on;
   else           showByeolji2Header = !!on;
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   if (num === 1) renderByeolji1();
-  else           renderByeolji2();
+  else           renderByeolji2Cover();
 }
 
 function calcPersonScore(roleId) {
@@ -5760,7 +5762,7 @@ function updateStampButtons() {
 }
 function stampImgHtml(marginRight) {
   if (!showStamp) return '';
-  return `<div style="text-align:right;margin-right:${marginRight};margin-top:-8px;"><img src="stamp.png" style="width:65px;height:65px;mix-blend-mode:multiply;opacity:0.92;"></div>`;
+  return `<div style="text-align:right;margin-right:${marginRight};margin-top:2px;"><img src="stamp.png" style="width:65px;height:65px;mix-blend-mode:multiply;opacity:0.92;"></div>`;
 }
 
 function renderByeolchum1() {
@@ -5834,7 +5836,6 @@ function updateSwearAlignButtons() {
     inp.style.opacity    = swearNoticeEnabled ? '1' : '0.5';
     inp.style.background = swearNoticeEnabled ? '#eef2ff' : '#f1f5f9';
   }
-  updateStampButtons();
 }
 
 // 별첨1 서약서 공고번호 노출 토글
