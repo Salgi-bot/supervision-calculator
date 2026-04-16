@@ -3804,9 +3804,11 @@ function parseAnnouncementText(rawText) {
     if (m && !/자본|주식|노동|부동산|금융/.test(m[1])) result.authority = m[1];
   }
   if (!result.authority) {
-    const authRe = /(?<![일월년])([가-힣]{2,4}(?:시장|구청장|군수|도지사))/g;
+    // "16일양천구청장" → 날짜 숫자+일 패턴 제거 후 매칭 ("일양천구청장" 오추출 방지)
+    const authText = joinedNoSpace.replace(/\d+일(?=[가-힣])/g, '');
+    const authRe = /([가-힣]{2,4}(?:시장|구청장|군수|도지사))/g;
     let am;
-    while ((am = authRe.exec(joinedNoSpace)) !== null) {
+    while ((am = authRe.exec(authText)) !== null) {
       if (!/자본|주식|노동|부동산|금융/.test(am[1])) { result.authority = am[1]; break; }
     }
   }
