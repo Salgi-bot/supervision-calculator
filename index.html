@@ -5612,6 +5612,17 @@ function printCalcResult() {
 
 function renderByeolji3() { renderInputSheet(); renderDeployTable(); }
 
+function getPrintDatePrefix() {
+  const raw = (document.getElementById('pj_submitDate')?.value || '').trim();
+  let y, m, d;
+  if (raw) {
+    const mt = raw.match(/(\d{4})[.\-\/년]\s*(\d{1,2})[.\-\/월]\s*(\d{1,2})/);
+    if (mt) { y = mt[1]; m = mt[2]; d = mt[3]; }
+  }
+  if (!y) { const t = new Date(); y = t.getFullYear(); m = t.getMonth()+1; d = t.getDate(); }
+  return `${String(y).slice(2)}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+}
+
 function printAllForSubmit() {
   renderByeolji1();
   renderByeolji2Cover();
@@ -5634,8 +5645,11 @@ function printAllForSubmit() {
     }
   });
   document.body.classList.add('print-deploy-only');
+  const origTitle = document.title;
+  document.title = `${getPrintDatePrefix()}_주택법 감리자 지정 신청서`;
   window.print();
   setTimeout(() => {
+    document.title = origTitle;
     originalChildren.forEach(el => parent.appendChild(el));
     printOrder.forEach(id => {
       const el = document.getElementById(id);
