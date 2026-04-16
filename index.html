@@ -3782,26 +3782,38 @@ function parseAnnouncementText(rawText) {
   }
 
   // ── 사업주체: ㈜/(주) 접두어 또는 접미어 ──
-  const compRe = /(?:(?:㈜|\(주\))\s*([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))|([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))\s*(?:㈜|\(주\)))/g;
-  let cm;
-  const clientList = [];
-  while ((cm = compRe.exec(joined)) !== null) {
-    const rawName = cm[1] || cm[2];
-    const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
-    if (!/아이팝|건축사사무소|감리/.test(name)) clientList.push(name);
+  // 사업주체 라벨 뒤 회사명 추출 (주식회사·㈜·아무 형식 모두 허용, 대표/☎ 앞까지)
+  {
+    const clientRe = /(?:사업주체|시행사|사업시행자)\s*[:：]?\s*((?:주식회사|㈜|\(주\))?[가-힣a-zA-Z··0-9]+(?:주식회사|㈜|\(주\))?)\s*(?=대표|☎|$)/g;
+    let cm2;
+    const clientList = [];
+    while ((cm2 = clientRe.exec(joined)) !== null) {
+      const n = cm2[1].trim();
+      if (n && !/아이팝|건축사사무소|감리/.test(n)) clientList.push(n);
+    }
+    if (clientList.length > 0) result.client = clientList[0];
   }
-  if (clientList.length > 0) result.client = clientList[0];
-  // 폴백: 사업주체/시행사 라벨 뒤 값 전체 캡처
+  // 폴백: 건설/주택/개발 끝말 패턴
   if (!result.client) {
-    m = joined.match(/(?:사업주체|시행사|사업시행자)\s*[:：]?\s*((?:㈜|\(주\))?\s*[가-힣a-zA-Z]+(?:건설|주택|개발)\s*(?:㈜|\(주\))?)/);
-    if (m) result.client = m[1].trim();
+    const compRe = /(?:(?:㈜|\(주\))\s*([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))|([가-힣a-zA-Z]+(?:건설|주택건설|주택|개발|종합건설))\s*(?:㈜|\(주\)))/g;
+    let cm;
+    const clientList2 = [];
+    while ((cm = compRe.exec(joined)) !== null) {
+      const rawName = cm[1] || cm[2];
+      const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
+      if (!/아이팝|건축사사무소|감리/.test(name)) clientList2.push(name);
+    }
+    if (clientList2.length > 0) result.client = clientList2[0];
   }
 
   // ── 설계자 상호 (건축사사무소, 자사 제외) ──
-  m = joined.match(/((?:㈜)?[가-힣]*건축사사무소[가-힣]*)/g);
+  m = joined.match(/((?:㈜)?[가-힣]{2,30}건축사사무소[가-힣]{0,6})/g);
   if (m) {
     const ext = m.filter(n => !/아이팝/.test(n));
-    if (ext.length > 0) result.designerCompany = ext[0].replace(/\s/g, '');
+    if (ext.length > 0) {
+      // 대표이사/대표 이후 문자 제거 (PDF 줄바꿈 없이 붙는 경우 방지)
+      result.designerCompany = ext[0].replace(/\s/g, '').replace(/대표이사.*$|대표.*$/, '');
+    }
   }
 
   // ── 사업주체 대표이사 / 설계자 대표이사: joined 부분문자열 기반 파싱 ──
@@ -3810,8 +3822,18 @@ function parseAnnouncementText(rawText) {
   {
     const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝/;
     const findCeo = (text) => {
-      const nm = text.match(/대표이사\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/) || text.match(/대표자\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/);
-      return (nm && !excl.test(nm[1])) ? nm[1] : null;
+      // 1순위: "대표이사" / "대표자" + 붙은 이름
+      let nm = text.match(/대표이사\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/)
+             || text.match(/대표자\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/);
+      if (nm && !excl.test(nm[1])) return nm[1];
+      // 2순위: "대표 홍 길 동" (이름 글자 사이 공백) 패턴
+      const nm2 = text.match(/대\s*표\s*[:：]?\s*([가-힣])\s*([가-힣])\s*([가-힣])/)
+               || text.match(/대\s*표\s*[:：]?\s*([가-힣])\s*([가-힣])/);
+      if (nm2) {
+        const name = nm2[3] ? nm2[1]+nm2[2]+nm2[3] : nm2[1]+nm2[2];
+        if (!excl.test(name)) return name;
+      }
+      return null;
     };
 
     const clientPos = joined.search(/사\s*업\s*주\s*체/);
@@ -3861,25 +3883,23 @@ function showAnnouncementResult(parsed, rawText) {
   const statusEl = document.getElementById('announceStatus');
   const fields = [
     { key: 'noticeNo', label: '공고번호', target: 'pj_noticeNo' },
-    { key: 'noticeDate', label: '공고일', target: 'pj_noticeDate' },
-    { key: 'submitDate', label: '제출일 (마감)', target: 'pj_submitDate' },
-    { key: 'name', label: '공사명', target: 'pj_name' },
-    { key: 'location', label: '소재지', target: 'pj_location' },
-    { key: 'units', label: '세대수', target: 'pj_units' },
-    { key: 'blocks', label: '동수', target: 'pj_blocks' },
-    { key: 'area', label: '연면적', target: 'pj_area' },
-    { key: 'siteArea', label: '대지면적', target: 'pj_siteArea' },
-    { key: 'stories', label: '층수', target: 'pj_stories' },
-    { key: 'startDate', label: '공사시작일', target: 'pj_startDate' },
-    { key: 'endDate', label: '공사종료일', target: 'pj_endDate' },
-    { key: 'authority', label: '발주처 (허가권자)', target: 'pj_authority' },
+    { key: 'noticeDate', label: '모집공고일', target: 'pj_noticeDate' },
+    { key: 'authority', label: '지정권자', target: 'pj_authority' },
+    { key: 'name', label: '사업명', target: 'pj_name' },
     { key: 'client', label: '사업주체', target: 'pj_client' },
-    { key: 'clientCeo', label: '사업주체 대표이사', target: 'pj_clientCeo' },
+    { key: 'clientCeo', label: '대표자', target: 'pj_clientCeo' },
     { key: 'designerCompany', label: '설계자', target: 'pj_designerCompany' },
-    { key: 'designerName', label: '설계자 대표이사', target: 'pj_designerName' },
+    { key: 'designerName', label: '대표자 (설계)', target: 'pj_designerName' },
+    { key: 'location', label: '위치', target: 'pj_location' },
+    { key: 'siteArea', label: '대지면적', target: 'pj_siteArea' },
+    { key: 'area', label: '연면적', target: 'pj_area' },
+    { key: 'blocks', label: '동수', target: 'pj_blocks' },
+    { key: 'units', label: '세대수', target: 'pj_units' },
+    { key: 'stories', label: '층수', target: 'pj_stories' },
+    { key: 'startDate', label: '사업기간 시작', target: 'pj_startDate' },
+    { key: 'endDate', label: '사업기간 종료', target: 'pj_endDate' },
     { key: 'supervisionCost', label: '감리대상 공사비', target: 'pj_supervisionCost' },
-    { key: 'supervisionFee', label: '감리대가 기준', target: 'pj_supervisionFee' },
-    { key: 'baseFee', label: '기초금액', target: 'pj_baseFee' },
+    { key: 'submitDate', label: '접수일자', target: 'pj_submitDate' },
   ];
 
   const foundCount = fields.filter(f => parsed[f.key]).length;
