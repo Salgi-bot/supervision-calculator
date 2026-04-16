@@ -625,7 +625,7 @@ tbody tr:hover td { background: var(--ci-light); }
   .a4-preview, .a4-page { border: none; box-shadow: none; box-sizing: border-box; min-height: auto !important; height: auto !important; width: 210mm; margin: 0 auto; page-break-after: always; overflow: visible; }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
   /* flex 페이지(서약서·위임장 등): 세로 균등 배치 — 전체 A4 높이 채우기 */
-  .a4-page[style*="flex-direction:column"] { height: 267mm !important; min-height: 267mm !important; overflow: hidden !important; }
+  .a4-page[style*="flex-direction:column"] { height: 267mm !important; min-height: 267mm !important; justify-content: space-between !important; overflow: hidden !important; }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -5713,7 +5713,7 @@ function renderByeolchum1() {
     ? markupToBodyHtml(rawBody)
     : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;">
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
         <div style="font-size:14px;font-weight:bold;margin-bottom:30px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:20px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
@@ -5723,8 +5723,8 @@ function renderByeolchum1() {
         <div id="swearBodyDiv"
           style="text-indent:2em;text-align:justify;line-height:2.4;">${bodyInner}</div>
       </div>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:16px;">${dateStr}</div>
       <div>
+        <div style="text-align:center;margin:40px 0 60px;font-size:16px;">${dateStr}</div>
         <div style="text-align:right;margin-right:40px;line-height:2.6;">
           <div>서약자 주소 : ${escHtml(co.address||'')}</div>
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
@@ -5803,11 +5803,11 @@ function markupToBodyHtml(text) {
     s = s.replace(/\n/g, '<br>');
     return s;
   };
-  const filtered = paragraphs.map(p => applyInline(p).trim()).filter(Boolean);
-  return filtered.map((inner, i) => {
-    const mb = i < filtered.length - 1 ? '12px' : '0';
-    return `<p style="margin:0 0 ${mb};text-indent:2em;">${inner}</p>`;
-  }).join('');
+  return paragraphs.map(p => {
+    const inner = applyInline(p).trim();
+    if (!inner) return '';
+    return `<p style="margin:0 0 12px;text-indent:2em;">${inner}</p>`;
+  }).filter(Boolean).join('');
 }
 
 // default 보장 + 최대 10개 클램프
