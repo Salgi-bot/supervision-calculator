@@ -5075,14 +5075,29 @@ function renderDeploySettings(force = false) {
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
-    // 총괄·비상주: 항상 공사기간으로 강제 (stale deployState 무시)
+    // 총괄·비상주: 공사기간 강제 / 나머지: 총괄 범위 기본값 + 범위 초과 시 자동 clamp
     const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
-    const startDisp = isLockedRole ? (defStartDisp || ds.startYM) : (ds.startYM || defStartDisp);
-    const endDisp   = isLockedRole ? (defEndDisp   || ds.endYM)   : (ds.endYM   || defEndDisp);
-    if (isLockedRole && (ds.startYM !== startDisp || ds.endYM !== endDisp)) {
+    const isChiefRole  = r.id === cr.chiefId;
+    const chiefStart = cr.start || defStartDisp;
+    const chiefEnd   = cr.end   || defEndDisp;
+    let startDisp, endDisp;
+    if (isLockedRole) {
+      startDisp = defStartDisp || ds.startYM;
+      endDisp   = defEndDisp   || ds.endYM;
+    } else {
+      // 기본값: 총괄 시작/종료
+      startDisp = ds.startYM || chiefStart;
+      endDisp   = ds.endYM   || chiefEnd;
+      // 총괄 범위 초과 시 자동 clamp
+      if (!isChiefRole && chiefStart && startDisp && startDisp < chiefStart) startDisp = chiefStart;
+      if (!isChiefRole && chiefEnd   && endDisp   && endDisp   > chiefEnd)   endDisp   = chiefEnd;
+    }
+    // deployState 동기화 (보정된 값 반영)
+    if (ds.startYM !== startDisp || ds.endYM !== endDisp) {
       if (!deployState[r.id]) deployState[r.id] = {};
       if (startDisp) deployState[r.id].startYM = startDisp;
       if (endDisp)   deployState[r.id].endYM   = endDisp;
+      deployState[r.id].months = '';
     }
     const rsDisp = parseYMShort(startDisp) || projStart;
     const reDisp = parseYMShort(endDisp)   || projEnd;
@@ -5093,10 +5108,9 @@ function renderDeploySettings(force = false) {
     }
     const monthsVal = (!isLockedRole && ds.months !== undefined && ds.months !== '')
       ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
-    // 총괄 범위 초과 여부 표시 (총괄 본인 제외)
-    const isChief = r.id === cr.chiefId;
-    const sErr = !isChief && cr.start && startDisp && startDisp < cr.start;
-    const eErr = !isChief && cr.end   && endDisp   && endDisp   > cr.end;
+    // 총괄 범위 초과 여부 표시 (총괄 본인 제외, clamp 후이므로 정상이면 sErr=false)
+    const sErr = !isChiefRole && cr.start && startDisp && startDisp < cr.start;
+    const eErr = !isChiefRole && cr.end   && endDisp   && endDisp   > cr.end;
     const sTitle = sErr ? `총괄 시작일(${cr.start}) 이전` : 'YYMMDD 또는 YYYY.MM.DD';
     const eTitle = eErr ? `총괄 종료일(${cr.end}) 이후`   : 'YYMMDD 또는 YYYY.MM.DD';
     return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
