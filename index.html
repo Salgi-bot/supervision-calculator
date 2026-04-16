@@ -4161,14 +4161,12 @@ function renderByeolji1() {
         「주택법」 제43조, 같은 법 시행령 제47조 및 '주택건설공사 감리자지정기준' 제6조에 따라 위 주택건설공사의 감리자 지정을 신청합니다.
       </div>
 
-      <div style="position:relative;">
-        <div style="text-align:right;font-size:10pt;margin:6px 20px 3px 0">
-          ${y}년 &ensp;${mo}월 &ensp;${d}일
-        </div>
-        <div style="text-align:right;font-size:10pt;margin:2px 20px 0 0">
-          입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
-        </div>
-        ${showStamp ? `<img src="stamp.png" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);width:62px;height:62px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+      <div style="text-align:right;font-size:10pt;margin:6px 20px 3px 0">
+        ${y}년 &ensp;${mo}월 &ensp;${d}일
+      </div>
+      <div style="position:relative;text-align:right;font-size:10pt;margin:2px 20px 0 0">
+        입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
+        ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:62px;height:62px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
       </div>
       <div style="font-size:13pt;font-weight:800;margin:6px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
         ${escHtml(pj.authority || '')} 귀하
@@ -4608,12 +4606,10 @@ function renderByeolji2Cover() {
     <div style="font-size:7pt;line-height:1.6;margin:8px 0 0">
       상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성ㆍ제출되었음을 확인하고, 제출된 신청자 평점 중 "허위ㆍ거짓 등"의 방법에 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰제한 등의 불이익을 받을 수 있음을 확인합니다.
     </div>
-    <div style="position:relative;">
-      <div style="text-align:right;font-size:10pt;margin:12px 20px 2px 0;line-height:1.3">${getSubmitDateStr()}</div>
-      <div style="text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
-        입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
-      </div>
-      ${showStamp ? `<img src="stamp.png" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);width:62px;height:62px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+    <div style="text-align:right;font-size:10pt;margin:12px 20px 2px 0;line-height:1.3">${getSubmitDateStr()}</div>
+    <div style="position:relative;text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
+      입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
+      ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:62px;height:62px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px;line-height:1.3">
       <span>구비서류 : 감리원배치계획서 1부.</span>
