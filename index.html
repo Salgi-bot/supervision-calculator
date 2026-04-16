@@ -1740,14 +1740,19 @@ function toggleArch() {
   _refreshAfterToggle();
 }
 // 공사규모(세대수) 변경 시 분야별건축감리원 자동 ON/OFF
-function onSizeClassChange() {
+function _syncArchEnabled() {
   const val = document.getElementById('pj_sizeClass')?.value || '';
   const wantArch = (val !== '300미만');
   if (archEnabled !== wantArch) {
     archEnabled = wantArch;
     localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
-    _refreshAfterToggle();
+    return true; // changed
   }
+  return false;
+}
+function onSizeClassChange() {
+  const changed = _syncArchEnabled();
+  if (changed) _refreshAfterToggle();
   // 세대수 변경 시 자동계산 필드 초기화 (재계산 반영)
   ['fa_g','fa_e','fc_g','fc_e','fm_g','fm_e','fa_ad'].forEach(k => { delete b2NumState[k]; delete b2NumState미만[k]; });
   b2ViewMode = null; // 세대수 변경 시 자동 감지로 리셋
@@ -2212,17 +2217,15 @@ function renderPersonCards() {
     const isNonEval = role.id.startsWith('noneval_');
     const isNewEval = role.id.startsWith('neweval_');
 
-    const isArch   = role.id === 'arch';
     const isCivil2 = role.id === 'civil2';
-    const archOff   = isArch   && !archEnabled;
     const civil2Off = isCivil2 && !civil2Enabled;
-    const cardDim = archOff || civil2Off;
+    const cardDim = (!archEnabled && role.id === 'arch') || civil2Off;
     const toggleBtn = (fn, enabled) =>
       `<button onclick="${fn}()" style="margin-left:8px;font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid ${enabled?'#16a34a':'#dc2626'};background:${enabled?'#f0fdf4':'#fef2f2'};color:${enabled?'#166534':'#991b1b'};cursor:pointer;vertical-align:middle">${enabled?'포함 ON':'제외 OFF'}</button>`;
     return `
     <div class="person-card ${hasData ? 'has-data' : ''}" style="${cardDim ? 'opacity:0.45;' : ''}">
       <div class="person-card-header">
-        <h3>${role.icon} ${role.label}${isArch ? toggleBtn('toggleArch', archEnabled) : ''}${isCivil2 ? toggleBtn('toggleCivil2', civil2Enabled) : ''}</h3>
+        <h3>${role.icon} ${role.label}${isCivil2 ? toggleBtn('toggleCivil2', civil2Enabled) : ''}</h3>
         <span class="person-status ${hasData ? 'filled' : 'empty'}">${hasData ? (p.info.name || '입력됨') : '미입력'}</span>
       </div>
       <div class="person-card-body">
@@ -2738,6 +2741,7 @@ function loadV2Data(data) {
       const el = document.getElementById('pj_' + k);
       if (el) el.value = v || '';
     });
+    _syncArchEnabled(); // archEnabled sync (렌더는 loadV2Data 끝에서)
   }
   // Company
   if (data.company) {
@@ -2872,6 +2876,7 @@ function clearProjectOnly() {
   if (!confirm('공고/프로젝트 정보만 초기화합니다.\n(감리원·회사 정보는 유지됩니다)')) return;
   document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
   document.getElementById('constructionDaysDisplay').textContent = '';
+  onSizeClassChange();
   showStatus('공고 정보 초기화 — 새 입찰 준비 완료');
 }
 
@@ -2884,6 +2889,7 @@ function clearAll() {
   newEvalList.forEach(r => { delete personnel[r.id]; });
   newEvalList = []; newEvalCounter = 0;
   document.querySelectorAll('[id^="pj_"]').forEach(el => { if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = ''; });
+  onSizeClassChange();
   perfRecords = [];
   docImages = [];
   if (typeof renderPerfTable === 'function') renderPerfTable();
@@ -3938,6 +3944,7 @@ function applyAnnouncement() {
     else if (u >= 500) sel.value = '500이상';
     else if (u >= 300) sel.value = '300이상';
     else sel.value = '300미만';
+    onSizeClassChange();
   }
   calcConstructionDays();
   document.getElementById('announceStatus').innerHTML = `<div class="parse-status ok">✅ ${applied}개 항목 적용 완료</div>`;
