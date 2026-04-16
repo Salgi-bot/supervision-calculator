@@ -5855,11 +5855,12 @@ function renderByeolchum1() {
       </div>
       <div>
         <div style="text-align:center;margin:20px 0 24px;font-size:16px;">${dateStr}</div>
-        <div style="position:relative;text-align:right;margin-right:40px;line-height:2.6;">
+        <div style="text-align:right;margin-right:40px;line-height:2.6;">
           <div>서약자 주소 : ${escHtml(co.address||'')}</div>
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
-          <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
-          ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;bottom:4px;width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+          <div style="position:relative;">대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)
+            ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+          </div>
         </div>
         <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
       </div>
