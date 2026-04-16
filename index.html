@@ -3617,22 +3617,23 @@ async function extractAnnouncementPDF(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let allText = '';
+  let page1Text = '', restText = '';
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const tc = await page.getTextContent();
     const pageText = joinPdfItems(tc.items);
-    allText += pageText + '\n';
+    if (p === 1) page1Text = pageText;
+    else restText += pageText + '\n';
   }
   // 텍스트 추출 실패 시 OCR
-  const nonEmpty = allText.replace(/\s/g, '');
+  const nonEmpty = (page1Text + restText).replace(/\s/g, '');
   if (nonEmpty.length < 20) {
     const statusEl = document.getElementById('announceStatus');
     statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중...</div>';
     let worker;
     try { worker = await Tesseract.createWorker('kor+eng'); }
     catch { worker = await Tesseract.createWorker('kor'); }
-    allText = '';
+    page1Text = ''; restText = '';
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
       const viewport = page.getViewport({ scale: 2.0 });
@@ -3640,11 +3641,13 @@ async function extractAnnouncementPDF(file) {
       canvas.width = viewport.width; canvas.height = viewport.height;
       await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
       const { data: { text } } = await worker.recognize(canvas);
-      allText += text + '\n';
+      if (p === 1) page1Text = text;
+      else restText += text + '\n';
     }
     await worker.terminate();
   }
-  return allText;
+  // 1페이지와 이후 페이지를 구분자로 연결
+  return page1Text + '\n\n<<<PAGE2>>>\n\n' + restText;
 }
 
 async function extractAnnouncementImage(file) {
@@ -3663,11 +3666,16 @@ async function extractAnnouncementImage(file) {
 function parseAnnouncementText(rawText) {
   const result = { noticeNo: '', noticeDate: '', submitDate: '', name: '', location: '', units: '', blocks: '', area: '', siteArea: '', stories: '', startDate: '', endDate: '', authority: '', client: '', clientCeo: '', designerName: '', designerCompany: '', supervisionCost: '', supervisionFee: '', baseFee: '', bidAmount: '' };
 
-  // 원본 텍스트 (주소/이름 등 값 패턴 매칭용)
-  const raw = rawText.replace(/\r/g, '');
+  // 1페이지 / 이후 페이지 분리
+  const [page1Raw, restRaw = ''] = rawText.split('\n\n<<<PAGE2>>>\n\n');
+
+  // 원본 텍스트 (주소/이름 등 값 패턴 매칭용) — 1페이지만 사용
+  const raw = page1Raw.replace(/\r/g, '');
   // 정규화 텍스트 (라벨 매칭용): 단자 문자간격만 제거
   const norm = raw.replace(/([가-힣]) (?=[가-힣] [가-힣])/g, '$1');
   const joined = norm.replace(/\n/g, '  ');
+  // 이름 추출용: norm 미적용 원문 (공백 유지) — CEO 패턴 정확도 향상
+  const rawJoined = raw.replace(/\n/g, '  ');
 
   let m;
 
@@ -3684,10 +3692,11 @@ function parseAnnouncementText(rawText) {
     if (m) result.noticeDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
   }
 
-  // ── 입찰서 제출일시 마지막 날짜 ──
-  m = joined.match(/입찰서\s*제출일시[^~]*~\s*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
-  if (!m) m = joined.match(/제출일시[^~\n]*~[^0-9]*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
-  if (!m) m = joined.match(/일\s*시\s*[:：][^~\n]*~[^0-9]*(\d{4})\s*[.\s]*(\d{1,2})\s*[.\s]*(\d{1,2})/);
+  // ── 입찰서 제출일시 마지막 날짜 (1페이지 + 2페이지 이후 모두 검색) ──
+  const allJoined = joined + '  ' + restRaw.replace(/\n/g, '  ');
+  m = allJoined.match(/입찰서\s*제출일시[^~]*~\s*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
+  if (!m) m = allJoined.match(/제출일시[^~\n]*~[^0-9]*(\d{4})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})/);
+  if (!m) m = allJoined.match(/일\s*시\s*[:：][^~\n]*~[^0-9]*(\d{4})\s*[.\s]*(\d{1,2})\s*[.\s]*(\d{1,2})/);
   if (m) result.submitDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
 
   // ── 공사명: "XX 공동주택 신축공사" 패턴 (규정 제목 제외) ──
@@ -3794,7 +3803,7 @@ function parseAnnouncementText(rawText) {
     const clientList = [];
     while ((cm2 = clientRe.exec(joined)) !== null) {
       const n = cm2[1].trim();
-      if (n && !/아이팝|건축사사무소|감리/.test(n)) clientList.push(n);
+      if (n && !/아이팝|건축사사무소|감리|^상호$/.test(n)) clientList.push(n);
     }
     if (clientList.length > 0) result.client = clientList.join(', ');
   }
@@ -3806,7 +3815,7 @@ function parseAnnouncementText(rawText) {
     while ((cm = compRe.exec(joined)) !== null) {
       const rawName = cm[1] || cm[2];
       const name = cm[1] ? '㈜' + rawName : rawName + '㈜';
-      if (!/아이팝|건축사사무소|감리/.test(name)) clientList2.push(name);
+      if (!/아이팝|건축사사무소|감리|^상호$/.test(name)) clientList2.push(name);
     }
     if (clientList2.length > 0) result.client = clientList2.join(', ');
   }
@@ -3821,49 +3830,48 @@ function parseAnnouncementText(rawText) {
     }
   }
 
-  // ── 사업주체 대표이사 / 설계자 대표이사: joined 부분문자열 기반 파싱 ──
-  // 공고문 순서: 사업주체 → 대표이사(사업주체) → 설계자 → 대표이사(설계자)
-  // joined는 \n이 공백으로 치환되어 있어 \s+로 줄경계를 넘을 수 있음
+  // ── 사업주체 대표이사 / 설계자 대표이사: rawJoined 부분문자열 기반 파싱 ──
+  // rawJoined 사용: norm 미적용으로 "안 병 현" 등 공백 포함 이름 정확 추출
   {
-    const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝/;
-    // 구간 내 모든 대표자 이름 수집 (복수 허용)
+    const excl = /대표이사|대표자|사업주체|시공자|설계자|감리|공사|발주|허가|건설|건축|사무소|평가|적격|확인|신청|기준|제출|법인|등록|인증|승인|계획|세대|면적|층수|아이팝|상호/;
+    // 구간 내 모든 대표자 이름 수집 (공백 포함 이름 허용, 결과는 공백 제거)
     const findAllCeos = (text) => {
       const results = [];
-      // 1순위: 대표이사/대표자 + 붙은 이름
-      { const re = /(?:대표이사|대표자)\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/g;
-        let nm; while ((nm = re.exec(text)) !== null) { if (!excl.test(nm[1])) results.push(nm[1]); } }
+      const strip = s => s.replace(/\s/g, '');
+      // [가-힣](공백 선택)(가-힣) 반복 2~4자 — 이름 사이 공백 유무 무관
+      const nameRe = '[가-힣](?: ?[가-힣]){1,3}';
+      // 1순위: 대표이사/대표자 키워드
+      { const re = new RegExp(`(?:대표이사|대표자)\\s*[:：]?\\s*(${nameRe})(?!\\s*[가-힣])`, 'g');
+        let nm; while ((nm = re.exec(text)) !== null) {
+          const n = strip(nm[1]); if (n.length >= 2 && !excl.test(n)) results.push(n); } }
       if (results.length) return results;
-      // 2순위: "대표 홍 길 동" (공백 구분 3자)
-      { const re = /대\s*표\s*[:：]?\s*([가-힣])\s+([가-힣])\s+([가-힣])(?!\s*[가-힣])/g;
-        let nm; while ((nm = re.exec(text)) !== null) { const n=nm[1]+nm[2]+nm[3]; if(!excl.test(n)) results.push(n); } }
-      if (results.length) return results;
-      // 3순위: "대표 홍 길" (공백 구분 2자)
-      { const re = /대\s*표\s*[:：]?\s*([가-힣])\s+([가-힣])(?!\s*[가-힣])/g;
-        let nm; while ((nm = re.exec(text)) !== null) { const n=nm[1]+nm[2]; if(!excl.test(n)) results.push(n); } }
+      // 2순위: "대표" 키워드 (대표이사/대표자 외)
+      { const re = new RegExp(`대\\s*표\\s*[:：]?\\s*(${nameRe})(?!\\s*[가-힣])`, 'g');
+        let nm; while ((nm = re.exec(text)) !== null) {
+          const n = strip(nm[1]); if (n.length >= 2 && !excl.test(n)) results.push(n); } }
       return results;
     };
 
-    const clientPos = joined.search(/사\s*업\s*주\s*체/);
-
-    // 설계자 위치: 글자 사이 공백 허용(설 계 자), 사업주체 이후에서 탐색
-    let designerPos = -1;
+    // rawJoined 기준으로 위치 탐색 (norm 미적용 텍스트)
+    const clientPosR = rawJoined.search(/사\s*업\s*주\s*체/);
+    let designerPosR = -1;
     {
       const re = /설\s*계\s*자/g;
-      re.lastIndex = clientPos >= 0 ? clientPos + 10 : 0;
-      const dm = re.exec(joined);
-      if (dm) designerPos = dm.index;
+      re.lastIndex = clientPosR >= 0 ? clientPosR + 10 : 0;
+      const dm = re.exec(rawJoined);
+      if (dm) designerPosR = dm.index;
     }
 
     // 사업주체 대표이사: 사업주체 위치 ~ 설계자 위치(또는 +800자) 구간
-    if (clientPos >= 0) {
-      const sEnd = (designerPos > clientPos) ? designerPos : clientPos + 800;
-      const ceos = findAllCeos(joined.slice(clientPos, sEnd));
+    if (clientPosR >= 0) {
+      const sEnd = (designerPosR > clientPosR) ? designerPosR : clientPosR + 800;
+      const ceos = findAllCeos(rawJoined.slice(clientPosR, sEnd));
       if (ceos.length) result.clientCeo = ceos.join(', ');
     }
 
     // 설계자 대표이사: 설계자 위치 ~ +800자 구간
-    if (designerPos >= 0) {
-      const ceos = findAllCeos(joined.slice(designerPos, designerPos + 800));
+    if (designerPosR >= 0) {
+      const ceos = findAllCeos(rawJoined.slice(designerPosR, designerPosR + 800));
       if (ceos.length) result.designerName = ceos.join(', ');
     }
   }
