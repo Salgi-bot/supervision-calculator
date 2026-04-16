@@ -1163,6 +1163,11 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji2HeaderOn"  onclick="setByeoljiHeader(2,true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji2HeaderOff" onclick="setByeoljiHeader(2,false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;">Ⅰ.총괄표:</span>
+        <div role="group" aria-label="별지2호 Ⅰ.총괄표 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji2TitleOn"  onclick="setByeolji2Title(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
+          <button type="button" id="byeolji2TitleOff" onclick="setByeolji2Title(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
       </div>
     </div>
     <div class="info-note">
@@ -1784,6 +1789,7 @@ let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 �
 let byeolji2HeaderAlign    = 'left'; // 별지2호(총괄·세부 공통) 상단 「[별지 제2호서식]」 정렬
 let showByeolji1Header = true;       // 별지1호 상단 서식 라벨 표시 여부
 let showByeolji2Header = true;       // 별지2호 상단 서식 라벨 표시 여부
+let showByeolji2Title  = true;       // 별지2호 「Ⅰ. 총괄표」 표시 여부
 let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별첨 N]」 정렬
 let byeolchum2HeaderAlign  = 'left'; // 별첨2 감리업무 수행실적 상단 「[별첨 2]」 정렬
 let byeolchum3HeaderAlign  = 'left'; // 별첨3 감리원 업무수행실적 상단 「[별첨 3]·[별첨 4]」 정렬
@@ -1919,6 +1925,7 @@ function doAutoSave() {
     byeolji2HeaderAlign: byeolji2HeaderAlign,
     showByeolji1Header: showByeolji1Header,
     showByeolji2Header: showByeolji2Header,
+    showByeolji2Title:  showByeolji2Title,
     deployHeaderAlign: deployHeaderAlign,
     byeolchum2HeaderAlign: byeolchum2HeaderAlign,
     byeolchum3HeaderAlign: byeolchum3HeaderAlign,
@@ -2029,6 +2036,7 @@ function loadAutoSave() {
     if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
     if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
     if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+    if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     renderDeploySettings();
@@ -2687,6 +2695,7 @@ function loadPersonnelJSON(input) {
       if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
       if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
       if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+      if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
       renderPersonCards();
@@ -2790,6 +2799,7 @@ function loadV2Data(data) {
   if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
   if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
   if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+  if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
@@ -4215,6 +4225,11 @@ function setByeoljiHeader(num, on) {
   if (num === 1) renderByeolji1();
   else           renderByeolji2Cover();
 }
+function setByeolji2Title(on) {
+  showByeolji2Title = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolji2Cover();
+}
 
 function calcPersonScore(roleId) {
   const p = personnel[roleId];
@@ -4490,7 +4505,7 @@ function renderByeolji2Cover() {
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
     ${showByeolji2Header ? `<div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>` : ''}
-    ${showByeolji2Header ? `<div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>` : ''}
+    ${showByeolji2Title  ? `<div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>` : ''}
     <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
     <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:13px;table-layout:fixed">
@@ -4643,6 +4658,8 @@ function updateByeolji2AlignButtons() {
   setActive('byeolji2HeaderAlignRight', byeolji2HeaderAlign === 'right');
   setActive('byeolji2HeaderOn',  showByeolji2Header === true);
   setActive('byeolji2HeaderOff', showByeolji2Header !== true);
+  setActive('byeolji2TitleOn',   showByeolji2Title  === true);
+  setActive('byeolji2TitleOff',  showByeolji2Title  !== true);
 }
 
 function renderByeolji2() {
