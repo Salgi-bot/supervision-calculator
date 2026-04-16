@@ -5246,7 +5246,7 @@ function renderDeployTable() {
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:36px"></td>`;
     }).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
-    const note_e = '구조체\n공사배치'; // 항상 고정
+    const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
     const mDisp_e = fmtMonths(actM_e);
     rowDataArr.push({ structLabel:'추가<br>배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
