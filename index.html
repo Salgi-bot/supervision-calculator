@@ -792,11 +792,11 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <div class="form-group">
         <label>공사기간 시작일</label>
-        <input type="text" id="pj_startDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays()">
+        <input type="text" id="pj_startDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays();syncLockedRoleDates()">
       </div>
       <div class="form-group">
         <label>공사기간 종료일</label>
-        <input type="text" id="pj_endDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays()">
+        <input type="text" id="pj_endDate" placeholder="YYYY.MM.DD" onchange="calcConstructionDays();syncLockedRoleDates()">
       </div>
       <div class="form-group">
         <label>공사일수</label>
@@ -4854,6 +4854,21 @@ function clampYYMMDD(val, min, max) {
 
 // 날짜 입력 blur 시 월만 입력되면 자동으로 일 완성 (시작=1일, 종료=말일) + 총괄 범위 clamp
 // 공사기간 강제 반환 헬퍼 (총괄·비상주 전용)
+// 공사기간 변경 시 총괄·비상주 deployState 즉시 동기화
+function syncLockedRoleDates() {
+  const ps = _projDateForced('start');
+  const pe = _projDateForced('end');
+  if (!ps || !pe) return;
+  getAllRoles().forEach(r => {
+    if (r.placement !== '총괄' && r.placement !== '비상주') return;
+    if (!deployState[r.id]) deployState[r.id] = {};
+    deployState[r.id].startYM = ps;
+    deployState[r.id].endYM   = pe;
+    deployState[r.id].months  = '';
+  });
+  renderDeploySettings();
+  renderDeployTable();
+}
 function _projDateForced(field) {
   const pj = getProjectData();
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
@@ -5027,6 +5042,8 @@ function renderDeploySettings(force = false) {
   const BSTY  = 'height:16px;width:17px;padding:0;font-size:9px;border:1px solid #bbb;border-radius:2px;background:#f8f8f8;cursor:pointer;line-height:1';
   const SELSTY = 'font-size:10px;padding:1px 2px;border:1px solid #ccc;border-radius:3px;height:20px;background:#fff';
   const cr = getChiefRange(); // 총괄 범위
+  const chiefStart = cr.start || defStartDisp; // 전체 공용: 총괄 시작 기본값
+  const chiefEnd   = cr.end   || defEndDisp;   // 전체 공용: 총괄 종료 기본값
 
   // ◀▶ 버튼 (날짜 ±1개월 조정, 수평 배치)
   const btnPair = (roleId, field) =>
@@ -5078,8 +5095,6 @@ function renderDeploySettings(force = false) {
     // 총괄·비상주: 공사기간 강제 / 나머지: 총괄 범위 기본값 + 범위 초과 시 자동 clamp
     const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
     const isChiefRole  = r.id === cr.chiefId;
-    const chiefStart = cr.start || defStartDisp;
-    const chiefEnd   = cr.end   || defEndDisp;
     let startDisp, endDisp;
     if (isLockedRole) {
       startDisp = defStartDisp || ds.startYM;
@@ -5149,8 +5164,16 @@ function renderDeploySettings(force = false) {
     return r.field || '건축';
   });
   extraDeployRows.forEach((row, rowIdx) => {
-    const startD = row.startYM || defStartDisp;
-    const endD   = row.endYM   || defEndDisp;
+    // 기본값: 총괄 시작/종료 / 범위 초과 시 자동 clamp
+    let startD = row.startYM || chiefStart;
+    let endD   = row.endYM   || chiefEnd;
+    if (cr.start && startD && startD < cr.start) startD = cr.start;
+    if (cr.end   && endD   && endD   > cr.end)   endD   = cr.end;
+    if (row.startYM !== startD || row.endYM !== endD) {
+      if (startD) row.startYM = startD;
+      if (endD)   row.endYM   = endD;
+      row.months = '';
+    }
     const rsE = parseYMShort(startD) || projStart;
     const reE = parseYMShort(endD)   || projEnd;
     const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
@@ -5159,7 +5182,6 @@ function renderDeploySettings(force = false) {
     const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
-    // 토목인 경우 (전)/(후) 표시
     const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
     const sErrR = cr.start && startD && startD < cr.start;
     const eErrR = cr.end   && endD   && endD   > cr.end;
@@ -5191,8 +5213,16 @@ function renderDeploySettings(force = false) {
   if (sizeClassSetting !== '300미만') {
     const ds_e = deployState['extra_arch'] || {};
     const convRate_e = (ds_e.convRate !== undefined && ds_e.convRate !== '') ? ds_e.convRate : 1.000;
-    const startDisp_e = ds_e.startYM || defStartDisp;
-    const endDisp_e   = ds_e.endYM   || defEndDisp;
+    let startDisp_e = ds_e.startYM || chiefStart;
+    let endDisp_e   = ds_e.endYM   || chiefEnd;
+    if (cr.start && startDisp_e && startDisp_e < cr.start) startDisp_e = cr.start;
+    if (cr.end   && endDisp_e   && endDisp_e   > cr.end)   endDisp_e   = cr.end;
+    if (ds_e.startYM !== startDisp_e || ds_e.endYM !== endDisp_e) {
+      if (!deployState['extra_arch']) deployState['extra_arch'] = {};
+      if (startDisp_e) deployState['extra_arch'].startYM = startDisp_e;
+      if (endDisp_e)   deployState['extra_arch'].endYM   = endDisp_e;
+      deployState['extra_arch'].months = '';
+    }
     const rsDisp_e = parseYMShort(startDisp_e) || projStart;
     const reDisp_e = parseYMShort(endDisp_e)   || projEnd;
     const calcM_e  = (rsDisp_e && reDisp_e) ? calcDeployMonths(rsDisp_e, reDisp_e) : 0;
