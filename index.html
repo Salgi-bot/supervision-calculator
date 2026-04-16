@@ -5793,25 +5793,25 @@ function renderByeolchum1() {
     ? markupToBodyHtml(rawBody)
     : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
+    <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
-        <div style="font-size:14px;font-weight:bold;margin-bottom:30px;text-align:${headerAlign};">【별첨 1】</div>
-        <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:20px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+        <div style="font-size:14px;font-weight:bold;margin-bottom:16px;text-align:${headerAlign};">【별첨 1】</div>
+        <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:10px 0 16px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
         ${noticeLine}
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-        <div style="margin-bottom:30px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
+        <div style="margin-bottom:16px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
         <div id="swearBodyDiv"
           style="text-indent:2em;text-align:justify;line-height:2.4;">${bodyInner}</div>
       </div>
       <div>
-        <div style="text-align:center;margin:40px 0 60px;font-size:16px;">${dateStr}</div>
+        <div style="text-align:center;margin:20px 0 24px;font-size:16px;">${dateStr}</div>
         <div style="position:relative;text-align:right;margin-right:40px;line-height:2.6;">
           <div>서약자 주소 : ${escHtml(co.address||'')}</div>
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
           <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
           ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;bottom:4px;width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
         </div>
-        <div style="margin-top:41px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
+        <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
       </div>
     </div>`;
   updateSwearAlignButtons();
