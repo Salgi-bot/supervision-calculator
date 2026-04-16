@@ -1416,6 +1416,11 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
           <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
         </div>
+        <span style="color:#64748b;margin-left:4px;">도장:</span>
+        <div role="group" aria-label="법인 도장 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="stampOn"  onclick="setShowStamp(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
+          <button type="button" id="stampOff" onclick="setShowStamp(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
         <input type="text" id="swearNoticeNumberInput" readonly
           title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
           style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
@@ -1756,6 +1761,7 @@ let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】�
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
 let swearNoticeEnabled = false;   // 별첨1 서약서 상단 「□ 공 고 번 호」 노출 여부
 let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입력값
+let showStamp = true;             // 법인 도장 이미지 표시 여부
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
 const SYSTEM_DEFAULT_SWEAR_BODY = `본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, **__자기평가서__**는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 **"허위·거짓 등"**의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 **__참여감리원(평가대상 및 비평가대상감리원)__**은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.`;
 const SWEAR_TEMPLATE_MAX = 10;
@@ -1901,6 +1907,7 @@ function doAutoSave() {
     deployHeaderAlign: deployHeaderAlign,
     byeolchum2HeaderAlign: byeolchum2HeaderAlign,
     byeolchum3HeaderAlign: byeolchum3HeaderAlign,
+    showStamp: showStamp,
     savedAt: new Date().toISOString(),
   };
   try {
@@ -2003,6 +2010,7 @@ function loadAutoSave() {
     if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
     if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
     if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
+    if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
     renderDeploySettings();
@@ -2658,6 +2666,7 @@ function loadPersonnelJSON(input) {
       if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
       if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
       if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
+      if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
       renderPersonCards();
@@ -2758,6 +2767,7 @@ function loadV2Data(data) {
   if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
   if (data.byeolchum2HeaderAlign)  byeolchum2HeaderAlign  = data.byeolchum2HeaderAlign;
   if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
+  if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
@@ -4137,7 +4147,7 @@ function renderByeolji1() {
       <div style="text-align:right;font-size:10pt;margin:2px 20px 0 0">
         입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
       </div>
-
+      ${stampImgHtml('20px')}
       <div style="font-size:13pt;font-weight:800;margin:6px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
         ${escHtml(pj.authority || '')} 귀하
       </div>
@@ -4569,6 +4579,7 @@ function renderByeolji2Cover() {
     <div style="text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
       입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
     </div>
+    ${stampImgHtml('20px')}
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px;line-height:1.3">
       <span>구비서류 : 감리원배치계획서 1부.</span>
       <span>210㎜×297㎜[백상지(80g/㎡)]</span>
@@ -5696,6 +5707,31 @@ function scrollToSection(tabId, sectionId) {
 // ══════════════════════════════════════════════════════
 //  별첨1 서약서
 // ══════════════════════════════════════════════════════
+// ── 법인 도장 표시 토글 ──
+function setShowStamp(on) {
+  showStamp = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  updateStampButtons();
+  if (document.getElementById('byeolchum1Preview')) renderByeolchum1();
+  if (document.getElementById('byeolji1Preview')) renderByeolji1();
+  if (document.getElementById('byeolji2Preview')) renderByeolji2Cover();
+}
+function updateStampButtons() {
+  const setActive = (id, on) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = on ? '#0f766e' : '#fff';
+    el.style.color = on ? '#fff' : '#0f172a';
+    el.style.fontWeight = on ? '700' : '400';
+  };
+  setActive('stampOn',  showStamp === true);
+  setActive('stampOff', showStamp !== true);
+}
+function stampImgHtml(marginRight) {
+  if (!showStamp) return '';
+  return `<div style="text-align:right;margin-right:${marginRight};margin-top:-8px;"><img src="stamp.png" style="width:65px;height:65px;mix-blend-mode:multiply;opacity:0.92;"></div>`;
+}
+
 function renderByeolchum1() {
   ensureSwearTemplateDefault();
   const pj = getProjectData(), co = getCompanyData();
@@ -5730,6 +5766,7 @@ function renderByeolchum1() {
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
           <div>대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
         </div>
+        ${stampImgHtml('40px')}
         <div style="margin-top:41px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
       </div>
     </div>`;
@@ -5766,6 +5803,7 @@ function updateSwearAlignButtons() {
     inp.style.opacity    = swearNoticeEnabled ? '1' : '0.5';
     inp.style.background = swearNoticeEnabled ? '#eef2ff' : '#f1f5f9';
   }
+  updateStampButtons();
 }
 
 // 별첨1 서약서 공고번호 노출 토글
