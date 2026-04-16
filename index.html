@@ -5360,7 +5360,7 @@ function renderDeployTable() {
 
     const gantt = allMonths.map(({ y, m }) => {
       const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:72px"></td>`;
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
     }).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
@@ -5399,7 +5399,7 @@ function renderDeployTable() {
     const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
     const gantt_c = allMonths.map(({ y, m }) => {
       const inside = (y > rs_c.y || (y === rs_c.y && m >= rs_c.m)) && (y < re_c.y || (y === re_c.y && m <= re_c.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:72px"></td>`;
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
     }).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
@@ -5430,7 +5430,7 @@ function renderDeployTable() {
     const actM_e = dsM_e !== null ? dsM_e : calcDeployMonths(rs_e, re_e);
     const gantt_e = allMonths.map(({ y, m }) => {
       const inside = (y > rs_e.y || (y === rs_e.y && m >= rs_e.m)) && (y < re_e.y || (y === re_e.y && m <= re_e.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:72px"></td>`;
+      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
     }).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
     const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
@@ -5477,7 +5477,7 @@ function renderDeployTable() {
   });
 
   // 총배치 인월수 행
-  const blankGantt = allMonths.map(() => `<td style="background:#f5f5f5;border:1px solid #ddd;height:72px"></td>`).join('');
+  const blankGantt = allMonths.map(() => `<td style="background:#f5f5f5;border:1px solid #ddd;height:50px"></td>`).join('');
   const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
   const convTotal = floorAt3(totalConvPM);
   rows += `<tr>
