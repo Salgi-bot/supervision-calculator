@@ -625,7 +625,7 @@ tbody tr:hover td { background: var(--ci-light); }
   .a4-preview, .a4-page { border: none; box-shadow: none; box-sizing: border-box; min-height: auto !important; height: auto !important; width: 210mm; margin: 0 auto; page-break-after: always; overflow: visible; }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
   /* flex 페이지(서약서·위임장 등): 세로 균등 배치 — 전체 A4 높이 채우기 */
-  .a4-page[style*="flex-direction:column"] { height: 267mm !important; min-height: 267mm !important; justify-content: space-between !important; overflow: hidden !important; }
+  .a4-page[style*="flex-direction:column"] { height: 267mm !important; min-height: 267mm !important; overflow: hidden !important; }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -5120,7 +5120,7 @@ function renderDeployTable() {
   const TH_HDR  = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
   const TH_YR   = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
   const TH_MO   = `${TH_BASE};background:#fff;color:#000;font-size:6.5pt;padding:1px 0`;
-  const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}</th>`).join('');
+  const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}년</th>`).join('');
   const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
 
   // 감리원 행 생성
@@ -5189,7 +5189,8 @@ function renderDeployTable() {
     const startD = rs.d || 1;
     const endD   = re.d || lastDay(re.y, re.m);
     const autoNote = `${fmtYMD(rs.y, rs.m, startD)}~\n${fmtYMD(re.y, re.m, endD)}`;
-    const note = (ds.note !== undefined && ds.note !== '') ? ds.note : autoNote;
+    const note = r.placement === '비상주' ? '15%이내'
+               : (ds.note !== undefined && ds.note !== '') ? ds.note : autoNote;
 
     const structLabel = r.placement === '총괄' ? '총괄' :
                         r.placement === '비상주' ? '비상주' :
@@ -5245,10 +5246,9 @@ function renderDeployTable() {
       return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:24px"></td>`;
     }).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
-    const note_e = (ds_e.note !== undefined && ds_e.note !== '') ? ds_e.note
-                   : `${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
+    const note_e = '구조체\n공사배치'; // 항상 고정
     const mDisp_e = fmtMonths(actM_e);
-    rowDataArr.push({ structLabel:'추가배치', fieldLabel:'건축', name:'-', grade:'중급',
+    rowDataArr.push({ structLabel:'추가<br>배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
   }
 
@@ -5713,7 +5713,7 @@ function renderByeolchum1() {
     ? markupToBodyHtml(rawBody)
     : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
+    <div class="a4-page" style="padding:60px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;">
       <div>
         <div style="font-size:14px;font-weight:bold;margin-bottom:30px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:20px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
@@ -5723,8 +5723,8 @@ function renderByeolchum1() {
         <div id="swearBodyDiv"
           style="text-indent:2em;text-align:justify;line-height:2.4;">${bodyInner}</div>
       </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:16px;">${dateStr}</div>
       <div>
-        <div style="text-align:center;margin:40px 0 60px;font-size:16px;">${dateStr}</div>
         <div style="text-align:right;margin-right:40px;line-height:2.6;">
           <div>서약자 주소 : ${escHtml(co.address||'')}</div>
           <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
@@ -5803,11 +5803,11 @@ function markupToBodyHtml(text) {
     s = s.replace(/\n/g, '<br>');
     return s;
   };
-  return paragraphs.map(p => {
-    const inner = applyInline(p).trim();
-    if (!inner) return '';
-    return `<p style="margin:0 0 12px;text-indent:2em;">${inner}</p>`;
-  }).filter(Boolean).join('');
+  const filtered = paragraphs.map(p => applyInline(p).trim()).filter(Boolean);
+  return filtered.map((inner, i) => {
+    const mb = i < filtered.length - 1 ? '12px' : '0';
+    return `<p style="margin:0 0 ${mb};text-indent:2em;">${inner}</p>`;
+  }).join('');
 }
 
 // default 보장 + 최대 10개 클램프
@@ -6714,8 +6714,14 @@ function updateByeolchum3AlignButtons() {
 //  INIT
 // ══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
-  // 시작 기도 팝업
+  // 시작 기도 팝업 (하루 1회)
   (function() {
+    const _d = new Date();
+    const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`; // 로컬 날짜 기준 YYYY-MM-DD
+    try {
+      if (localStorage.getItem('hb_pray_shown') === today) return;
+      localStorage.setItem('hb_pray_shown', today);
+    } catch(e) { /* localStorage 접근 불가 시 그냥 표시 */ }
     const verses = [
       { ref: '잠언 16:3', text: '너의 행사를 여호와께 맡기라\n그리하면 네가 경영하는 것이 이루어지리라' },
       { ref: '시편 1:3', text: '그가 하는 모든 일이 다 형통하리로다' },
