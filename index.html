@@ -4829,19 +4829,41 @@ function clampYYMMDD(val, min, max) {
 }
 
 // 날짜 입력 blur 시 월만 입력되면 자동으로 일 완성 (시작=1일, 종료=말일) + 총괄 범위 clamp
+// 공사기간 강제 반환 헬퍼 (총괄·비상주 전용)
+function _projDateForced(field) {
+  const pj = getProjectData();
+  const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+  if (field === 'start') {
+    const ps = parseYM(pj.startDate);
+    return ps ? _f6(ps.y, ps.m, ps.d || 1) : '';
+  } else {
+    const pe = parseYM(pj.endDate);
+    return pe ? _f6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '';
+  }
+}
 function completeDate(roleId, field, el) {
   const val = el.value.trim();
   if (!val) return;
+  // 총괄·비상주: blur 시 항상 공사기간으로 reset
+  const role = getAllRoles().find(r => r.id === roleId);
+  if (role && (role.placement === '총괄' || role.placement === '비상주')) {
+    const forced = _projDateForced(field);
+    if (forced) {
+      el.value = forced;
+      if (!deployState[roleId]) deployState[roleId] = {};
+      if (field === 'start') deployState[roleId].startYM = forced;
+      else                   deployState[roleId].endYM   = forced;
+      renderDeploySettings(); renderDeployTable();
+    }
+    return;
+  }
   const parsed = parseYMShort(val);
   if (!parsed) return;
   const d = parsed.d || (field === 'start' ? 1 : lastDay(parsed.y, parsed.m));
   let completed = String(parsed.y).slice(-2) + String(parsed.m).padStart(2,'0') + String(d).padStart(2,'0');
-  // 총괄 범위 강제 적용 (총괄 본인 제외)
+  // 공사기간 범위 clamp
   const cr = getChiefRange();
-  if (roleId !== cr.chiefId) {
-    if (field === 'start') completed = clampYYMMDD(completed, cr.start, cr.end);
-    else                   completed = clampYYMMDD(completed, cr.start, cr.end);
-  }
+  completed = clampYYMMDD(completed, cr.start, cr.end);
   el.value = completed;
   if (!deployState[roleId]) deployState[roleId] = {};
   if (field === 'start') deployState[roleId].startYM = completed;
@@ -4849,10 +4871,21 @@ function completeDate(roleId, field, el) {
   renderDeploySettings();
   renderDeployTable();
 }
-// extraDeployRows 날짜 blur 처리 (총괄 범위 clamp 포함)
+// extraDeployRows 날짜 blur 처리
 function completeDateExtra(rowId, field, el) {
   const val = el.value.trim();
   if (!val) return;
+  // 총괄·비상주: blur 시 항상 공사기간으로 reset
+  const row = extraDeployRows.find(r => r.id === rowId);
+  if (row && (row.placement === '총괄' || row.placement === '비상주')) {
+    const forced = _projDateForced(field);
+    if (forced) {
+      el.value = forced;
+      updateExtraRow(rowId, field === 'start' ? 'startYM' : 'endYM', forced);
+      renderDeploySettings();
+    }
+    return;
+  }
   const parsed = parseYMShort(val);
   if (!parsed) return;
   const d = parsed.d || (field === 'start' ? 1 : lastDay(parsed.y, parsed.m));
@@ -4865,6 +4898,15 @@ function completeDateExtra(rowId, field, el) {
 }
 // 배치기간 ±1개월 조정
 function adjustDeployDate(roleId, field, delta) {
+  // 총괄·비상주: ±1 조정 무시 (공사기간 고정)
+  const isExtra = roleId.startsWith('ec_');
+  if (isExtra) {
+    const row = extraDeployRows.find(r => r.id === roleId);
+    if (row && (row.placement === '총괄' || row.placement === '비상주')) return;
+  } else {
+    const role = getAllRoles().find(r => r.id === roleId);
+    if (role && (role.placement === '총괄' || role.placement === '비상주')) return;
+  }
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate), projEnd = parseYM(pj.endDate);
@@ -4872,7 +4914,6 @@ function adjustDeployDate(roleId, field, delta) {
   const defEnd   = projEnd   ? _f6(projEnd.y,   projEnd.m,   projEnd.d   || lastDay(projEnd.y, projEnd.m)) : '';
   const fKey = field === 'start' ? 'startYM' : 'endYM';
   const defVal = field === 'start' ? defStart : defEnd;
-  const isExtra = roleId.startsWith('ec_');
   let cur;
   if (isExtra) {
     const row = extraDeployRows.find(r => r.id === roleId); if (!row) return;
@@ -4886,10 +4927,9 @@ function adjustDeployDate(roleId, field, delta) {
   while (nm > 12) { nm -= 12; ny++; }
   while (nm < 1)  { nm += 12; ny--; }
   const nd = field === 'end' ? lastDay(ny, nm) : 1;
-  // 총괄 범위 clamp (총괄 본인 제외)
+  // 공사기간 범위 clamp
   const cr = getChiefRange();
-  const nvRaw = _f6(ny, nm, nd);
-  const nv = roleId !== cr.chiefId ? clampYYMMDD(nvRaw, cr.start, cr.end) : nvRaw;
+  const nv = clampYYMMDD(_f6(ny, nm, nd), cr.start, cr.end);
   if (isExtra) {
     const row = extraDeployRows.find(r => r.id === roleId);
     if (row) { row[fKey] = nv; row.months = ''; }
