@@ -7619,9 +7619,12 @@ async function openLawSearch(query) {
         if (!tbody) return;
         var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r.offsetHeight > 0; });
         if (!rows.length) return;
-        var add = Math.floor(gap / rows.length);
-        var MAX_ADD = 70; // 행당 최대 70px 추가 (약 18.5mm)
-        add = Math.min(add, MAX_ADD);
+        // min-height:0 인라인 때문에 gap=0 → A4 절대값으로 직접 계산
+        var A4_PX = Math.round(297 * 96 / 25.4); // 1122px
+        var padPx = 38 + 12; // byeolji1Doc 상하 패딩
+        var realGap = (A4_PX - padPx) - page.scrollHeight;
+        if (realGap < 4) return;
+        var add = Math.floor(realGap / rows.length);
         if (add < 1) return;
         rows.forEach(function (r) {
           _saved.push({ el: r, h: r.style.height });
