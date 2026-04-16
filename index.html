@@ -7610,16 +7610,12 @@ async function openLawSearch(query) {
   window.addEventListener('beforeprint', function () {
     _saved = [];
     document.querySelectorAll('.a4-page, .a4-preview').forEach(function (page) {
-      var gap = page.offsetHeight - page.scrollHeight;
-      if (gap < 4) return;
-
-      // 별지1호: 감리원 tbody 행만 스트레치 (공사개요·감리회사 행 제외)
+      // 별지1호: 감리원 tbody 행만 스트레치 — A4 절대값 기준 (min-height:0 우회)
       if (page.id === 'byeolji1Doc') {
         var tbody = page.querySelector('#b1PersonnelTbody');
         if (!tbody) return;
         var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r.offsetHeight > 0; });
         if (!rows.length) return;
-        // min-height:0 인라인 때문에 gap=0 → A4 절대값으로 직접 계산
         var A4_PX = Math.round(297 * 96 / 25.4); // 1122px
         var padPx = 38 + 12; // byeolji1Doc 상하 패딩
         var realGap = (A4_PX - padPx) - page.scrollHeight;
@@ -7633,7 +7629,9 @@ async function openLawSearch(query) {
         return;
       }
 
-      // 기타 페이지: 모든 tbody 행에 균등 분배 (기존 동작)
+      // 기타 페이지: 모든 tbody 행에 균등 분배
+      var gap = page.offsetHeight - page.scrollHeight;
+      if (gap < 4) return;
       var rows = Array.from(page.querySelectorAll('tbody tr')).filter(function (r) { return r.offsetHeight > 0; });
       if (!rows.length) return;
       var add = Math.floor(gap / rows.length);
