@@ -5700,8 +5700,10 @@ function renderDeployTable() {
     ${constrMonths > 0 ? `
     <div style="margin-top:8px">④ 전체 이익금 = 월 이익 × 배치인원 개월수합 (${deployTotalPM.toFixed(3)}개월)</div>
     <div style="padding-left:2em">= ${profit>=0?'+':''}${fmt(profit)} × ${deployTotalPM.toFixed(3)} = <strong>${profit>=0?'+':''}${fmt(totalProfit)} 원</strong></div>
-    <div style="margin-top:8px">⑤ 월 균등 이윤 = ④ ÷ 공사기간 (${constrMonths}개월)</div>
-    <div style="padding-left:2em">= ${fmt(totalProfit)} ÷ ${constrMonths} = <span style="${boxStyle}">${monthlyEqualized>=0?'+':''}${fmt(monthlyEqualized)} 원/월&ensp;${profitIcon} ${profitMsg}</span></div>` : ''}
+    <div style="margin-top:8px;padding:8px 14px;border-radius:6px;background:${boxBg};border:1px solid ${boxBorder};color:${boxText}">
+      <div style="font-weight:600">⑤ 월 균등 이윤 = ④ ÷ 공사기간 (${constrMonths}개월)</div>
+      <div style="padding-left:1em">= ${fmt(totalProfit)} ÷ ${constrMonths} = <strong style="font-size:12pt">${monthlyEqualized>=0?'+':''}${fmt(monthlyEqualized)} 원/월&ensp;${profitIcon} ${profitMsg}</strong></div>
+    </div>` : ''}
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #aaa;font-size:9pt;color:#444;line-height:1.8">
       <strong>기본 산식</strong><br>
       • 기초금액 × 계수 = 계약금액 (①)<br>
