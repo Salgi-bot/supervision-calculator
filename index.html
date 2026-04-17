@@ -5666,9 +5666,9 @@ function renderDeployTable() {
     <div>① 기초금액 × 계수 (${coefLabel})</div>
     <div style="padding-left:2em">= ${fmt(baseFee)} × ${coef} = <strong>${fmt(contractAmt)} 원</strong></div>
     <div style="margin-top:8px">② 1개월/인 계약단가 = ① ÷ 배치인원 개월수합</div>
-    <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${deployTotalPM.toFixed(3)} 인·월 = <strong>${fmt(unitCost)} 원/월·인</strong></div>
+    <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${deployTotalPM.toFixed(3)} 개월 = <strong>${fmt(unitCost)} 원/월</strong></div>
     <div style="margin-top:8px">③ 실 인건비 기준 = 실 연 지출액 72,000,000 ÷ 12</div>
-    <div style="padding-left:2em">= <strong>${fmt(stdCost)} 원/월·인</strong></div>
+    <div style="padding-left:2em">= <strong>${fmt(stdCost)} 원/월</strong></div>
     ${constrMonths > 0 ? `
     <div style="margin-top:8px">④ 월 계약액 = ① ÷ 공사기간 (${constrMonths}개월)</div>
     <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${constrMonths} = <strong>${fmt(perProjMonth)} 원/월</strong></div>
