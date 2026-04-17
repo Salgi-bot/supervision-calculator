@@ -5653,12 +5653,24 @@ function renderDeployTable() {
     const monthlyEqualized = constrMonths > 0 ? Math.round(totalProfit / constrMonths) : 0;
     // 이익 판단: ⑥ 월 균등 이윤 자체가 순이익 (이미 실인건비 차감됨)
     const eqProfit = monthlyEqualized;
-    const profitColor = eqProfit < 0 ? '#dc2626' : eqProfit < 5000000 ? '#16a34a' : '#2563eb';
+    // 색상: <500만→빨강 / 500~1000만→초록→파랑 그라데이션 / ≥1000만→파랑
+    let profitColor;
+    if (eqProfit < 5000000) {
+      profitColor = '#dc2626';
+    } else if (eqProfit >= 10000000) {
+      profitColor = '#2563eb';
+    } else {
+      const t = (eqProfit - 5000000) / 5000000; // 0(500만)~1(1000만)
+      const r = Math.round(22  + (37  - 22 ) * t);
+      const g = Math.round(163 + (99  - 163) * t);
+      const b = Math.round(74  + (235 - 74 ) * t);
+      profitColor = `rgb(${r},${g},${b})`;
+    }
     const profitStyle = `color:${profitColor}`;
-    const profitIcon = eqProfit < 0 ? '✗' : eqProfit < 5000000 ? '✓' : '★';
-    const profitMsg  = eqProfit < 0 ? '이익 부족 — 배치 재검토 필요'
-                     : eqProfit < 5000000 ? '이익 발생 — 배치 가능'
-                     : '이익 충분 — 배치 적정';
+    const profitIcon = eqProfit < 5000000 ? '✗' : eqProfit >= 10000000 ? '★' : '✓';
+    const profitMsg  = eqProfit < 5000000 ? '이익 부족 — 배치 재검토 필요'
+                     : eqProfit >= 10000000 ? '이익 충분 — 배치 적정'
+                     : '이익 발생 — 배치 가능';
     const fmt = n => n.toLocaleString('ko-KR');
     return `
   <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:11pt;line-height:2;color:#000">
