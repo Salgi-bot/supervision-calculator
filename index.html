@@ -4948,14 +4948,18 @@ function syncLockedRoleDates() {
   const ps = _projDateForced('start');
   const pe = _projDateForced('end');
   if (!ps || !pe) return;
-  // 공사기간 변경 시 전체 초기화
+  // 공사기간 변경 시 총괄·분야별만 동기화 (비상주는 별도 입력이므로 제외)
   getAllRoles().forEach(r => {
+    if (r.placement === '비상주') return; // 비상주는 공사기간 자동 적용 제외
     if (!deployState[r.id]) deployState[r.id] = {};
     deployState[r.id].startYM = ps;
     deployState[r.id].endYM   = pe;
     deployState[r.id].months  = '';
   });
-  extraDeployRows.forEach(r => { r.startYM = ps; r.endYM = pe; r.months = ''; });
+  extraDeployRows.forEach(r => {
+    if (r.placement === '비상주') return; // 비상주 추가행도 제외
+    r.startYM = ps; r.endYM = pe; r.months = '';
+  });
   if (deployState['extra_arch']) {
     deployState['extra_arch'].startYM = ps;
     deployState['extra_arch'].endYM   = pe;
@@ -4978,9 +4982,9 @@ function _projDateForced(field) {
 function completeDate(roleId, field, el) {
   const val = el.value.trim();
   if (!val) return;
-  // 총괄·비상주: blur 시 항상 공사기간으로 reset
+  // 총괄: blur 시 항상 공사기간으로 reset (비상주는 별도 입력 허용)
   const role = getAllRoles().find(r => r.id === roleId);
-  if (role && (role.placement === '총괄' || role.placement === '비상주')) {
+  if (role && role.placement === '총괄') {
     const forced = _projDateForced(field);
     if (forced) {
       el.value = forced;
@@ -5011,9 +5015,9 @@ function completeDate(roleId, field, el) {
 function completeDateExtra(rowId, field, el) {
   const val = el.value.trim();
   if (!val) return;
-  // 총괄·비상주: blur 시 항상 공사기간으로 reset
+  // 총괄: blur 시 항상 공사기간으로 reset (비상주는 별도 입력 허용)
   const row = extraDeployRows.find(r => r.id === rowId);
-  if (row && (row.placement === '총괄' || row.placement === '비상주')) {
+  if (row && row.placement === '총괄') {
     const forced = _projDateForced(field);
     if (forced) {
       el.value = forced;
@@ -5034,14 +5038,14 @@ function completeDateExtra(rowId, field, el) {
 }
 // 배치기간 ±1개월 조정
 function adjustDeployDate(roleId, field, delta) {
-  // 총괄·비상주: ±1 조정 무시 (공사기간 고정)
+  // 총괄: ±1 조정 무시 (공사기간 고정). 비상주는 별도 입력 허용
   const isExtra = roleId.startsWith('ec_');
   if (isExtra) {
     const row = extraDeployRows.find(r => r.id === roleId);
-    if (row && (row.placement === '총괄' || row.placement === '비상주')) return;
+    if (row && row.placement === '총괄') return;
   } else {
     const role = getAllRoles().find(r => r.id === roleId);
-    if (role && (role.placement === '총괄' || role.placement === '비상주')) return;
+    if (role && role.placement === '총괄') return;
   }
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
   const pj = getProjectData();
@@ -5079,9 +5083,9 @@ function addExtraDeployRow() {
   const pj = getProjectData();
   const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
   const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
-  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'비평가', field:'건축', grade:'특급',
-    startYM: ps ? _f6(ps.y, ps.m, ps.d || 1) : '',
-    endYM:   pe ? _f6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '',
+  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'', field:'건축', grade:'특급',
+    startYM: '',
+    endYM:   '',
     convRate: 1.139, months: '' });
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
@@ -5113,6 +5117,20 @@ function updateExtraRow(id, field, value) {
   row[field] = value;
   if (field === 'grade') row.convRate = CONV_RATE_DEFAULTS[value] ?? 1.000;
   if (field === 'startYM' || field === 'endYM') row.months = '';
+  if (field === 'placement') {
+    // 비상주: 기간 빈 값 유지. 그 외: 공사기간 기준 기본값 자동 설정
+    if (value !== '비상주') {
+      const pj = getProjectData();
+      const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
+      const fmt6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
+      row.startYM = ps ? fmt6(ps.y, ps.m, ps.d || 1) : '';
+      row.endYM   = pe ? fmt6(pe.y, pe.m, pe.d || lastDay(pe.y, pe.m)) : '';
+    } else {
+      row.startYM = ''; row.endYM = '';
+    }
+    row.months = '';
+    setTimeout(() => renderDeploySettings(true), 0);
+  }
   if (field === 'field') {
     const period = getFieldDeployPeriod(value, id);
     row.startYM = period.startYM;
@@ -5188,13 +5206,14 @@ function renderDeploySettings(force = false) {
     const grade    = p.info.appliedGrade || p.info.grade || '중급';
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
-    // 총괄·비상주: 공사기간 강제 / 나머지: 총괄 범위 기본값 + 범위 초과 시 자동 clamp
-    const isLockedRole = r.placement === '비상주'; // 총괄은 개월 수동 입력 허용
+    // 총괄: 공사기간 강제 / 비상주·분야별: 저장값 우선, 없으면 총괄 범위 기본값 + clamp
     const isChiefRole  = r.id === cr.chiefId;
+    const isNonRes     = r.placement === '비상주';
     let startDisp, endDisp;
-    if (isLockedRole) {
-      startDisp = defStartDisp || ds.startYM;
-      endDisp   = defEndDisp   || ds.endYM;
+    if (isNonRes) {
+      // 비상주: 저장된 값 우선, 없으면 빈 값 (공사기간 자동 채우기 없음)
+      startDisp = ds.startYM || '';
+      endDisp   = ds.endYM   || '';
     } else {
       // 저장값 우선, 없으면 총괄 기준 기본값
       startDisp = ds.startYM || chiefStart;
@@ -5203,21 +5222,17 @@ function renderDeploySettings(force = false) {
       if (!isChiefRole && chiefStart && startDisp && startDisp < chiefStart) startDisp = chiefStart;
       if (!isChiefRole && chiefEnd   && endDisp   && endDisp   > chiefEnd)   endDisp   = chiefEnd;
     }
-    // deployState 동기화 (보정된 값 반영)
-    if (ds.startYM !== startDisp || ds.endYM !== endDisp) {
+    // deployState 동기화 (보정된 값 반영) — 비상주는 빈 값으로 덮어쓰지 않음
+    if (!isNonRes && (ds.startYM !== startDisp || ds.endYM !== endDisp)) {
       if (!deployState[r.id]) deployState[r.id] = {};
       if (startDisp) deployState[r.id].startYM = startDisp;
       if (endDisp)   deployState[r.id].endYM   = endDisp;
       deployState[r.id].months = '';
     }
-    const rsDisp = parseYMShort(startDisp) || projStart;
-    const reDisp = parseYMShort(endDisp)   || projEnd;
+    const rsDisp = parseYMShort(startDisp) || (isNonRes ? null : projStart);
+    const reDisp = parseYMShort(endDisp)   || (isNonRes ? null : projEnd);
     const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
-    // 총괄·비상주: 개월도 항상 자동계산 (잔존 수동값 제거)
-    if (isLockedRole && ds.months !== '' && ds.months !== undefined) {
-      if (deployState[r.id]) deployState[r.id].months = '';
-    }
-    const monthsVal = (!isLockedRole && ds.months !== undefined && ds.months !== '')
+    const monthsVal = (ds.months !== undefined && ds.months !== '')
       ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
     // 총괄 범위 초과 여부 표시 (총괄 본인 제외, clamp 후이므로 정상이면 sErr=false)
     const sErr = !isChiefRole && cr.start && startDisp && startDisp < cr.start;
@@ -5241,10 +5256,9 @@ function renderDeploySettings(force = false) {
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
       <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
       <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동"
-        style="${NSTY};width:52px;${isLockedRole?'background:#f1f5f9;color:#64748b;':''}}"
-        title="${isLockedRole?'공사기간 기반 자동 계산 (수정 불가)':'비워두면 날짜 기반 자동 계산'}"
-        ${isLockedRole?'readonly':''}
-        oninput="${isLockedRole?'':'if(!deployState[\''+r.id+'\'])deployState[\''+r.id+'\']={}; deployState[\''+r.id+'\'].months=this.value===\'\'?\'\':parseFloat(this.value)||\'\';triggerAutoSave();renderDeployTable()'}">
+        style="${NSTY};width:52px;"
+        title="비워두면 날짜 기반 자동 계산"
+        oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }).join('');
 
@@ -5275,7 +5289,8 @@ function renderDeploySettings(force = false) {
     const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
     const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
     const convRateE = (row.convRate !== undefined && row.convRate !== '') ? row.convRate : 1.139;
-    const poHtml = ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
+    const poHtml = `<option value=""${!row.placement?' selected':''} disabled>-- 선택 --</option>` +
+      ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
     const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
