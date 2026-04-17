@@ -5641,7 +5641,7 @@ function renderDeployTable() {
     const contractAmt = Math.round(baseFee * coef);
     const deployTotalPM = floorAt3(totalActualPM);
     const unitCost    = deployTotalPM > 0 ? Math.round(contractAmt / deployTotalPM) : 0;
-    const stdCost     = Math.round(65000000 / 12);
+    const stdCost     = Math.round(72000000 / 12);
     // 공사기간: "915일 (약 30.1개월)" → 30.1 추출
     const mMatch      = String(pj.constructionDays||'').match(/([\d.]+)\s*개월/);
     const constrMonths = mMatch ? parseFloat(mMatch[1]) : 0;
@@ -5666,7 +5666,7 @@ function renderDeployTable() {
     <div style="padding-left:2em">= ${fmt(baseFee)} × ${coef} = <strong>${fmt(contractAmt)} 원</strong></div>
     <div style="margin-top:8px">② 1개월/인 계약단가 = ① ÷ 배치인원 개월수합</div>
     <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${deployTotalPM.toFixed(3)} 인·월 = <strong>${fmt(unitCost)} 원/월·인</strong></div>
-    <div style="margin-top:8px">③ 실 인건비 기준 = 연봉 65,000,000 ÷ 12</div>
+    <div style="margin-top:8px">③ 실 인건비 기준 = 실 연 지출액 72,000,000 ÷ 12</div>
     <div style="padding-left:2em">= <strong>${fmt(stdCost)} 원/월·인</strong></div>
     ${constrMonths > 0 ? `
     <div style="margin-top:8px">④ 월 계약액 = ① ÷ 공사기간 (${constrMonths}개월)</div>
@@ -5681,7 +5681,7 @@ function renderDeployTable() {
       <strong>기본 산식</strong><br>
       • 기초금액 × 계수 = 계약금액 (①)<br>
       • ① ÷ 배치인원 개월수합 = 1개월/인 계약단가 (②)<br>
-      • 실인건비 기준 = 연봉 65,000,000 ÷ 12개월 (③)<br>
+      • 실인건비 기준 = 실 연 지출액 72,000,000 ÷ 12개월 (③)<br>
       • ① ÷ 공사기간(개월) = 월 계약액 (④)<br>
       • ④ ≥ ③ 이면 이익 발생 → 배치 가능
     </div>
