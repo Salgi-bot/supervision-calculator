@@ -5423,7 +5423,7 @@ function renderDeployTable() {
   const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
 
   // 2패스: 행 데이터 수집 후 rowspan 계산으로 중복 분야 합치기
-  let totalConvPM = 0, nonresPM = 0;
+  let totalConvPM = 0, nonresPM = 0, totalActualPM = 0;
   const rowDataArr = [];
 
   roles.forEach(r => {
@@ -5450,6 +5450,7 @@ function renderDeployTable() {
       nonresPM += convPM;
     }
     totalConvPM += convPM;
+    totalActualPM += actualMonths;
 
     const startD = rs.d || 1;
     const endD   = re.d || lastDay(re.y, re.m);
@@ -5493,6 +5494,7 @@ function renderDeployTable() {
       nonresPM += cpm_c;
     }
     totalConvPM += cpm_c;
+    totalActualPM += actM_c;
     rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: fieldLabel_c,
       name: row.name || '-', grade: row.grade || '-',
       gantt: gantt_c, monthsDisp: mDisp_c, convRate: cr_c, convPM: cpm_c, note: note_c });
@@ -5637,8 +5639,8 @@ function renderDeployTable() {
     else if (sizeClass === '500이상') { coef = 0.8045; coefLabel = '500세대 이상 1,000세대 미만 × 0.8045'; }
     if (!baseFee || !coef) return '';
     const contractAmt = Math.round(baseFee * coef);
-    const residentPM  = floorAt3(totalConvPM - nonresPM);
-    const unitCost    = residentPM > 0 ? Math.round(contractAmt / residentPM) : 0;
+    const deployTotalPM = floorAt3(totalActualPM);
+    const unitCost    = deployTotalPM > 0 ? Math.round(contractAmt / deployTotalPM) : 0;
     const stdCost     = Math.round(65000000 / 12);
     // 공사기간: "915일 (약 30.1개월)" → 30.1 추출
     const mMatch      = String(pj.constructionDays||'').match(/([\d.]+)\s*개월/);
@@ -5662,8 +5664,8 @@ function renderDeployTable() {
     <div style="font-size:13pt;font-weight:800;margin-bottom:20px;text-align:center">■ 인건비 단가 산출</div>
     <div>① 기초금액 × 계수 (${coefLabel})</div>
     <div style="padding-left:2em">= ${fmt(baseFee)} × ${coef} = <strong>${fmt(contractAmt)} 원</strong></div>
-    <div style="margin-top:8px">② 1개월/인 계약단가 = ① ÷ 비상주 제외 총 인·월수</div>
-    <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${residentPM.toFixed(3)} 인·월 = <strong>${fmt(unitCost)} 원/월·인</strong></div>
+    <div style="margin-top:8px">② 1개월/인 계약단가 = ① ÷ 배치인원 개월수합</div>
+    <div style="padding-left:2em">= ${fmt(contractAmt)} ÷ ${deployTotalPM.toFixed(3)} 인·월 = <strong>${fmt(unitCost)} 원/월·인</strong></div>
     <div style="margin-top:8px">③ 실 인건비 기준 = 연봉 65,000,000 ÷ 12</div>
     <div style="padding-left:2em">= <strong>${fmt(stdCost)} 원/월·인</strong></div>
     ${constrMonths > 0 ? `
@@ -5678,7 +5680,7 @@ function renderDeployTable() {
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #aaa;font-size:9pt;color:#444;line-height:1.8">
       <strong>기본 산식</strong><br>
       • 기초금액 × 계수 = 계약금액 (①)<br>
-      • ① ÷ 총 인·월수(비상주 제외) = 1개월/인 계약단가 (②)<br>
+      • ① ÷ 배치인원 개월수합 = 1개월/인 계약단가 (②)<br>
       • 실인건비 기준 = 연봉 65,000,000 ÷ 12개월 (③)<br>
       • ① ÷ 공사기간(개월) = 월 계약액 (④)<br>
       • ④ ≥ ③ 이면 이익 발생 → 배치 가능
