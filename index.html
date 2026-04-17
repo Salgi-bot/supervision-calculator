@@ -1694,7 +1694,7 @@ function removeNewPerson(id) {
 
 // 건축 상주 / 토목(후) 포함 여부 토글
 let archEnabled  = JSON.parse(localStorage.getItem('archEnabled')  ?? 'true');
-let civil2Enabled = JSON.parse(localStorage.getItem('civil2Enabled') ?? 'false');
+let civil2Enabled = JSON.parse(localStorage.getItem('civil2Enabled') ?? 'true');
 function getAllRoles() {
   return [...ROLES.filter(r => {
     if (r.id === 'arch'   && !archEnabled)   return false;
@@ -2009,14 +2009,22 @@ function loadAutoSave() {
     if (data.b2EgState) b2EgState = data.b2EgState;
     if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
     if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
+    // civil2Enabled: 저장값 우선, 없으면 personnel.civil2 실제 데이터 있으면 ON 강제 (이전 버전 호환)
     if (typeof data.civil2Enabled === 'boolean') {
       civil2Enabled = data.civil2Enabled;
-      localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+    } else {
+      const civ2Name = data.personnel?.civil2?.info?.name;
+      if (civ2Name && civ2Name !== '-') civil2Enabled = true;
     }
+    localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+    // archEnabled: 저장값 우선, 없으면 personnel.arch 실제 데이터 있으면 ON 강제
     if (typeof data.archEnabled === 'boolean') {
       archEnabled = data.archEnabled;
-      localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+    } else {
+      const archName = data.personnel?.arch?.info?.name;
+      if (archName && archName !== '-') archEnabled = true;
     }
+    localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
