@@ -5671,6 +5671,22 @@ function renderDeployTable() {
     const profitMsg  = eqProfit < 5000000 ? '이익 부족 — 배치 재검토 필요'
                      : eqProfit >= 10000000 ? '이익 충분 — 배치 적정'
                      : '이익 발생 — 배치 가능';
+    let boxBg, boxBorder, boxText;
+    if (eqProfit < 5000000) {
+      boxBg = '#fef2f2'; boxBorder = '#fecaca'; boxText = '#991b1b';
+    } else if (eqProfit >= 10000000) {
+      boxBg = '#eff6ff'; boxBorder = '#bfdbfe'; boxText = '#1e40af';
+    } else {
+      const t = (eqProfit - 5000000) / 5000000;
+      const lerp = (a, b) => Math.round(a + (b - a) * t);
+      // bg: #f0fdf4(240,253,244) → #eff6ff(239,246,255)
+      boxBg = `rgb(${lerp(240,239)},${lerp(253,246)},${lerp(244,255)})`;
+      // border: #bbf7d0(187,247,208) → #bfdbfe(191,219,254)
+      boxBorder = `rgb(${lerp(187,191)},${lerp(247,219)},${lerp(208,254)})`;
+      // text: #166534(22,101,52) → #1e40af(30,64,175)
+      boxText = `rgb(${lerp(22,30)},${lerp(101,64)},${lerp(52,175)})`;
+    }
+    const boxStyle = `background:${boxBg};border:1px solid ${boxBorder};color:${boxText};padding:3px 12px;border-radius:4px;font-weight:700;font-size:12pt;display:inline-block`;
     const fmt = n => n.toLocaleString('ko-KR');
     return `
   <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:11pt;line-height:2;color:#000">
@@ -5685,7 +5701,7 @@ function renderDeployTable() {
     <div style="margin-top:8px">④ 전체 이익금 = 월 이익 × 배치인원 개월수합 (${deployTotalPM.toFixed(3)}개월)</div>
     <div style="padding-left:2em">= ${profit>=0?'+':''}${fmt(profit)} × ${deployTotalPM.toFixed(3)} = <strong>${profit>=0?'+':''}${fmt(totalProfit)} 원</strong></div>
     <div style="margin-top:8px">⑤ 월 균등 이윤 = ④ ÷ 공사기간 (${constrMonths}개월)</div>
-    <div style="padding-left:2em">= ${fmt(totalProfit)} ÷ ${constrMonths} = <strong style="${profitStyle};font-size:12pt">${monthlyEqualized>=0?'+':''}${fmt(monthlyEqualized)} 원/월</strong>&ensp;<span style="${profitStyle};font-weight:700">${profitIcon} ${profitMsg}</span></div>` : ''}
+    <div style="padding-left:2em">= ${fmt(totalProfit)} ÷ ${constrMonths} = <span style="${boxStyle}">${monthlyEqualized>=0?'+':''}${fmt(monthlyEqualized)} 원/월&ensp;${profitIcon} ${profitMsg}</span></div>` : ''}
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #aaa;font-size:9pt;color:#444;line-height:1.8">
       <strong>기본 산식</strong><br>
       • 기초금액 × 계수 = 계약금액 (①)<br>
