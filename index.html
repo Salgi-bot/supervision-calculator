@@ -4029,6 +4029,18 @@ function applyAnnouncement() {
     onSizeClassChange();
   }
   calcConstructionDays();
+  // 새 공고문 적용 시: 총괄·분야별은 새 사업기간으로 동기화, 비상주는 날짜 초기화
+  const _hasDateApplied = document.querySelector('.announce-check[data-key="startDate"]:checked') ||
+                          document.querySelector('.announce-check[data-key="endDate"]:checked');
+  if (_hasDateApplied) {
+    syncLockedRoleDates(); // 총괄·분야별 갱신 (비상주는 내부에서 제외)
+    // 비상주 기존 저장값 초기화 → 사용자가 직접 입력
+    getAllRoles().filter(r => r.placement === '비상주').forEach(r => {
+      if (deployState[r.id]) { deployState[r.id].startYM = ''; deployState[r.id].endYM = ''; deployState[r.id].months = ''; }
+    });
+    extraDeployRows.filter(r => r.placement === '비상주').forEach(r => { r.startYM = ''; r.endYM = ''; r.months = ''; });
+    renderDeploySettings();
+  }
   document.getElementById('announceStatus').innerHTML = `<div class="parse-status ok">✅ ${applied}개 항목 적용 완료</div>`;
   window._announceParsed = null;
   showStatus(`공고문에서 ${applied}개 항목 자동 입력 완료`);
