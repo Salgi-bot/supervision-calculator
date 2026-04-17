@@ -1902,6 +1902,8 @@ function doAutoSave() {
     b2EgState미만: b2EgState미만,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
+    civil2Enabled: civil2Enabled,
+    archEnabled: archEnabled,
     deployState: deployState,
     extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
@@ -2007,6 +2009,14 @@ function loadAutoSave() {
     if (data.b2EgState) b2EgState = data.b2EgState;
     if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
     if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
+    if (typeof data.civil2Enabled === 'boolean') {
+      civil2Enabled = data.civil2Enabled;
+      localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+    }
+    if (typeof data.archEnabled === 'boolean') {
+      archEnabled = data.archEnabled;
+      localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+    }
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
@@ -4119,7 +4129,7 @@ function renderByeolji1() {
   const td = s => `<td style="text-align:center;padding:3px 4px;font-size:9pt">${escHtml(s)}</td>`;
   // 행 데이터 수집 — 이름 입력된 감리원만 (배치계획표·산출근거와 동일 기준)
   const allPRows = [];
-  getAllRoles().filter(r => personnel[r.id]?.info?.name && r.placement !== '비평가').forEach(r => {
+  getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-' && r.placement !== '비평가'; }).forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
     const structLabel = r.placement === '총괄' ? '총괄' :
@@ -5178,7 +5188,7 @@ function renderDeploySettings(force = false) {
       <button onclick="adjustDeployDate('${roleId}','${field}',1)" style="${BSTY}" title="+1개월">▶</button>
     </span>`;
 
-  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
+  const roles = getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-'; });
   // 비상주 한도 계산 (법정인월수 × 15%)
   const _lawMSt = parseFloat(document.getElementById('deployLawMonths')?.value) || 0;
   const _lpBaseSt = _lawMSt > 0 ? _lawMSt : (calcLegalMonths(pj.supervisionCost) || 0);
@@ -5417,7 +5427,7 @@ function renderDeployTable() {
   const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
 
   // 감리원 행 생성
-  const roles = getAllRoles().filter(r => personnel[r.id]?.info?.name);
+  const roles = getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-'; });
 
   // 1패스: 상주 감리원 환산인·월수 합계 (참고용)
   // 제6조②(주택건설공사 감리비 지급기준): 비상주 ≤ 법정 감리인·월수(제3조②) × 15%
