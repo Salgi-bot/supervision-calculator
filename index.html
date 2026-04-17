@@ -5188,7 +5188,7 @@ function renderDeploySettings(force = false) {
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? ds.convRate : defRate;
     // 총괄·비상주: 공사기간 강제 / 나머지: 총괄 범위 기본값 + 범위 초과 시 자동 clamp
-    const isLockedRole = r.placement === '총괄' || r.placement === '비상주';
+    const isLockedRole = r.placement === '비상주'; // 총괄은 개월 수동 입력 허용
     const isChiefRole  = r.id === cr.chiefId;
     let startDisp, endDisp;
     if (isLockedRole) {
