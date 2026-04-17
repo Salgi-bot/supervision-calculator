@@ -5678,8 +5678,8 @@ function renderDeployTable() {
         계약단가 ${fmt(unitCost)}원 − 실인건비 ${fmt(stdCost)}원 = <strong>${profit>=0?'+':''}${fmt(profit)} 원/월</strong>
       </span>
     </div>
-    <div style="margin-top:8px">⑤ 전체 이익금 = 월 이익 × 공사기간 (${constrMonths}개월)</div>
-    <div style="padding-left:2em">= ${profit>=0?'+':''}${fmt(profit)} × ${constrMonths} = <strong>${profit>=0?'+':''}${fmt(Math.round(profit * constrMonths))} 원</strong></div>` : ''}
+    <div style="margin-top:8px">⑤ 전체 이익금 = 월 이익 × 배치인원 개월수합 (${deployTotalPM.toFixed(3)}개월)</div>
+    <div style="padding-left:2em">= ${profit>=0?'+':''}${fmt(profit)} × ${deployTotalPM.toFixed(3)} = <strong>${profit>=0?'+':''}${fmt(Math.round(profit * deployTotalPM))} 원</strong></div>` : ''}
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #aaa;font-size:9pt;color:#444;line-height:1.8">
       <strong>기본 산식</strong><br>
       • 기초금액 × 계수 = 계약금액 (①)<br>
