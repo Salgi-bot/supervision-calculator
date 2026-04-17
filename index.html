@@ -5517,6 +5517,7 @@ function renderDeployTable() {
     const mDisp_e = fmtMonths(actM_e);
     rowDataArr.push({ structLabel:'추가<br>배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
+    totalActualPM += actM_e;
   }
 
   // 구분 column: structLabel이 연속으로 같으면 합치기 (분야별 전체를 하나로)
