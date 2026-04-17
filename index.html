@@ -5450,7 +5450,7 @@ function renderDeployTable() {
       nonresPM += convPM;
     }
     totalConvPM += convPM;
-    totalActualPM += actualMonths;
+    if (r.placement !== '비상주') totalActualPM += actualMonths;
 
     const startD = rs.d || 1;
     const endD   = re.d || lastDay(re.y, re.m);
@@ -5494,7 +5494,7 @@ function renderDeployTable() {
       nonresPM += cpm_c;
     }
     totalConvPM += cpm_c;
-    totalActualPM += actM_c;
+    if (row.placement !== '비상주') totalActualPM += actM_c;
     rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: fieldLabel_c,
       name: row.name || '-', grade: row.grade || '-',
       gantt: gantt_c, monthsDisp: mDisp_c, convRate: cr_c, convPM: cpm_c, note: note_c });
