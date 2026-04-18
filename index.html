@@ -833,8 +833,8 @@ tbody tr:hover td { background: var(--ci-light); }
       <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
         <button type="button" class="btn btn-outline btn-sm" onclick="openBidAnalyzer()"
                 style="border-color:#1a73e8;color:#1a73e8"
-                title="입찰 분석기 URL을 클립보드에 복사합니다. 입찰 분석기 북마크 열어서 주소창에 ⌘V → Enter">
-          📋 입찰 분석기 URL 복사
+                title="부사장님 Mac에서 로컬로 열면 클릭 한 번에 입찰 분석기 자동 연결">
+          📊 입찰 분석기 열기 →
         </button>
       </div>
       <!-- 감리대가: 숨김 보존 (저장 호환성) -->
@@ -1685,25 +1685,20 @@ function openBidAnalyzer() {
     `&region=${encodeURIComponent(region)}` +
     `&month=${month}`;
 
-  // 클립보드에 복사 + 안내 (브라우저가 file:// 링크 차단하므로)
-  navigator.clipboard.writeText(url).then(() => {
-    // Toast 표시
-    let t = document.getElementById('ba-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'ba-toast';
-      t.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);' +
-        'background:#1a73e8;color:#fff;padding:16px 24px;border-radius:8px;' +
-        'font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);line-height:1.6;max-width:480px;text-align:center;';
-      document.body.appendChild(t);
-    }
-    t.innerHTML = '📋 <b>입찰 분석기 주소 복사됨</b><br>' +
-                  '<span style="font-size:12px;">브라우저 북마크에서 "입찰 분석기" 클릭 → 주소창 클릭 → <b>⌘V</b> → Enter</span>';
-    t.style.display = 'block';
-    setTimeout(() => { if (t) t.style.display = 'none'; }, 6000);
-  }).catch(err => {
-    prompt('다음 URL을 복사해서 입찰 분석기 주소창에 붙여넣으세요:', url);
-  });
+  // 현재 페이지 origin 확인
+  const isLocal = location.protocol === 'file:';
+
+  if (isLocal) {
+    // 로컬 파일에서 열면 → 바로 열림 (원클릭)
+    window.open(url, 'bid-analyzer');
+  } else {
+    // 웹(Netlify)에서는 file:// 차단됨 → 안내만
+    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
+          '부사장님:\n' +
+          '1) 이 앱을 로컬 파일(/Users/salgi/주택건설공사/index.html)로 여세요\n' +
+          '2) 그러면 이 버튼 클릭 한 번에 입찰 분석기 자동 열림\n\n' +
+          '팀원 여러분: 입찰 분석기 접근 권한이 없습니다.');
+  }
 }
 
 function makeEmptyPerson(role, isDash = false) {
