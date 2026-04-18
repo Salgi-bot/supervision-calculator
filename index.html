@@ -831,11 +831,13 @@ tbody tr:hover td { background: var(--ci-light); }
         <input type="text" id="pj_baseFee" placeholder="예) 668,770,246" oninput="formatBidAmount(this);renderDeployTable()">
       </div>
       <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
-        <button type="button" class="btn btn-outline btn-sm" onclick="openBidAnalyzer()"
-                style="border-color:#1a73e8;color:#1a73e8"
-                title="부사장님 Mac에서 로컬로 열면 클릭 한 번에 입찰 분석기 자동 연결">
+        <a id="bid-analyzer-link" href="javascript:void(0)" target="_blank" rel="noopener"
+           class="btn btn-outline btn-sm"
+           onclick="return prepareBidAnalyzerLink(event)"
+           style="border-color:#1a73e8;color:#1a73e8;text-decoration:none;display:inline-block;"
+           title="부사장님 로컬에서 클릭 한 번에 입찰 분석기 자동 연결">
           📊 입찰 분석기 열기 →
-        </button>
+        </a>
       </div>
       <!-- 감리대가: 숨김 보존 (저장 호환성) -->
       <input type="hidden" id="pj_supervisionFee">
@@ -1639,8 +1641,63 @@ const ROLES = [
 ];
 
 // ============================================================
-// 입찰 분석기 연동 (별도 앱 호출)
+// 입찰 분석기 연동 (a 태그 click 핸들러)
 // ============================================================
+function prepareBidAnalyzerLink(event) {
+  const url = buildBidAnalyzerURL();
+  if (!url) {
+    event.preventDefault();
+    return false;
+  }
+  const isLocal = location.protocol === 'file:';
+  if (!isLocal) {
+    event.preventDefault();
+    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
+          '부사장님:\n' +
+          '1) 주택건설공사 앱을 로컬 파일로 열어주세요\n' +
+          '   /Users/salgi/주택건설공사/index.html\n' +
+          '2) 그러면 이 버튼 클릭 한 번에 입찰 분석기 자동 열림\n\n' +
+          '팀원: 입찰 분석기 접근 권한이 없습니다.');
+    return false;
+  }
+  // 로컬 파일 → href 설정 후 기본 click 동작 유지
+  event.currentTarget.href = url;
+  return true;
+}
+
+function buildBidAnalyzerURL() {
+  const name = (document.getElementById('pj_name')?.value || '').trim();
+  const baseFeeRaw = (document.getElementById('pj_baseFee')?.value || '').replace(/[^\d]/g, '');
+  const baseFee = parseInt(baseFeeRaw) || 0;
+  const units = parseInt(document.getElementById('pj_units')?.value) || 0;
+  const location_ = (document.getElementById('pj_location')?.value || '').trim();
+  const submitDate = (document.getElementById('pj_submitDate')?.value || '').trim();
+
+  if (!baseFee || baseFee < 1e8) { alert('기초금액을 먼저 입력하세요 (1억 이상)'); return null; }
+  if (!units) { alert('세대수를 먼저 입력하세요'); return null; }
+
+  let tier;
+  if (units < 300) tier = 1;
+  else if (units < 500) tier = 2;
+  else { alert('⚠️ 500세대 이상은 수행능력 점수 부족으로 응찰 불가\n입찰 분석 대상 외입니다.'); return null; }
+
+  let region = '지방';
+  if (/서울|경기|인천/.test(location_)) region = '수도권';
+  else if (/부산|대구|광주|대전|울산|세종/.test(location_)) region = '광역';
+
+  let month = new Date().getMonth() + 1;
+  const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
+  if (m) month = parseInt(m[1]);
+
+  return 'file:///Users/salgi/bid-analyzer/index.html' +
+    `?name=${encodeURIComponent(name)}` +
+    `&base=${baseFee}` +
+    `&tier=${tier}` +
+    `&region=${encodeURIComponent(region)}` +
+    `&month=${month}`;
+}
+
+// 구버전 호환 (기존 onclick=openBidAnalyzer() 혹시 있을 경우)
 function openBidAnalyzer() {
   const name = (document.getElementById('pj_name')?.value || '').trim();
   const baseFeeRaw = (document.getElementById('pj_baseFee')?.value || '').replace(/[^\d]/g, '');
