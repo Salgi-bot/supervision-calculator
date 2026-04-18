@@ -832,8 +832,9 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
         <button type="button" class="btn btn-outline btn-sm" onclick="openBidAnalyzer()"
-                style="border-color:#1a73e8;color:#1a73e8" title="입찰 분석기로 이동 (공고 정보 자동 전달)">
-          📊 입찰 분석기로 이동 →
+                style="border-color:#1a73e8;color:#1a73e8"
+                title="입찰 분석기 URL을 클립보드에 복사합니다. 입찰 분석기 북마크 열어서 주소창에 ⌘V → Enter">
+          📋 입찰 분석기 URL 복사
         </button>
       </div>
       <!-- 감리대가: 숨김 보존 (저장 호환성) -->
@@ -1684,7 +1685,25 @@ function openBidAnalyzer() {
     `&region=${encodeURIComponent(region)}` +
     `&month=${month}`;
 
-  window.open(url, 'bid-analyzer');
+  // 클립보드에 복사 + 안내 (브라우저가 file:// 링크 차단하므로)
+  navigator.clipboard.writeText(url).then(() => {
+    // Toast 표시
+    let t = document.getElementById('ba-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'ba-toast';
+      t.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);' +
+        'background:#1a73e8;color:#fff;padding:16px 24px;border-radius:8px;' +
+        'font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);line-height:1.6;max-width:480px;text-align:center;';
+      document.body.appendChild(t);
+    }
+    t.innerHTML = '📋 <b>입찰 분석기 주소 복사됨</b><br>' +
+                  '<span style="font-size:12px;">브라우저 북마크에서 "입찰 분석기" 클릭 → 주소창 클릭 → <b>⌘V</b> → Enter</span>';
+    t.style.display = 'block';
+    setTimeout(() => { if (t) t.style.display = 'none'; }, 6000);
+  }).catch(err => {
+    prompt('다음 URL을 복사해서 입찰 분석기 주소창에 붙여넣으세요:', url);
+  });
 }
 
 function makeEmptyPerson(role, isDash = false) {
