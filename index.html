@@ -828,16 +828,17 @@ tbody tr:hover td { background: var(--ci-light); }
       </select>
       <div class="form-group">
         <label>기초금액 (원)</label>
-        <input type="text" id="pj_baseFee" placeholder="예) 668,770,246" oninput="formatBidAmount(this);renderDeployTable()">
-      </div>
-      <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
-        <a id="bid-analyzer-link" href="javascript:void(0)" target="_blank" rel="noopener"
-           class="btn btn-outline btn-sm"
-           onclick="return prepareBidAnalyzerLink(event)"
-           style="border-color:#1a73e8;color:#1a73e8;text-decoration:none;display:inline-block;"
-           title="부사장님 로컬에서 클릭 한 번에 입찰 분석기 자동 연결">
-          📊 입찰 분석기 열기 →
-        </a>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <input type="text" id="pj_baseFee" placeholder="예) 668,770,246"
+                 oninput="formatBidAmount(this);renderDeployTable()" style="flex:1;min-width:0">
+          <a id="bid-analyzer-link" href="javascript:void(0)" target="_blank" rel="noopener"
+             onclick="return prepareBidAnalyzerLink(event)"
+             style="display:none;padding:0 14px;background:#1a73e8;color:#fff;border-radius:6px;
+                    text-decoration:none;align-items:center;font-size:16px;flex-shrink:0;"
+             title="입찰 분석기 열기">
+            📊
+          </a>
+        </div>
       </div>
       <!-- 감리대가: 숨김 보존 (저장 호환성) -->
       <input type="hidden" id="pj_supervisionFee">
@@ -1641,26 +1642,30 @@ const ROLES = [
 ];
 
 // ============================================================
-// 입찰 분석기 연동 (a 태그 click 핸들러)
+// 입찰 분석기 연동 — 로컬(file://)에서만 버튼 표시
 // ============================================================
+(function showBidLinkIfLocal() {
+  const init = () => {
+    if (location.protocol === 'file:') {
+      const a = document.getElementById('bid-analyzer-link');
+      if (a) a.style.display = 'inline-flex';
+    }
+    // Netlify 웹에서는 버튼 계속 숨김 (팀원에게 보이지 않음)
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
 function prepareBidAnalyzerLink(event) {
+  // 이 함수는 로컬(file://)에서만 호출됨 (버튼이 로컬에서만 표시)
   const url = buildBidAnalyzerURL();
   if (!url) {
     event.preventDefault();
     return false;
   }
-  const isLocal = location.protocol === 'file:';
-  if (!isLocal) {
-    event.preventDefault();
-    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
-          '부사장님:\n' +
-          '1) 주택건설공사 앱을 로컬 파일로 열어주세요\n' +
-          '   /Users/salgi/주택건설공사/index.html\n' +
-          '2) 그러면 이 버튼 클릭 한 번에 입찰 분석기 자동 열림\n\n' +
-          '팀원: 입찰 분석기 접근 권한이 없습니다.');
-    return false;
-  }
-  // 로컬 파일 → href 설정 후 기본 click 동작 유지
   event.currentTarget.href = url;
   return true;
 }
