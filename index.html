@@ -830,6 +830,12 @@ tbody tr:hover td { background: var(--ci-light); }
         <label>기초금액 (원)</label>
         <input type="text" id="pj_baseFee" placeholder="예) 668,770,246" oninput="formatBidAmount(this);renderDeployTable()">
       </div>
+      <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="openBidAnalyzer()"
+                style="border-color:#1a73e8;color:#1a73e8" title="입찰 분석기로 이동 (공고 정보 자동 전달)">
+          📊 입찰 분석기로 이동 →
+        </button>
+      </div>
       <!-- 감리대가: 숨김 보존 (저장 호환성) -->
       <input type="hidden" id="pj_supervisionFee">
     </div>
@@ -1630,6 +1636,56 @@ const ROLES = [
   { id: 'mech',   label: '기타설비감리원',   field: '설비', placement: '분야별', icon: '⚙', rowLabel: '분야별' },
   { id: 'nonres', label: '비상주감리원',     field: '건축', placement: '비상주', icon: '📋', rowLabel: '비상주' },
 ];
+
+// ============================================================
+// 입찰 분석기 연동 (별도 앱 호출)
+// ============================================================
+function openBidAnalyzer() {
+  const name = (document.getElementById('pj_name')?.value || '').trim();
+  const baseFeeRaw = (document.getElementById('pj_baseFee')?.value || '').replace(/[^\d]/g, '');
+  const baseFee = parseInt(baseFeeRaw) || 0;
+  const units = parseInt(document.getElementById('pj_units')?.value) || 0;
+  const location = (document.getElementById('pj_location')?.value || '').trim();
+  const submitDate = (document.getElementById('pj_submitDate')?.value || '').trim();
+
+  // 필수 체크
+  if (!baseFee || baseFee < 1e8) {
+    alert('기초금액을 먼저 입력하세요 (1억 이상)');
+    return;
+  }
+  if (!units) {
+    alert('세대수를 먼저 입력하세요');
+    return;
+  }
+
+  // Tier 결정 (아이팝 응찰 가능 범위: 500세대 미만)
+  let tier;
+  if (units < 300) tier = 1;
+  else if (units < 500) tier = 2;
+  else {
+    alert('⚠️ 500세대 이상은 수행능력 점수 부족으로 응찰 불가\n입찰 분석 대상 외입니다.');
+    return;
+  }
+
+  // 지역 분류
+  let region = '지방';
+  if (/서울|경기|인천/.test(location)) region = '수도권';
+  else if (/부산|대구|광주|대전|울산|세종/.test(location)) region = '광역';
+
+  // 월 추출 (접수일자 "2025.09.11" or "2025-09-11" 등)
+  let month = new Date().getMonth() + 1;
+  const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
+  if (m) month = parseInt(m[1]);
+
+  const url = 'file:///Users/salgi/bid-analyzer/index.html' +
+    `?name=${encodeURIComponent(name)}` +
+    `&base=${baseFee}` +
+    `&tier=${tier}` +
+    `&region=${encodeURIComponent(region)}` +
+    `&month=${month}`;
+
+  window.open(url, 'bid-analyzer');
+}
 
 function makeEmptyPerson(role, isDash = false) {
   const d = isDash ? '-' : '';
