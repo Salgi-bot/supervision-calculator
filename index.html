@@ -833,8 +833,11 @@ tbody tr:hover td { background: var(--ci-light); }
                  oninput="formatBidAmount(this);renderDeployTable()" style="flex:1;min-width:0">
           <a id="bid-analyzer-link" href="javascript:void(0)" target="_blank" rel="noopener"
              onclick="return prepareBidAnalyzerLink(event)"
-             style="display:none;padding:0 14px;background:#1a73e8;color:#fff;border-radius:6px;
-                    text-decoration:none;align-items:center;font-size:16px;flex-shrink:0;"
+             style="display:none;padding:0 10px;background:#f0f0f0;color:#666;border-radius:6px;
+                    border:1px solid #ddd;text-decoration:none;align-items:center;font-size:14px;
+                    flex-shrink:0;opacity:0.6;transition:opacity 0.15s,background 0.15s;"
+             onmouseover="this.style.opacity='1';this.style.background='#e0e0e0'"
+             onmouseout="this.style.opacity='0.6';this.style.background='#f0f0f0'"
              title="입찰 분석기 열기">
             📊
           </a>
