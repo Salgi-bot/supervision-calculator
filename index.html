@@ -1703,7 +1703,10 @@ function buildBidAnalyzerURL() {
   const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
   if (m) month = parseInt(m[1]);
 
-  return 'file:///Users/salgi/bid-analyzer/index.html' +
+  const base = location.protocol === 'file:'
+    ? 'file:///Users/salgi/bid-analyzer/index.html'
+    : `${location.origin}${location.pathname.replace(/\/[^/]*$/, '')}/bid-analyzer/index.html`;
+  return base +
     `?name=${encodeURIComponent(name)}` +
     `&base=${baseFee}` +
     `&tier=${tier}` +
@@ -1749,27 +1752,17 @@ function openBidAnalyzer() {
   const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
   if (m) month = parseInt(m[1]);
 
-  const url = 'file:///Users/salgi/bid-analyzer/index.html' +
+  const bidBase = location.protocol === 'file:'
+    ? 'file:///Users/salgi/bid-analyzer/index.html'
+    : `${location.origin}${location.pathname.replace(/\/[^/]*$/, '')}/bid-analyzer/index.html`;
+  const url = bidBase +
     `?name=${encodeURIComponent(name)}` +
     `&base=${baseFee}` +
     `&tier=${tier}` +
     `&region=${encodeURIComponent(region)}` +
     `&month=${month}`;
 
-  // 현재 페이지 origin 확인
-  const isLocal = location.protocol === 'file:';
-
-  if (isLocal) {
-    // 로컬 파일에서 열면 → 바로 열림 (원클릭)
-    window.open(url, 'bid-analyzer');
-  } else {
-    // 웹(Netlify)에서는 file:// 차단됨 → 안내만
-    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
-          '부사장님:\n' +
-          '1) 이 앱을 로컬 파일(/Users/salgi/주택건설공사/index.html)로 여세요\n' +
-          '2) 그러면 이 버튼 클릭 한 번에 입찰 분석기 자동 열림\n\n' +
-          '팀원 여러분: 입찰 분석기 접근 권한이 없습니다.');
-  }
+  window.open(url, 'bid-analyzer');
 }
 
 function makeEmptyPerson(role, isDash = false) {

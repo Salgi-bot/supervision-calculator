@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주택건설공사 감리자 입찰 분석기 · EYEPOP</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a73e8;
+    --success: #0f9d58;
+    --warning: #f9ab00;
+    --danger: #d93025;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --border: #dadce0;
+    --bg: #f8f9fa;
+    --card: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 20px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--primary);
+  }
+  header h1 { font-size: 22px; color: var(--primary); }
+  header .sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--primary);
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    margin-top: 10px;
+  }
+  label:first-child { margin-top: 0; }
+  input, select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  button:hover { background: #1765cc; }
+  .result-box {
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .result-box.highlight {
+    background: #e8f0fe;
+    border-left: 4px solid var(--primary);
+  }
+  .result-box.success {
+    background: #e6f4ea;
+    border-left: 4px solid var(--success);
+  }
+  .result-box.warning {
+    background: #fef7e0;
+    border-left: 4px solid var(--warning);
+  }
+  .metric { display: flex; justify-content: space-between; padding: 4px 0; }
+  .metric-label { color: var(--text-secondary); font-size: 12px; }
+  .metric-value { font-weight: 600; }
+  .metric-value.large { font-size: 20px; color: var(--primary); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  table th, table td {
+    padding: 7px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+  table th {
+    background: var(--bg);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  table td:first-child, table th:first-child { text-align: left; }
+  table tr.recommended { background: #e8f0fe; font-weight: 600; }
+  .chart-container {
+    position: relative;
+    height: 240px;
+    margin-top: 10px;
+  }
+  .notes {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .hidden { display: none; }
+  .tier-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--primary);
+    color: white;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  #prediction-log { font-size: 12px; max-height: 420px; overflow-y: auto; }
+  #prediction-log .log-entry {
+    padding: 8px;
+    border-bottom: 1px dashed var(--border);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    line-height: 1.6;
+  }
+  #prediction-log .log-entry.success { background: #e6f4ea; }
+  #prediction-log .log-entry.warning { background: #fef7e0; }
+  #prediction-log .log-entry.highlight { background: #e8f0fe; }
+  .mini {
+    padding: 3px 8px;
+    font-size: 11px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    width: auto;
+    margin: 0 2px;
+  }
+  .mini:hover { background: var(--primary); color: white; }
+  .mini.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .sortable { cursor: pointer; user-select: none; }
+  .sortable:hover { color: var(--primary); }
+  .sort-arrow { font-size: 9px; margin-left: 2px; }
+  .rank-tag {
+    display: inline-block;
+    min-width: 22px;
+    padding: 1px 5px;
+    background: var(--bg);
+    border-radius: 3px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .rank-tag.top3 { background: #fef7e0; color: #b36b00; }
+  .rank-tag.top1 { background: #d93025; color: white; }
+  .danger-flag { color: var(--danger); font-weight: 600; }
+  .active-dot { color: var(--success); }
+  .inactive-dot { color: var(--text-secondary); opacity: 0.5; }
+  .copyable {
+    cursor: pointer;
+    user-select: all;
+    transition: background 0.1s;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+  .copyable:hover {
+    background: #fff3cd;
+    color: #856404;
+  }
+  .tooltip-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    background: var(--text-secondary);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tooltip-icon:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    background: #202124;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: normal;
+    max-width: 280px;
+    white-space: normal;
+    z-index: 1000;
+    margin-left: 5px;
+    margin-top: -30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    line-height: 1.5;
+  }
+  .bid-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    display: block;
+    font-weight: 600;
+    text-align: right;
+  }
+  .tier-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 720px) { .tier-result-grid { grid-template-columns: 1fr; } }
+  .tier-col {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .tier-col.t1 { border-top: 3px solid var(--primary); }
+  .tier-col.t2 { border-top: 3px solid #9334e6; }
+  .tier-col h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .tier-col.t1 h3 { color: var(--primary); }
+  .tier-col.t2 h3 { color: #9334e6; }
+
+  /* 연도/월 그룹 */
+  .year-group {
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .year-header {
+    padding: 10px 12px;
+    background: #e8f0fe;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .year-header:hover { background: #d2e3fc; }
+  .year-content { padding: 6px; }
+
+  .month-group {
+    margin-bottom: 6px;
+    border-left: 3px solid var(--border);
+    padding-left: 8px;
+  }
+  .month-header {
+    padding: 5px 8px;
+    background: #f1f3f4;
+    cursor: pointer;
+    font-size: 12px;
+    user-select: none;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .month-header:hover { background: #e8eaed; }
+  .month-content { padding: 6px 0; }
+
+  .toggle-arrow {
+    display: inline-block;
+    width: 14px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .foot-note {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-top: 20px;
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🎯 주택건설공사 감리자 입찰 분석기</h1>
+    <div class="sub">EYEPOP Engineering · 김홍정 부사장 전용 · 사정율 N(99.93%, 0.76%) · 데이터 1,113건 (500세대 미만 · 특수사업 제외)</div>
+  </header>
+
+  <div class="grid">
+    <!-- 입력 영역 -->
+    <div class="card">
+      <h2>📝 공고 정보 입력</h2>
+      <label>공고명</label>
+      <input type="text" id="inp-name" placeholder="예: 용인 기흥구 구갈동 540번지">
+
+      <label>기초금액 (원) — 천단위 자동 콤마</label>
+      <input type="text" id="inp-base" placeholder="761,919,627" inputmode="numeric">
+
+      <label>세대 구간 (Tier)</label>
+      <select id="inp-tier">
+        <option value="1">Tier 1 · 300세대 미만 (하한 84.95%)</option>
+        <option value="2">Tier 2 · 300~500세대 미만 (하한 82.95%)</option>
+      </select>
+
+      <label>지역</label>
+      <select id="inp-region">
+        <option value="수도권">수도권 (서울/경기/인천)</option>
+        <option value="광역">광역 (부산/대구/광주/대전/울산/세종)</option>
+        <option value="지방">지방 (그 외)</option>
+      </select>
+
+      <label>등록월</label>
+      <select id="inp-month">
+        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+        <option value="4" selected>4월</option><option value="5">5월</option><option value="6">6월</option>
+        <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+      </select>
+
+      <button id="btn-calc">🔍 분석 실행</button>
+
+      <div class="notes">
+        ※ 참여수는 데이터에서 자동 예측<br>
+        ※ 사정율 분포 N(99.93%, 0.76%) 기반 10,000 시뮬<br>
+        ※ 데이터: 1,113건 (500세대 미만, 특수사업 제외)<br>
+        ※ 수학적 한계: 1위는 본질적으로 운
+      </div>
+    </div>
+
+    <!-- 결과 요약 -->
+    <div class="card">
+      <h2>📊 핵심 결과</h2>
+      <div id="result-summary">
+        <div class="result-box">
+          왼쪽 공고 정보를 입력 후 [분석 실행] 버튼을 눌러주세요.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 투찰가 시나리오 -->
+  <div class="card">
+    <h2>💰 투찰가 시나리오 비교
+      <span class="tooltip-icon" data-tip="통과율을 기준으로 4가지 전략 비교. 초안전=통과 95% 목표 / 안전=85% / 균형=55% / 공격=35%. 통과율 높을수록 가격점수 감점으로 1위 밀릴 수 있음.">?</span>
+    </h2>
+    <div id="scenario-table">
+      <p class="notes">분석 실행 후 시나리오가 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="grid">
+    <div class="card">
+      <h2>📈 투찰가별 통과 확률
+        <span class="tooltip-icon" data-tip="X축: 투찰가 (기초금액 대비 %). Y축: 확률. 파란선=통과 확률, 초록선=1위 확률(20배 확대). 하한 근처(Tier1: 84.95%)에서 통과율 급변.">?</span>
+      </h2>
+      <div class="chart-container">
+        <canvas id="chart-pass"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🎲 사정율 분포 (예정가격 예측)
+        <span class="tooltip-icon" data-tip="사정율 = 예정가격/기초금액 × 100. 1,318건 데이터로 추정한 정규분포 N(99.94%, 0.76%). 복수예비가격 추첨이 랜덤이라 예측 불가. 이 분포의 기대값으로만 투찰 가능.">?</span>
+      </h2>
+      <div class="chart-container">
+        <canvas id="chart-sajeong"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ 정면돌파 · 아이팝 슈퍼 예측 -->
+  <div class="card" id="super-card" style="display:none">
+    <h2>⚔️ 정면돌파 · 아이팝 슈퍼 예측
+      <span class="tooltip-icon" data-tip="Top 업체(태원·나우·케이씨엠·리·태백·휴먼·상지·유신)별 사정율 회귀식을 LOOCV MAE 역수로 가중 평균한 앙상블 예측치. 1등 구간(99.5~100.5%)에서 정면 대결용.">?</span>
+    </h2>
+    <div id="super-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ★ Top 업체 사정율 공식 -->
+  <div class="card" id="topformula-card" style="display:none">
+    <h2>🧮 Top 업체 사정율 공식 (리버스엔지니어링)
+      <span class="tooltip-icon" data-tip="각 업체의 1위 공고 n건을 Ridge 회귀로 추정. 절편=기본 사정율, 계수=조건별 조정치. LOOCV MAE가 낮을수록 그 업체의 예측력이 정교.">?</span>
+    </h2>
+    <div id="topformula-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ★ 백테스트 정확도 -->
+  <div class="card" id="backtest-card" style="display:none">
+    <h2>🎯 백테스트 정확도 (2024+ 홀드아웃)
+      <span class="tooltip-icon" data-tip="2024~2026 실제 공고에 앙상블 모델 적용한 결과. MAE가 Top 업체 평균 LOOCV보다 낮으면 정면대결 승산 있음.">?</span>
+    </h2>
+    <div id="backtest-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ★ 아이팝 최적 투찰 좌표 (게임이론) -->
+  <div class="card" id="optimalbid-card" style="display:none">
+    <h2>🎯 아이팝 최적 투찰 좌표 (게임이론)
+      <span class="tooltip-icon" data-tip="전 업체 모든 공고 참여 전제. Monte-Carlo (공고당 400회 × 경쟁자 Top50) 시뮬로 아이팝이 고정 좌표 B에 베팅할 때 1등 확률이 가장 높은 사정율을 탐색. Tier·지역별 최적 좌표 분리.">?</span>
+    </h2>
+    <div id="optimalbid-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ★ 경쟁사 예측사정율 분포 -->
+  <div class="card" id="compdist-card" style="display:none">
+    <h2>📊 경쟁사 예측사정율 분포 (아이팝 vs Top20)
+      <span class="tooltip-icon" data-tip="Top20 업체의 승자 사정율 분포(평균·표편) = 각 업체의 스위트 스팟. 표편 < 0.4 고정, 0.4~0.7 반고정, > 0.7 가변. 경쟁사가 몰리지 않는 좌표 선점이 1등 열쇠.">?</span>
+    </h2>
+    <div id="compdist-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- P2: 예상 경쟁업체 Top 5 -->
+  <div class="card" id="competitor-card" style="display:none">
+    <h2>🥊 예상 경쟁업체 Top 5 (과거 3년 1위 빈도)
+      <span class="tooltip-icon" data-tip="현재 입력한 Tier·지역·기초금액 분위와 동일한 구간에서 최근 3년간 1위를 가장 많이 차지한 업체. 투찰 경쟁 상대 파악용.">?</span>
+    </h2>
+    <div id="competitor-body">
+      <p class="notes">분석 실행 후 표시됩니다.</p>
+    </div>
+  </div>
+
+  <!-- P1: 상위 낙찰업체 랭킹 -->
+  <div class="card">
+    <h2>🏢 상위 낙찰업체 랭킹
+      <span class="tooltip-icon" data-tip="2017~2026 전체 1,320건 중 낙찰 상위 30사. 필터로 Tier·지역·최근활동 기준 재정렬. 컬럼 클릭 시 정렬 변경.">?</span>
+    </h2>
+    <div style="margin-bottom:10px; display:flex; gap:6px; flex-wrap:wrap">
+      <button class="mini ranking-filter active" data-filter="all">전체</button>
+      <button class="mini ranking-filter" data-filter="tier1">Tier1 (300미만)</button>
+      <button class="mini ranking-filter" data-filter="tier2">Tier2 (300~500)</button>
+      <button class="mini ranking-filter" data-filter="수도권">수도권</button>
+      <button class="mini ranking-filter" data-filter="광역">광역</button>
+      <button class="mini ranking-filter" data-filter="지방">지방</button>
+      <button class="mini ranking-filter" data-filter="active">최근3년 활동</button>
+    </div>
+    <div id="ranking-body">
+      <p class="notes">로딩 중...</p>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="mini" id="btn-ranking-more" style="width:100%; padding:8px">▼ Top 30 보기</button>
+    </div>
+    <div class="notes" style="margin-top:8px">
+      📌 <b>⚡</b> = 초타이트 저격수 (마진 표편 &lt; 0.3, 항상 같은 좌표에 집중 투찰)<br>
+      📌 <b>그룹</b>: A=언더(&lt;99.5%) · B=센터(99.5~99.9%) · C=100%근처 · C+=100.2%+<br>
+      📌 <b>역산사정 중앙</b> = 그 업체의 저격 포인트<br>
+      📌 "최근3년 활동": 2023년 이후 낙찰 1건 이상 업체
+    </div>
+  </div>
+
+  <!-- 누적 성과 -->
+  <div class="card">
+    <h2>🏆 누적 성과 (예측 vs 실측)
+      <span class="tooltip-icon" data-tip="개찰 후 실제 결과 입력된 기록만 집계. 아이팝 1위 건수, 실측 사정율과의 오차(MAE) 추적. 이 수치가 모델 신뢰도의 진짜 척도.">?</span>
+    </h2>
+    <div id="prediction-stats"></div>
+  </div>
+
+  <!-- 예측 로그 -->
+  <div class="card">
+    <h2>📋 예측 기록 (개찰 후 결과 입력)
+      <span class="tooltip-icon" data-tip="모든 분석 기록 자동 저장 (브라우저 LocalStorage). 개찰 후 [결과입력] 버튼으로 실제 낙찰가·예정가 기입 → 누적 성과 자동 갱신. Export/Import로 다른 컴퓨터와 동기화.">?</span>
+    </h2>
+    <div id="prediction-log"></div>
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button id="btn-export" style="background:var(--text-secondary); flex:1">📥 Export (JSON)</button>
+      <label class="btn-like" style="flex:1; background:var(--text-secondary); color:white; padding:12px; border-radius:4px; text-align:center; cursor:pointer; font-size:14px; font-weight:600;">
+        📤 Import
+        <input type="file" id="import-file" accept=".json" style="display:none">
+      </label>
+    </div>
+    <div class="notes">
+      💡 각 기록의 <b>[📝 결과입력]</b> 버튼으로 개찰 후 실제 낙찰가·예정가·투찰율 입력<br>
+      💡 입력된 결과는 누적 통계에 반영 (위 "누적 성과" 카드)<br>
+      💡 Export/Import = <b>내 예측 기록만</b> 이동 (앱 데이터 X)<br>
+      💡 앱 데이터(1,318건 공고) 월 1회 갱신은 Claude에게 xls 파일 전달
+    </div>
+  </div>
+
+  <div class="foot-note">
+    v0.4 · 2026-04-19 · 비공개 · 김홍정 부사장 전용<br>
+    역산 사정율 기반 + 특수사업/500세대이상 제외 + TOP30 업체 통계 개선<br>
+    <span style="color:#999">월 1회 xls 업로드로 데이터 갱신 (중복 자동 제거)</span>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="company.js"></script>
+<script src="super_predictor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
