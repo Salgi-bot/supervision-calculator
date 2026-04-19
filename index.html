@@ -1645,19 +1645,12 @@ const ROLES = [
 ];
 
 // ============================================================
-// 입찰 분석기 연동 — 로컬 전용, 웹에서는 비활성화 표시
+// 입찰 분석기 연동
 // ============================================================
 (function showBidLink() {
   const init = () => {
     const a = document.getElementById('bid-analyzer-link');
-    if (!a) return;
-    a.style.display = 'inline-flex';
-    if (location.protocol !== 'file:') {
-      a.style.pointerEvents = 'none';
-      a.style.opacity = '0.3';
-      a.style.cursor = 'default';
-      a.title = '맥북 로컬에서만 사용 가능 (open /Users/salgi/주택건설공사/index.html)';
-    }
+    if (a) a.style.display = 'inline-flex';
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
