@@ -1645,15 +1645,12 @@ const ROLES = [
 ];
 
 // ============================================================
-// 입찰 분석기 연동 — 로컬(file://)에서만 버튼 표시
+// 입찰 분석기 연동 — 항상 버튼 표시 (file://은 원클릭, 웹은 안내)
 // ============================================================
-(function showBidLinkIfLocal() {
+(function showBidLink() {
   const init = () => {
-    if (location.protocol === 'file:') {
-      const a = document.getElementById('bid-analyzer-link');
-      if (a) a.style.display = 'inline-flex';
-    }
-    // Netlify 웹에서는 버튼 계속 숨김 (팀원에게 보이지 않음)
+    const a = document.getElementById('bid-analyzer-link');
+    if (a) a.style.display = 'inline-flex';
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -1663,10 +1660,19 @@ const ROLES = [
 })();
 
 function prepareBidAnalyzerLink(event) {
-  // 이 함수는 로컬(file://)에서만 호출됨 (버튼이 로컬에서만 표시)
   const url = buildBidAnalyzerURL();
   if (!url) {
     event.preventDefault();
+    return false;
+  }
+  // 웹(https/http)에서 클릭 시: file:// 브라우저 차단됨 → 안내
+  if (location.protocol !== 'file:') {
+    event.preventDefault();
+    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
+          '부사장님:\n' +
+          '1) Finder에서 /Users/salgi/주택건설공사/index.html 를 더블클릭\n' +
+          '2) 또는 터미널에서: open /Users/salgi/주택건설공사/index.html\n' +
+          '→ 로컬로 열면 이 버튼 클릭 한 번에 분석기 자동 열림');
     return false;
   }
   event.currentTarget.href = url;
