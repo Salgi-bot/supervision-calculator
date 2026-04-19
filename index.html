@@ -1645,15 +1645,19 @@ const ROLES = [
 ];
 
 // ============================================================
-// 입찰 분석기 연동 — 로컬(file://)에서만 버튼 표시
+// 입찰 분석기 연동 — 로컬 전용, 웹에서는 비활성화 표시
 // ============================================================
-(function showBidLinkIfLocal() {
+(function showBidLink() {
   const init = () => {
-    if (location.protocol === 'file:') {
-      const a = document.getElementById('bid-analyzer-link');
-      if (a) a.style.display = 'inline-flex';
+    const a = document.getElementById('bid-analyzer-link');
+    if (!a) return;
+    a.style.display = 'inline-flex';
+    if (location.protocol !== 'file:') {
+      a.style.pointerEvents = 'none';
+      a.style.opacity = '0.3';
+      a.style.cursor = 'default';
+      a.title = '맥북 로컬에서만 사용 가능 (open /Users/salgi/주택건설공사/index.html)';
     }
-    // Netlify 웹에서는 버튼 계속 숨김 (팀원에게 보이지 않음)
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -1663,14 +1667,10 @@ const ROLES = [
 })();
 
 function prepareBidAnalyzerLink(event) {
-  // 이 함수는 로컬(file://)에서만 호출됨 (버튼이 로컬에서만 표시)
+  event.preventDefault();
   const url = buildBidAnalyzerURL();
-  if (!url) {
-    event.preventDefault();
-    return false;
-  }
-  event.currentTarget.href = url;
-  return true;
+  if (url) window.open(url, 'bid-analyzer');
+  return false;
 }
 
 function buildBidAnalyzerURL() {
@@ -1703,67 +1703,6 @@ function buildBidAnalyzerURL() {
     `&tier=${tier}` +
     `&region=${encodeURIComponent(region)}` +
     `&month=${month}`;
-}
-
-// 구버전 호환 (기존 onclick=openBidAnalyzer() 혹시 있을 경우)
-function openBidAnalyzer() {
-  const name = (document.getElementById('pj_name')?.value || '').trim();
-  const baseFeeRaw = (document.getElementById('pj_baseFee')?.value || '').replace(/[^\d]/g, '');
-  const baseFee = parseInt(baseFeeRaw) || 0;
-  const units = parseInt(document.getElementById('pj_units')?.value) || 0;
-  const location = (document.getElementById('pj_location')?.value || '').trim();
-  const submitDate = (document.getElementById('pj_submitDate')?.value || '').trim();
-
-  // 필수 체크
-  if (!baseFee || baseFee < 1e8) {
-    alert('기초금액을 먼저 입력하세요 (1억 이상)');
-    return;
-  }
-  if (!units) {
-    alert('세대수를 먼저 입력하세요');
-    return;
-  }
-
-  // Tier 결정 (아이팝 응찰 가능 범위: 500세대 미만)
-  let tier;
-  if (units < 300) tier = 1;
-  else if (units < 500) tier = 2;
-  else {
-    alert('⚠️ 500세대 이상은 수행능력 점수 부족으로 응찰 불가\n입찰 분석 대상 외입니다.');
-    return;
-  }
-
-  // 지역 분류
-  let region = '지방';
-  if (/서울|경기|인천/.test(location)) region = '수도권';
-  else if (/부산|대구|광주|대전|울산|세종/.test(location)) region = '광역';
-
-  // 월 추출 (접수일자 "2025.09.11" or "2025-09-11" 등)
-  let month = new Date().getMonth() + 1;
-  const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
-  if (m) month = parseInt(m[1]);
-
-  const url = 'file:///Users/salgi/bid-analyzer/index.html' +
-    `?name=${encodeURIComponent(name)}` +
-    `&base=${baseFee}` +
-    `&tier=${tier}` +
-    `&region=${encodeURIComponent(region)}` +
-    `&month=${month}`;
-
-  // 현재 페이지 origin 확인
-  const isLocal = location.protocol === 'file:';
-
-  if (isLocal) {
-    // 로컬 파일에서 열면 → 바로 열림 (원클릭)
-    window.open(url, 'bid-analyzer');
-  } else {
-    // 웹(Netlify)에서는 file:// 차단됨 → 안내만
-    alert('⚠️ 입찰 분석기는 로컬 파일에서만 열립니다.\n\n' +
-          '부사장님:\n' +
-          '1) 이 앱을 로컬 파일(/Users/salgi/주택건설공사/index.html)로 여세요\n' +
-          '2) 그러면 이 버튼 클릭 한 번에 입찰 분석기 자동 열림\n\n' +
-          '팀원 여러분: 입찰 분석기 접근 권한이 없습니다.');
-  }
 }
 
 function makeEmptyPerson(role, isDash = false) {
