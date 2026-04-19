@@ -1660,10 +1660,10 @@ const ROLES = [
 })();
 
 function prepareBidAnalyzerLink(event) {
-  event.preventDefault();
   const url = buildBidAnalyzerURL();
-  if (url) window.open(url, 'bid-analyzer');
-  return false;
+  if (!url) { event.preventDefault(); return false; }
+  event.currentTarget.href = url;
+  return true;
 }
 
 function buildBidAnalyzerURL() {
