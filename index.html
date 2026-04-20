@@ -1679,13 +1679,8 @@ function copyToBidAnalyzer(btn) {
   const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
   if (m) month = parseInt(m[1]);
 
-  const data = JSON.stringify({ name, base: baseFee, tier, region, month });
-  navigator.clipboard.writeText(data).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = '✅';
-    btn.style.background = '#34a853';
-    setTimeout(() => { btn.textContent = orig; btn.style.background = '#1a73e8'; }, 1500);
-  });
+  const url = `file:///Users/salgi/bid-analyzer/index.html?base=${baseFee}&name=${encodeURIComponent(name)}`;
+  window.open(url, '_blank');
 }
 
 function makeEmptyPerson(role, isDash = false) {
