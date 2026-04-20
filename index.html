@@ -1679,7 +1679,7 @@ function copyToBidAnalyzer(btn) {
   const m = submitDate.match(/\d{4}[.\-/]?(\d{1,2})/);
   if (m) month = parseInt(m[1]);
 
-  const url = `file:///Users/salgi/bid-analyzer/index.html?base=${baseFee}&name=${encodeURIComponent(name)}`;
+  const url = `http://localhost:8347/index.html?base=${baseFee}&name=${encodeURIComponent(name)}&units=${units}&tier=${tier}&region=${encodeURIComponent(region)}&month=${month}`;
   window.open(url, '_blank');
 }
 
