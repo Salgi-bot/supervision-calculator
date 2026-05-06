@@ -1755,6 +1755,8 @@ function removeNewPerson(id) {
 // 건축 상주 / 토목(후) 포함 여부 토글
 let archEnabled  = JSON.parse(localStorage.getItem('archEnabled')  ?? 'true');
 let civil2Enabled = JSON.parse(localStorage.getItem('civil2Enabled') ?? 'true');
+// 사용자가 토글 ON 으로 명시적 설정 시 true → _syncCivil2Enabled 의 자동 OFF 차단 (옵션 B)
+let civil2ManualOn = JSON.parse(localStorage.getItem('civil2ManualOn') ?? 'false');
 function getAllRoles() {
   return [...ROLES.filter(r => {
     if (r.id === 'arch'   && !archEnabled)   return false;
@@ -1786,7 +1788,17 @@ function _syncArchEnabled() {
   return false;
 }
 // 토목(후) 자동 토글: civil2 personnel에 실제 데이터 없으면 OFF, 있으면 ON 유지
+// 옵션 B: 사용자가 좌측 인사 카드 토글로 명시적 ON 한 경우(civil2ManualOn=true)
+//         이름이 비어있어도 OFF 로 되돌리지 않음 (수동 ON 우선권).
 function _syncCivil2Enabled() {
+  if (civil2ManualOn) {
+    if (!civil2Enabled) {
+      civil2Enabled = true;
+      localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+      return true;
+    }
+    return false;
+  }
   const civ2Name = personnel['civil2']?.info?.name;
   const hasData = civ2Name && civ2Name !== '-' && civ2Name !== '';
   const wantCivil2 = !!hasData;
@@ -1821,6 +1833,9 @@ function onSizeClassChange() {
 function toggleCivil2() {
   civil2Enabled = !civil2Enabled;
   localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+  // 옵션 B: 사용자가 명시적으로 ON → 수동 우선권 활성, OFF → 우선권 해제(자동 동기화 복귀)
+  civil2ManualOn = civil2Enabled;
+  localStorage.setItem('civil2ManualOn', JSON.stringify(civil2ManualOn));
   _refreshAfterToggle();
 }
 
@@ -1885,6 +1900,7 @@ function doAutoSave() {
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
     docImages: typeof docImages !== 'undefined' ? docImages : [],
     civil2Enabled: civil2Enabled,
+    civil2ManualOn: civil2ManualOn,
     archEnabled: archEnabled,
     deployState: deployState,
     extraDeployRows: extraDeployRows,
@@ -1999,6 +2015,14 @@ function loadAutoSave() {
       if (civ2Name && civ2Name !== '-') civil2Enabled = true;
     }
     localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+    // civil2ManualOn 복원 (옵션 B 수동 ON 우선권 플래그)
+    if (typeof data.civil2ManualOn === 'boolean') {
+      civil2ManualOn = data.civil2ManualOn;
+    } else {
+      // 이전 버전 호환: 저장값에 플래그가 없는데 civil2가 ON 인 경우, 사용자 의도 보존을 위해 수동 ON 으로 간주
+      civil2ManualOn = !!civil2Enabled;
+    }
+    localStorage.setItem('civil2ManualOn', JSON.stringify(civil2ManualOn));
     // archEnabled: 저장값 우선, 없으면 personnel.arch 실제 데이터 있으면 ON 강제
     if (typeof data.archEnabled === 'boolean') {
       archEnabled = data.archEnabled;
@@ -4130,7 +4154,13 @@ function renderByeolji1() {
   const td = s => `<td style="text-align:center;padding:3px 4px;font-size:9pt">${escHtml(s)}</td>`;
   // 행 데이터 수집 — 이름 입력된 감리원만 (배치계획표·산출근거와 동일 기준)
   const allPRows = [];
-  getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-' && r.placement !== '비평가'; }).forEach(r => {
+  getAllRoles().filter(r => {
+    if (r.placement === '비평가') return false;
+    // 옵션 B: civil2 토글 ON 우선권 — 이름이 비어있어도 노출
+    if (r.id === 'civil2' && civil2Enabled) return true;
+    const n = personnel[r.id]?.info?.name;
+    return n && n !== '-';
+  }).forEach(r => {
     const p = personnel[r.id].info;
     const dash = r.isNew;
     const structLabel = r.placement === '총괄' ? '총괄' :
@@ -5206,7 +5236,12 @@ function renderDeploySettings(force = false) {
       <button onclick="adjustDeployDate('${roleId}','${field}',1)" style="${BSTY}" title="+1개월">▶</button>
     </span>`;
 
-  const roles = getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-'; });
+  const roles = getAllRoles().filter(r => {
+    // 옵션 B: civil2 토글 ON 우선권 — 이름이 비어있어도 노출
+    if (r.id === 'civil2' && civil2Enabled) return true;
+    const n = personnel[r.id]?.info?.name;
+    return n && n !== '-';
+  });
   // 비상주 한도 계산 (법정인월수 × 15%)
   const _lawMSt = parseFloat(document.getElementById('deployLawMonths')?.value) || 0;
   const _lpBaseSt = _lawMSt > 0 ? _lawMSt : (calcLegalMonths(pj.supervisionCost) || 0);
@@ -5445,7 +5480,12 @@ function renderDeployTable() {
   const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
 
   // 감리원 행 생성
-  const roles = getAllRoles().filter(r => { const n = personnel[r.id]?.info?.name; return n && n !== '-'; });
+  const roles = getAllRoles().filter(r => {
+    // 옵션 B: civil2 토글 ON 우선권 — 이름이 비어있어도 노출
+    if (r.id === 'civil2' && civil2Enabled) return true;
+    const n = personnel[r.id]?.info?.name;
+    return n && n !== '-';
+  });
 
   // 1패스: 상주 감리원 환산인·월수 합계 (참고용)
   // 제6조②(주택건설공사 감리비 지급기준): 비상주 ≤ 법정 감리인·월수(제3조②) × 15%
