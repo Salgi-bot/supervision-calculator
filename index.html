@@ -7,7 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --ci: #00709F;
@@ -652,8 +651,7 @@ tbody tr:hover td { background: var(--ci-light); }
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <button onclick="printAllForSubmit()" title="별지1호·별지2호·서약서·배치계획표 통합 인쇄" style="padding:4px 10px;background:#065f46;color:#fff;border:1px solid #047857;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:700">🖨 입찰서류 통합출력</button>
-    <button onclick="copyShareLink()" title="현재 데이터를 클라우드에 저장하고 공유 링크 복사" style="padding:4px 10px;background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">🔗 링크 공유</button>
-    <span id="cloudStatus" style="font-size:10px;color:rgba(255,255,255,0.6)"></span>
+
     <button id="hb-const-btn" onclick="openConstEditor()" title="계산 기준값 편집 (법령 개정 시 업데이트)" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">⚙️ 기준값</button>
     <span class="badge">v2.1 · ㈜아이팝엔지니어링</span>
   </div>
@@ -1861,96 +1859,6 @@ let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별
 let byeolchum2HeaderAlign  = 'left'; // 별첨2 감리업무 수행실적 상단 「[별첨 2]」 정렬
 let byeolchum3HeaderAlign  = 'left'; // 별첨3 감리원 업무수행실적 상단 「[별첨 3]·[별첨 4]」 정렬
 
-// ── Cloud Save (Supabase) ──
-const SUPABASE_URL = 'https://osnpmbwkeskjpykloktq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Y66UMixrMv3daWS430I6Dw_XO5LkWSK';
-const CLOUD_UUID_KEY = 'hb_cloud_uuid';
-let _sb = null;
-let _cloudTimer = null;
-
-function initCloud() {
-  try {
-    if (typeof supabase !== 'undefined' && supabase.createClient) {
-      _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    }
-  } catch(e) { console.warn('Supabase init failed:', e); }
-}
-
-function getCloudId() {
-  let id = localStorage.getItem(CLOUD_UUID_KEY);
-  if (!id) { id = crypto.randomUUID(); localStorage.setItem(CLOUD_UUID_KEY, id); }
-  return id;
-}
-
-function buildCloudPayload() {
-  syncPersonInfo();
-  return {
-    version: '2.1', exportDate: new Date().toISOString(),
-    project: getProjectData(), company: getCompanyData(),
-    personnel, nonEvalList, nonEvalCounter, newEvalList, newEvalCounter,
-    perfRecords, deployState, extraDeployRows,
-    b2NumState, b2EgState, 'b2NumState미만': b2NumState미만, 'b2EgState미만': b2EgState미만,
-    deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '',
-    deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
-    submitDate: document.getElementById('submitDate')?.value || '',
-    bidAmount: document.getElementById('bidAmount')?.value || '',
-    bidPrice: document.getElementById('bidPrice')?.value || '',
-  };
-}
-
-async function cloudSave() {
-  if (!_sb) return;
-  const id = getCloudId();
-  try {
-    const { error } = await _sb.from('app_sessions').upsert({ id, data: buildCloudPayload(), updated_at: new Date().toISOString() });
-    if (!error) {
-      const el = document.getElementById('cloudStatus');
-      if (el) el.textContent = '☁ ' + new Date().toLocaleTimeString().slice(0,5);
-    } else { console.warn('Cloud save error:', error.message); }
-  } catch(e) { console.warn('Cloud save failed:', e); }
-}
-
-async function cloudLoad(uuid) {
-  if (!_sb) return null;
-  try {
-    const { data, error } = await _sb.from('app_sessions').select('data').eq('id', uuid).single();
-    if (error || !data) return null;
-    return data.data;
-  } catch(e) { return null; }
-}
-
-function startCloudAutoSave() {
-  if (_cloudTimer) clearInterval(_cloudTimer);
-  _cloudTimer = setInterval(cloudSave, 30000);
-}
-
-async function copyShareLink() {
-  if (!_sb) { showStatus('⚠ 클라우드 연결이 필요합니다 (Supabase 설정 확인)'); return; }
-  await cloudSave();
-  const id = getCloudId();
-  const url = location.origin + location.pathname + '?id=' + id;
-  try {
-    await navigator.clipboard.writeText(url);
-    showStatus('🔗 공유 링크가 클립보드에 복사되었습니다');
-  } catch(e) {
-    prompt('아래 링크를 복사하세요:', url);
-  }
-}
-
-async function checkCloudUrl() {
-  const params = new URLSearchParams(location.search);
-  const sharedId = params.get('id');
-  if (!sharedId || !_sb) return;
-  showStatus('☁ 클라우드 데이터 로딩 중...');
-  const cloudData = await cloudLoad(sharedId);
-  if (cloudData && cloudData.version) {
-    localStorage.setItem(CLOUD_UUID_KEY, sharedId);
-    loadV2Data(cloudData);
-    showStatus('☁ 클라우드 데이터 복원 완료 (id: ' + sharedId.slice(0,8) + '...)');
-  } else {
-    showStatus('⚠ 해당 ID의 데이터를 찾을 수 없습니다');
-  }
-}
 
 function triggerAutoSave() {
   if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
@@ -7298,10 +7206,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('[id^="co_"]').forEach(el => {
     el.addEventListener('change', triggerAutoSave);
   });
-  // Cloud init
-  initCloud();
-  await checkCloudUrl();
-  startCloudAutoSave();
+
   updateAlertBadge();
 });
 
