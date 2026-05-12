@@ -1428,6 +1428,16 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearNoticeOn"  onclick="setSwearNotice(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
           <button type="button" id="swearNoticeOff" onclick="setSwearNotice(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
         </div>
+        <span style="color:#64748b;margin-left:4px;">서약자/업체명:</span>
+        <div role="group" aria-label="별첨1 서약자·업체명 순서" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearSignOrderDefault" onclick="setSwearAlign('signOrder','default')" style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">주소→업체</button>
+          <button type="button" id="swearSignOrderSwap"    onclick="setSwearAlign('signOrder','swap')"    style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">업체→주소</button>
+        </div>
+        <span style="color:#64748b;margin-left:4px;">날짜:</span>
+        <div role="group" aria-label="별첨1 날짜 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearDateAlignCenter" onclick="setSwearAlign('date','center')" style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">중앙</button>
+          <button type="button" id="swearDateAlignRight"  onclick="setSwearAlign('date','right')"  style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
+        </div>
         <input type="text" id="swearNoticeNumberInput" readonly
           title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
           style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
@@ -1888,6 +1898,8 @@ let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】�
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
 let swearNoticeEnabled = false;   // 별첨1 서약서 상단 「□ 공 고 번 호」 노출 여부
 let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입력값
+let swearSignOrder = 'default';   // 서약자 주소·업체명 순서: 'default'(주소→업체명) | 'swap'(업체명→주소)
+let swearDateAlign = 'center';    // 날짜 정렬: 'center' | 'right'
 let showStamp = true;             // 법인 도장 이미지 표시 여부
 let stampSize = 62;               // 법인 도장 직경(px)
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
@@ -1941,6 +1953,8 @@ function doAutoSave() {
     swearBodyHtml: swearBodyHtml,
     swearHeaderAlign: swearHeaderAlign,
     swearRecipientAlign: swearRecipientAlign,
+    swearSignOrder: swearSignOrder,
+    swearDateAlign: swearDateAlign,
     swearNoticeEnabled: swearNoticeEnabled,
     swearNoticeNumber: swearNoticeNumber,
     swearBodyTemplates: swearBodyTemplates,
@@ -2134,6 +2148,8 @@ function loadAutoSave() {
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
     if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
     if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+    if (data.swearSignOrder === 'swap' || data.swearSignOrder === 'default') swearSignOrder = data.swearSignOrder;
+    if (data.swearDateAlign === 'right' || data.swearDateAlign === 'center') swearDateAlign = data.swearDateAlign;
     if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
     if (typeof data.swearNoticeNumber === 'string') {
       swearNoticeNumber = data.swearNoticeNumber;
@@ -3747,40 +3763,71 @@ async function handleAnnouncementFile(file) {
   document.getElementById('announceFileInput').value = '';
 }
 
+// OCR 전처리: 그레이스케일 + 컨트라스트 강화 (글자 선명도 향상)
+function _enhanceCanvasForOCR(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    // 컨트라스트 1.3배 (128 기준), 클램프
+    let v = (gray - 128) * 1.3 + 128;
+    if (v < 0) v = 0; else if (v > 255) v = 255;
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
 async function extractAnnouncementPDF(file) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let page1Text = '', restText = '';
+  // 페이지별 텍스트 수집
+  const pageTexts = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const tc = await page.getTextContent();
-    const pageText = joinPdfItems(tc.items);
-    if (p === 1) page1Text = pageText;
-    else restText += pageText + '\n';
+    pageTexts.push(joinPdfItems(tc.items));
   }
-  // OCR 필요 여부 판단: 텍스트 추출 실패 OR 한글은 있지만 핵심 숫자가 없는 경우 (font 인코딩 문제)
-  const nonEmpty = (page1Text + restText).replace(/\s/g, '');
-  const hasKorean = /[가-힣]{10}/.test(page1Text);
-  const hasCritNums = /\d[\d,]*\s*(?:세대|㎡|천원|원|층)/.test(page1Text);
-  const hasCritLabels = /(?:세\s*대\s*수|연\s*면\s*적|대지\s*면적|층\s*수|감리대상)/.test(page1Text);
+  let page1Text = pageTexts[0] || '';
+  let restText = pageTexts.slice(1).join('\n');
+
+  // OCR 필요 여부: 1~2페이지 통합 검사 (이전엔 1페이지만 검사 → 2페이지 깨진 케이스 누락)
+  const combinedFront = (pageTexts[0] || '') + ' ' + (pageTexts[1] || '');
+  const nonEmpty = combinedFront.replace(/\s/g, '');
+  const hasKorean = /[가-힣]{10}/.test(combinedFront);
+  const hasCritNums = /\d[\d,]*\s*(?:세대|㎡|천원|원|층)/.test(combinedFront);
+  const hasCritLabels = /(?:세\s*대\s*수|연\s*면\s*적|대지\s*면적|층\s*수|감리대상)/.test(combinedFront);
   const needsOCR = nonEmpty.length < 20 || (hasKorean && hasCritLabels && !hasCritNums);
+
   if (needsOCR) {
     const statusEl = document.getElementById('announceStatus');
-    statusEl.innerHTML = '<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중... (1페이지)</div>';
+    const ocrPages = Math.min(2, pdf.numPages); // 1~2페이지 모두 OCR (핵심 정보 페이지)
     let worker;
     try { worker = await Tesseract.createWorker('kor+eng'); }
     catch { worker = await Tesseract.createWorker('kor'); }
-    // 1페이지만 OCR (핵심 정보 집중, 속도 우선)
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 2.5 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const { data: { text } } = await worker.recognize(canvas);
-    page1Text = text;
-    // 2페이지 이후는 기존 pdfjsLib 텍스트 유지 (날짜 등 일반 숫자는 정상 추출됨)
+    // PSM 6: uniform block of text — 표·라벨 인식 향상
+    try { await worker.setParameters({ tessedit_pageseg_mode: '6' }); } catch (e) { /* PSM 미지원 버전 대비 */ }
+
+    const ocrResults = [];
+    for (let pp = 1; pp <= ocrPages; pp++) {
+      statusEl.innerHTML = `<div class="parse-status warn">⏳ 이미지 PDF — OCR 추출 중... (${pp}/${ocrPages}페이지)</div>`;
+      const page = await pdf.getPage(pp);
+      const viewport = page.getViewport({ scale: 3.0 }); // 2.5 → 3.0 (글자 해상도 향상)
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      _enhanceCanvasForOCR(canvas); // 그레이스케일 + 컨트라스트 전처리
+      const { data: { text } } = await worker.recognize(canvas);
+      ocrResults.push(text);
+    }
     await worker.terminate();
+    page1Text = ocrResults[0] || '';
+    // OCR한 2페이지는 restText 앞에 합치고, 3페이지 이후는 pdf.js 텍스트 유지
+    const ocrRest = ocrResults.slice(1).join('\n');
+    const pdfRest = pageTexts.slice(ocrPages).join('\n');
+    restText = (ocrRest + '\n' + pdfRest).trim();
   }
   // 1페이지와 이후 페이지를 구분자로 연결
   return page1Text + '\n\n<<<PAGE2>>>\n\n' + restText;
@@ -3836,12 +3883,8 @@ function parseAnnouncementText(rawText) {
   if (m) result.submitDate = `${m[1]}.${m[2].padStart(2,'0')}.${m[3].padStart(2,'0')}`;
 
   // ── 공사명/사업명: 신축공사·정비사업·재건축 등 다양한 패턴 ──
-  // 1순위: raw에서 "사 업 명 :" 라벨 직후 줄 추출 (OCR 노이즈 포함 가능, 레이블 제외)
-  { const r = /사\s*업\s*명\s*[:：]?\s*([^\n가-힣\s][^\n]*?)(?=\n|가\s*\.|나\s*\.|$)/;
-    const rm = raw.match(r) || joined.match(/사\s*업\s*명\s*[:：]\s*(.+?)(?=  |$)/);
-    if (rm) { const c = rm[1].trim(); if (c.length >= 4 && !/감리자지정|주택건설공사감리/.test(c)) result.name = c; } }
-  // 2순위: 신축/증축/개축/정비사업/재건축/재개발 패턴
-  if (!result.name) {
+  // 1순위: 신축/증축/개축/정비사업/재건축/재개발 키워드 패턴 (가장 정확, 노이즈 없음)
+  {
     const nameRe = /([가-힣a-zA-Z0-9\s·‧\-_]+(?:신축|증축|리모델링|개축|대수선)공사|[가-힣a-zA-Z0-9\s·‧\-_]+(?:정비사업|재건축사업|재개발사업|가로주택정비사업))/g;
     let nm;
     while ((nm = nameRe.exec(raw)) !== null) {
@@ -3849,6 +3892,20 @@ function parseAnnouncementText(rawText) {
       if (candidate.length >= 8 && !/감리자|지정기준|주택건설공사\s*감리/.test(candidate)) {
         result.name = candidate; break;
       }
+    }
+  }
+  // 2순위 폴백: "사 업 명 :" 라벨 직후 (1순위 키워드로 못 잡힌 경우)
+  // 콜론·괄호·"사업내역"·"사업개요" 등 후행 라벨 노이즈 제거
+  if (!result.name) {
+    const r = /사\s*업\s*명\s*[:：]?\s*([^\n]*?)(?=\n|가\s*\.|나\s*\.|$)/;
+    const rm = raw.match(r) || joined.match(/사\s*업\s*명\s*[:：]\s*(.+?)(?=  |$)/);
+    if (rm) {
+      let c = rm[1].trim();
+      c = c.replace(/^[:：\(\)\s]+/, '')
+           .replace(/[\)\(]\s*사\s*업\s*(?:내\s*역|개\s*요)\s*$/, '')
+           .replace(/\)\s*$/, '')
+           .trim();
+      if (c.length >= 4 && !/감리자지정|주택건설공사감리/.test(c)) result.name = c;
     }
   }
 
@@ -4024,18 +4081,26 @@ function parseAnnouncementText(rawText) {
       const dm = re.exec(rawJoined);
       if (dm) designerPosR = dm.index;
     }
-    // 시공자 위치: 설계자 이후에서 탐색 (설계자 구간 종료 경계)
+    // 시공자 위치: 사업주체 이후에서 먼저 탐색 (사업주체→시공자→설계자 순서 대응)
     let constructorPosR = -1;
     {
       const re = /시\s*공\s*자/g;
-      re.lastIndex = designerPosR >= 0 ? designerPosR + 10 : 0;
+      re.lastIndex = clientPosR >= 0 ? clientPosR + 10 : 0;
       const dm = re.exec(rawJoined);
       if (dm) constructorPosR = dm.index;
     }
 
-    // 사업주체 대표이사: 사업주체 위치 ~ 설계자 위치(또는 +800자) 구간
+    // 사업주체 대표이사: 사업주체 위치 ~ (시공자 → 설계자 순) 위치 구간
+    // 시공자가 사업주체와 설계자 사이에 있으면 시공자 위치로 자르기 — 시공자 대표 혼입 방지
     if (clientPosR >= 0) {
-      const sEnd = (designerPosR > clientPosR) ? designerPosR : clientPosR + 800;
+      let sEnd;
+      if (constructorPosR > clientPosR && (designerPosR < 0 || constructorPosR < designerPosR)) {
+        sEnd = constructorPosR;
+      } else if (designerPosR > clientPosR) {
+        sEnd = designerPosR;
+      } else {
+        sEnd = clientPosR + 800;
+      }
       const ceos = findAllCeos(rawJoined.slice(clientPosR, sEnd));
       if (ceos.length) result.clientCeo = ceos.join(', ');
     }
@@ -6274,6 +6339,8 @@ function renderByeolchum1() {
   const authority = pj.submitTo || pj.authority || '○○시장';
   const headerAlign = (swearHeaderAlign === 'right') ? 'right' : 'left';
   const recipientAlign = (swearRecipientAlign === 'right') ? 'right' : 'left';
+  const dateAlign = (swearDateAlign === 'right') ? 'right' : 'center';
+  const dateMargin = (swearDateAlign === 'right') ? 'margin-right:40px;' : '';
   const _pjNotice = (pj.noticeNo || '').trim();
   const noticeLine = (swearNoticeEnabled && _pjNotice)
     ? `<div style="margin-bottom:10px;">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
@@ -6283,6 +6350,13 @@ function renderByeolchum1() {
   const bodyInner = rawBody.trim()
     ? markupToBodyHtml(rawBody)
     : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
+  // 서약자/업체명 순서 토글
+  const addrLine = `<div>서약자 주소 : ${escHtml(co.address||'')}</div>`;
+  const compLine = `<div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>`;
+  const ceoLine = `<div style="position:relative;">대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)
+            ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+          </div>`;
+  const signLines = (swearSignOrder === 'swap') ? (compLine + addrLine + ceoLine) : (addrLine + compLine + ceoLine);
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
@@ -6292,16 +6366,12 @@ function renderByeolchum1() {
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
         <div style="margin-bottom:16px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
         <div id="swearBodyDiv"
-          style="text-indent:2em;text-align:justify;line-height:2.4;">${bodyInner}</div>
+          style="text-align:justify;line-height:2.4;">${bodyInner}</div>
       </div>
       <div>
-        <div style="text-align:center;margin:20px 0 24px;font-size:16px;">${dateStr}</div>
+        <div style="text-align:${dateAlign};margin:20px 0 24px;${dateMargin}font-size:16px;">${dateStr}</div>
         <div style="text-align:right;margin-right:40px;line-height:2.6;">
-          <div>서약자 주소 : ${escHtml(co.address||'')}</div>
-          <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
-          <div style="position:relative;">대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)
-            ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
-          </div>
+          ${signLines}
         </div>
         <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
       </div>
@@ -6315,6 +6385,8 @@ function renderByeolchum1() {
 function setSwearAlign(target, align) {
   if (target === 'header') swearHeaderAlign = (align === 'right') ? 'right' : 'left';
   else if (target === 'recipient') swearRecipientAlign = (align === 'right') ? 'right' : 'left';
+  else if (target === 'signOrder') swearSignOrder = (align === 'swap') ? 'swap' : 'default';
+  else if (target === 'date') swearDateAlign = (align === 'right') ? 'right' : 'center';
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolchum1();
 }
@@ -6332,6 +6404,10 @@ function updateSwearAlignButtons() {
   setActive('swearRecipientAlignRight', swearRecipientAlign === 'right');
   setActive('swearNoticeOn',  swearNoticeEnabled === true);
   setActive('swearNoticeOff', swearNoticeEnabled !== true);
+  setActive('swearSignOrderDefault',    swearSignOrder !== 'swap');
+  setActive('swearSignOrderSwap',       swearSignOrder === 'swap');
+  setActive('swearDateAlignCenter',     swearDateAlign !== 'right');
+  setActive('swearDateAlignRight',      swearDateAlign === 'right');
   const inp = document.getElementById('swearNoticeNumberInput');
   if (inp) {
     const pjNo = (document.getElementById('pj_noticeNo')?.value || '').trim();
@@ -6363,6 +6439,10 @@ function markupToBodyHtml(text) {
   const esc = src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   // 2) 단락 분리 (빈 줄 기준)
   const paragraphs = esc.split(/\n\s*\n/);
+  // 줄 시작의 연속 공백을 &nbsp;로 보존 (사용자 들여쓰기 입력)
+  const preserveLeadingSpaces = (p) => {
+    return p.split('\n').map(line => line.replace(/^( +)/, (m) => '&nbsp;'.repeat(m.length))).join('\n');
+  };
   const applyInline = (p) => {
     let s = p;
     // 굵은 밑줄 (양방향)
@@ -6377,9 +6457,15 @@ function markupToBodyHtml(text) {
     return s;
   };
   return paragraphs.map(p => {
-    const inner = applyInline(p).trim();
+    const withLeadingPreserved = preserveLeadingSpaces(p);
+    const inner = applyInline(withLeadingPreserved).trim();
     if (!inner) return '';
-    return `<p style="margin:0 0 12px;text-indent:2em;">${inner}</p>`;
+    // 단락 본문 마지막이 "니다." 또는 "니다" 로 끝나면 그 단락은 좌측정렬 (justify 미적용)
+    // — justify 컨테이너 안에서 마지막 줄이 양끝맞춤되지 않도록 단락 단위로 차단
+    const plain = inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+    const endsWithNida = /니다[.。!?]?\s*$/.test(plain);
+    const align = endsWithNida ? 'left' : 'justify';
+    return `<p style="margin:0 0 12px;text-align:${align};">${inner}</p>`;
   }).filter(Boolean).join('');
 }
 
