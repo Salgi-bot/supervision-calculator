@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous"></script>
 <style>
 :root {
   --ci: #00709F;
@@ -712,14 +713,14 @@ tbody tr:hover td { background: var(--ci-light); }
   <div id="sec-project"></div>
   <div class="card">
     <div class="card-title"><span class="icon">📋</span>공고문 자동 입력</div>
-    <div class="info-note">공고문 PDF를 업로드하면 공사정보가 자동으로 채워집니다. (이미지 PDF도 OCR 지원)</div>
+    <div class="info-note">공고문(PDF·HWP·HWPX)을 업로드하면 공사정보가 자동으로 채워집니다. (이미지 PDF도 OCR 지원)</div>
     <div class="person-upload-zone" onclick="document.getElementById('announceFileInput').click()" style="margin-top:10px"
          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')"
          ondrop="event.preventDefault();this.classList.remove('dragover');handleAnnounceDrop(event)">
       <div class="up-icon">📋</div>
-      <div class="up-title">공고문 PDF 업로드</div>
+      <div class="up-title">공고문 업로드 — PDF · HWP · HWPX</div>
       <div class="up-sub">드래그 또는 클릭 — 공사명, 소재지, 세대수, 면적, 공사기간, 발주처, 사업주체 자동 추출</div>
-      <input type="file" id="announceFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+      <input type="file" id="announceFileInput" accept=".pdf,.hwp,.hwpx,.jpg,.jpeg,.png" style="display:none"
              onchange="handleAnnouncementFile(this.files[0])">
     </div>
     <div id="announceStatus" style="margin-top:8px"></div>
@@ -3747,15 +3748,28 @@ async function handleAnnouncementFile(file) {
   try {
     const ext = file.name.split('.').pop().toLowerCase();
     let text = '';
+    let structured = null;
     if (ext === 'pdf') {
       text = await extractAnnouncementPDF(file);
+    } else if (ext === 'hwpx') {
+      const res = await extractAnnouncementHWPX(file);
+      text = res.text;
+      structured = res.structured;
+    } else if (ext === 'hwp') {
+      text = await extractAnnouncementHWP(file);
     } else if (['jpg','jpeg','png'].includes(ext)) {
       text = await extractAnnouncementImage(file);
     } else {
-      statusEl.innerHTML = '<div class="parse-status fail">지원하지 않는 파일 형식입니다.</div>';
+      statusEl.innerHTML = '<div class="parse-status fail">지원하지 않는 파일 형식입니다. (PDF · HWP · HWPX · JPG · PNG)</div>';
       return;
     }
     const parsed = parseAnnouncementText(text);
+    // HWPX 표 셀 직접 매칭 결과로 빈 필드 보강
+    if (structured) {
+      for (const k of Object.keys(structured)) {
+        if (structured[k] && !parsed[k]) parsed[k] = structured[k];
+      }
+    }
     showAnnouncementResult(parsed, text);
   } catch (err) {
     statusEl.innerHTML = `<div class="parse-status fail">파싱 오류: ${escHtml(err.message)}</div>`;
@@ -3843,6 +3857,141 @@ async function extractAnnouncementImage(file) {
   const { data: { text } } = await worker.recognize(url);
   URL.revokeObjectURL(url);
   await worker.terminate();
+  return text;
+}
+
+// ── HWPX (OWPML XML in ZIP) ──────────────────────────────
+// 표 셀(hp:tbl/hp:tr/hp:tc)에서 라벨-값을 직접 추출해 structured로 반환
+// 텍스트 전체도 함께 반환해 기존 parseAnnouncementText로 보강
+async function extractAnnouncementHWPX(file) {
+  const statusEl = document.getElementById('announceStatus');
+  statusEl.innerHTML = '<div class="parse-status warn">⏳ HWPX 분석 중...</div>';
+  if (typeof JSZip === 'undefined') throw new Error('JSZip 로드 실패 — 네트워크 확인');
+  const ab = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(ab);
+  // section*.xml 모두 수집 (다중 섹션 대응)
+  const entries = Object.keys(zip.files)
+    .filter(n => /^Contents\/section\d+\.xml$/i.test(n))
+    .sort();
+  if (entries.length === 0) throw new Error('HWPX 본문(Contents/section*.xml)이 없습니다. 손상되었거나 암호화된 파일일 수 있습니다.');
+
+  const parser = new DOMParser();
+  const allText = [];
+  const cellPairs = []; // [{labelText, valueText}]
+  for (const name of entries) {
+    const xml = await zip.files[name].async('string');
+    const doc = parser.parseFromString(xml, 'application/xml');
+    // 표 셀 단위 라벨/값 매칭
+    const tables = doc.getElementsByTagName('hp:tbl');
+    for (let i = 0; i < tables.length; i++) {
+      const rows = tables[i].getElementsByTagName('hp:tr');
+      for (let r = 0; r < rows.length; r++) {
+        const cells = rows[r].getElementsByTagName('hp:tc');
+        const texts = [];
+        for (let c = 0; c < cells.length; c++) {
+          const ts = cells[c].getElementsByTagName('hp:t');
+          let s = '';
+          for (let k = 0; k < ts.length; k++) s += (ts[k].textContent || '');
+          texts.push(s.replace(/\s+/g, ' ').trim());
+        }
+        // 좌 라벨 → 우 값 (셀 2개 이상일 때만)
+        if (texts.length >= 2 && texts[0]) {
+          cellPairs.push({ label: texts[0], value: texts.slice(1).filter(Boolean).join(' ').trim() });
+        }
+      }
+    }
+    // 전체 텍스트(단락 단위 join)
+    const paras = doc.getElementsByTagName('hp:p');
+    for (let i = 0; i < paras.length; i++) {
+      const ts = paras[i].getElementsByTagName('hp:t');
+      let s = '';
+      for (let k = 0; k < ts.length; k++) s += (ts[k].textContent || '');
+      s = s.replace(/\s+/g, ' ').trim();
+      if (s) allText.push(s);
+    }
+  }
+  const fullText = allText.join('\n');
+
+  // 표 셀 라벨 → parsed 필드 매핑
+  const structured = {};
+  const labelMap = [
+    { rx: /^(?:사\s*업\s*명|공\s*사\s*명|사\s*업\s*명\s*[\(:]|공\s*사\s*명\s*[\(:])/i, key: 'name' },
+    { rx: /^(?:사\s*업\s*주\s*체|사\s*업\s*시\s*행\s*자|발\s*주\s*자)/i, key: 'client' },
+    { rx: /^(?:발\s*주\s*처|허가\s*권자|지정\s*권자|감리\s*자\s*지정\s*권자)/i, key: 'authority' },
+    { rx: /^(?:사\s*업\s*위\s*치|소\s*재\s*지|위\s*치|건설\s*지)/i, key: 'location' },
+    { rx: /^(?:세\s*대\s*수)/i, key: 'units' },
+    { rx: /^(?:블\s*록|단\s*지|블럭)/i, key: 'blocks' },
+    { rx: /^(?:연\s*면\s*적|건축\s*연면적)/i, key: 'area' },
+    { rx: /^(?:대\s*지\s*면\s*적|대지면적)/i, key: 'siteArea' },
+    { rx: /^(?:층\s*수|규\s*모)/i, key: 'stories' },
+    { rx: /^(?:공\s*고\s*번\s*호)/i, key: 'noticeNo' },
+    { rx: /^(?:공\s*고\s*일|공고\s*일자)/i, key: 'noticeDate' },
+    { rx: /^(?:제\s*출\s*기한|접수\s*마감|제출\s*마감)/i, key: 'submitDate' },
+    { rx: /^(?:설\s*계\s*자|설계사)/i, key: 'designerCompany' },
+    { rx: /^(?:감리\s*대가|감리\s*용역비|기초\s*금액|예정\s*가격|예정\s*가|추정\s*가격)/i, key: 'baseFee' },
+  ];
+  for (const { label, value } of cellPairs) {
+    if (!value) continue;
+    for (const { rx, key } of labelMap) {
+      if (rx.test(label) && !structured[key]) {
+        structured[key] = value;
+        break;
+      }
+    }
+  }
+  return { text: fullText, structured };
+}
+
+// ── HWP (한컴 5.0 바이너리, hwp.js ESM 동적 import) ─────
+// 라이브러리 한계로 결과가 PDF OCR 수준일 수 있음. 실패 시 HWPX 변환 안내.
+async function extractAnnouncementHWP(file) {
+  const statusEl = document.getElementById('announceStatus');
+  statusEl.innerHTML = '<div class="parse-status warn">⏳ HWP 분석 중... (라이브러리 로드)</div>';
+  let mod;
+  try {
+    mod = await import('https://esm.sh/hwp.js@0.0.3');
+  } catch (e) {
+    throw new Error('HWP 라이브러리 로드 실패. 한컴오피스에서 "다른 이름으로 저장 → HWPX(*.hwpx)"로 변환 후 재업로드하세요.');
+  }
+  statusEl.innerHTML = '<div class="parse-status warn">⏳ HWP 본문 추출 중...</div>';
+  const ab = await file.arrayBuffer();
+  const uint8 = new Uint8Array(ab);
+  let parsed;
+  try {
+    // hwp.js의 parse는 Uint8Array 또는 Buffer 허용
+    const parseFn = mod.parse || (mod.default && mod.default.parse);
+    if (!parseFn) throw new Error('parse 함수 없음');
+    parsed = parseFn(uint8, { type: 'array' });
+  } catch (e) {
+    throw new Error(`HWP 파싱 실패: ${e.message || e}. 한컴오피스에서 HWPX로 변환 후 재업로드하세요.`);
+  }
+  // hwp.js 출력 구조: { sections: [ { paragraphs: [ { content: 'text...' } ] } ] }
+  const out = [];
+  try {
+    const sections = (parsed && parsed.sections) || [];
+    for (const sec of sections) {
+      const paras = (sec && sec.paragraphs) || [];
+      for (const p of paras) {
+        const t = (p && (p.content || p.text || ''));
+        if (typeof t === 'string' && t.trim()) out.push(t.replace(/\s+/g, ' ').trim());
+      }
+    }
+  } catch (e) {
+    // 구조가 다르면 전체 JSON에서 문자열 leaf 회수
+  }
+  if (out.length === 0) {
+    // fallback: 전체 객체에서 string leaf 회수
+    const collect = (v) => {
+      if (typeof v === 'string') { const s = v.trim(); if (s) out.push(s); return; }
+      if (Array.isArray(v)) { v.forEach(collect); return; }
+      if (v && typeof v === 'object') { Object.values(v).forEach(collect); }
+    };
+    collect(parsed);
+  }
+  const text = out.join('\n');
+  if (!text || !/[가-힣]{5}/.test(text)) {
+    throw new Error('HWP에서 한글 텍스트를 충분히 추출하지 못했습니다. 한컴오피스에서 HWPX로 저장 후 재업로드하세요.');
+  }
   return text;
 }
 
