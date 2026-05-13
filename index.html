@@ -2053,7 +2053,10 @@ function autoBackupJSON() {
     console.warn('자동 JSON 백업 실패:', e.message);
   }
 }
-setInterval(autoBackupJSON, AUTO_JSON_BACKUP_INTERVAL_MS);
+// [2026-05-13] 자동 백업 비활성화 — 19:40 배너가 사용 중 반복 노출되어 사용자 요청으로 차단.
+// 함수 본체(_triggerJsonDownload·_showBackupBanner·autoBackupJSON)는 보존하여 되돌리기 용이.
+// 수동 백업은 상단 "💾 전체 저장 (JSON)"·"👤 감리원 저장" 버튼(saveAllJSON·savePersonnelJSON)으로 정상 동작.
+// setInterval(autoBackupJSON, AUTO_JSON_BACKUP_INTERVAL_MS);
 
 function loadAutoSave() {
   try {
