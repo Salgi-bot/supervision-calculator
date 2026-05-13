@@ -6439,7 +6439,7 @@ function renderByeolchum1() {
   const dateAlign = (swearDateAlign === 'right') ? 'right' : 'center';
   const dateMargin = (swearDateAlign === 'right') ? 'margin-right:40px;' : '';
   const _pjNotice = (pj.noticeNo || '').trim();
-  const noticeLine = (swearNoticeEnabled && _pjNotice)
+  const noticeLine = swearNoticeEnabled
     ? `<div style="margin-bottom:0;">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
     : '';
   const activeTpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
