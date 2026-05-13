@@ -5475,11 +5475,12 @@ function renderDeploySettings(force = false) {
   const defStartDisp = projStart ? fmt6(projStart.y, projStart.m, projStart.d || 1) : '';
   const defEndDisp   = projEnd   ? fmt6(projEnd.y,   projEnd.m,   projEnd.d   || lastDay(projEnd.y, projEnd.m)) : '';
 
-  const ISTY  = 'width:72px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  const ISTY_ERR = 'width:72px;font-size:11px;padding:2px 4px;border:1.5px solid #dc2626;border-radius:3px;text-align:center;background:#fff5f5';
-  const NSTY  = 'width:46px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;text-align:center';
-  const BSTY  = 'height:16px;width:17px;padding:0;font-size:9px;border:1px solid #bbb;border-radius:2px;background:#f8f8f8;cursor:pointer;line-height:1';
-  const SELSTY = 'font-size:10px;padding:1px 2px;border:1px solid #ccc;border-radius:3px;height:20px;background:#fff';
+  // 글씨 크기 2배 확대 (가독성 강화, 2026-05-13)
+  const ISTY  = 'width:108px;font-size:18px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;text-align:center';
+  const ISTY_ERR = 'width:108px;font-size:18px;padding:4px 6px;border:1.5px solid #dc2626;border-radius:4px;text-align:center;background:#fff5f5';
+  const NSTY  = 'width:74px;font-size:18px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;text-align:center';
+  const BSTY  = 'height:28px;width:28px;padding:0;font-size:14px;border:1px solid #bbb;border-radius:3px;background:#f8f8f8;cursor:pointer;line-height:1';
+  const SELSTY = 'font-size:16px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;height:32px;background:#fff';
   const cr = getChiefRange(); // 총괄 범위
   const chiefStart = cr.start || defStartDisp; // 전체 공용: 총괄 시작 기본값
   const chiefEnd   = cr.end   || defEndDisp;   // 전체 공용: 총괄 종료 기본값
@@ -5542,7 +5543,24 @@ function renderDeploySettings(force = false) {
       endDisp   = ds.endYM   || '';
     } else {
       // 저장값 우선, 없으면 총괄 기준 기본값
-      startDisp = ds.startYM || chiefStart;
+      // ★ 분야별 자동 배치 원칙 (2026-05-13):
+      //   - 설비(mech): 저장값 없으면 시작=토목 끝 다음달 1일 (이어붙임)
+      //   - 그 외 분야별: 시작=총괄 시작 (chiefStart)
+      //   - 모든 끝=총괄 끝
+      //   - 사용자가 명시적으로 저장한 ds.startYM/ds.endYM 은 절대 덮어쓰지 않음
+      let defStartForRole = chiefStart;
+      if (r.id === 'mech') {
+        // 토목 종료일 다음달 1일 (civil2 ON이면 civil2, OFF면 civil 기준)
+        const civilRoleId = (typeof civil2Enabled !== 'undefined' && civil2Enabled) ? 'civil2' : 'civil';
+        const civilEnd = (deployState[civilRoleId] && deployState[civilRoleId].endYM) || '';
+        const parsedCe = parseYMShort(civilEnd);
+        if (parsedCe) {
+          let ny = parsedCe.y, nm = parsedCe.m + 1;
+          if (nm > 12) { nm = 1; ny++; }
+          defStartForRole = String(ny).slice(-2) + String(nm).padStart(2,'0') + '01';
+        }
+      }
+      startDisp = ds.startYM || defStartForRole;
       endDisp   = ds.endYM   || chiefEnd;
       // 총괄 범위 초과 시 자동 clamp
       if (!isChiefRole && chiefStart && startDisp && startDisp < chiefStart) startDisp = chiefStart;
@@ -5565,24 +5583,24 @@ function renderDeploySettings(force = false) {
     const eErr = !isChiefRole && cr.end   && endDisp   && endDisp   > cr.end;
     const sTitle = sErr ? `총괄 시작일(${cr.start}) 이전` : 'YYMMDD 또는 YYYY.MM.DD';
     const eTitle = eErr ? `총괄 종료일(${cr.end}) 이후`   : 'YYMMDD 또는 YYYY.MM.DD';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
-      <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
-      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(${r.placement}·${grade})</span>
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
+      <span style="min-width:110px;font-size:17px;font-weight:700;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
+      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:96px">(${r.placement}·${grade})</span>
       <input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${sErr?ISTY_ERR:ISTY}" title="${sTitle}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('${r.id}','start',this)">
       ${btnPair(r.id,'start')}
-      <span style="font-size:10px;color:#666">~</span>
+      <span style="font-size:15px;color:#444">~</span>
       <input type="text" value="${endDisp}" placeholder="281231" maxlength="10" style="${eErr?ISTY_ERR:ISTY}" title="${eTitle}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].endYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('${r.id}','end',this)">
       ${btnPair(r.id,'end')}
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
+      <span style="font-size:15px;color:#444;white-space:nowrap;margin-left:4px">환산비</span>
       <input type="number" value="${convRate}" step="0.001" min="0.1" max="9.999" style="${NSTY}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
-      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
+      <span style="font-size:15px;color:#444;white-space:nowrap">개월</span>
       <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동"
-        style="${NSTY};width:52px;"
+        style="${NSTY};width:82px;"
         title="비워두면 날짜 기반 자동 계산"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
@@ -5619,10 +5637,10 @@ function renderDeploySettings(force = false) {
       ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
-    const fieldBadge = row.field === '토목' ? `<span style="font-size:10px;color:#1d4ed8;white-space:nowrap">${civExtraLabel[rowIdx]}</span>` : '';
+    const fieldBadge = row.field === '토목' ? `<span style="font-size:14px;color:#1d4ed8;white-space:nowrap;font-weight:600">${civExtraLabel[rowIdx]}</span>` : '';
     const sErrR = cr.start && startD && startD < cr.start;
     const eErrR = cr.end   && endD   && endD   > cr.end;
-    settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
+    settingsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
@@ -5630,18 +5648,18 @@ function renderDeploySettings(force = false) {
         oninput="updateExtraRow('${row.id}','startYM',this.value)"
         onblur="completeDateExtra('${row.id}','start',this)">
       ${btnPair(row.id,'start')}
-      <span style="font-size:10px;color:#666">~</span>
+      <span style="font-size:15px;color:#444">~</span>
       <input type="text" value="${endD}" placeholder="281231" maxlength="10" style="${eErrR?ISTY_ERR:ISTY}" title="${eErrR?`총괄 종료일(${cr.end}) 이후`:'YYMMDD'}"
         oninput="updateExtraRow('${row.id}','endYM',this.value)"
         onblur="completeDateExtra('${row.id}','end',this)">
       ${btnPair(row.id,'end')}
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">환산비</span>
+      <span style="font-size:15px;color:#444;white-space:nowrap;margin-left:4px">환산비</span>
       <input type="number" value="${convRateE}" step="0.001" min="0.1" max="9.999" style="${NSTY}" title="환산비"
         oninput="updateExtraRow('${row.id}','convRate',parseFloat(this.value)||1)">
-      <span style="font-size:10px;color:#555;white-space:nowrap">개월</span>
-      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
+      <span style="font-size:15px;color:#444;white-space:nowrap">개월</span>
+      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:82px;" title="비워두면 자동"
         oninput="updateExtraRow('${row.id}','months',this.value===''?'':parseFloat(this.value)||'')">
-      <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:13px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 2px;line-height:1" title="삭제">×</button>
+      <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:20px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 6px;line-height:1;font-weight:700" title="삭제">×</button>
     </div>`;
   });
 
@@ -5666,27 +5684,27 @@ function renderDeploySettings(force = false) {
     const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? calcM_e.toFixed(3) : '');
     const sErrE = cr.start && startDisp_e && startDisp_e < cr.start;
     const eErrE = cr.end   && endDisp_e   && endDisp_e   > cr.end;
-    settingsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
-      <span style="min-width:80px;font-size:11.5px;font-weight:600;color:#065f46;white-space:nowrap">추가배치(건축)</span>
-      <span style="font-size:10px;color:#888;white-space:nowrap;min-width:58px">(추가배치·-)</span>
+    settingsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
+      <span style="min-width:110px;font-size:17px;font-weight:700;color:#065f46;white-space:nowrap">추가배치(건축)</span>
+      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:96px">(추가배치·-)</span>
       <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${sErrE?ISTY_ERR:ISTY}" title="${sErrE?`총괄 시작일(${cr.start}) 이전`:'YYMMDD 또는 YYYY.MM.DD'}"
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','start',this)">
       ${btnPair('extra_arch','start')}
-      <span style="font-size:10px;color:#666">~</span>
+      <span style="font-size:15px;color:#444">~</span>
       <input type="text" value="${endDisp_e}" placeholder="281231" maxlength="10" style="${eErrE?ISTY_ERR:ISTY}" title="${eErrE?`총괄 종료일(${cr.end}) 이후`:'YYMMDD 또는 YYYY.MM.DD'}"
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].endYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','end',this)">
       ${btnPair('extra_arch','end')}
-      <span style="font-size:10px;color:#555;white-space:nowrap;margin-left:2px">개월</span>
-      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:52px;" title="비워두면 자동"
+      <span style="font-size:15px;color:#444;white-space:nowrap;margin-left:4px">개월</span>
+      <input type="number" value="${monthsVal_e}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:82px;" title="비워두면 자동"
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
   }
 
   // ── + 감리원 추가 버튼 ──
-  settingsHtml += `<div style="padding:5px 0 2px">
-    <button onclick="addExtraDeployRow()" style="font-size:11px;padding:2px 10px;border:1px dashed #60a5fa;border-radius:4px;background:#eff6ff;color:#1d4ed8;cursor:pointer">+ 감리원 추가</button>
+  settingsHtml += `<div style="padding:10px 0 4px">
+    <button onclick="addExtraDeployRow()" style="font-size:15px;padding:6px 16px;border:1px dashed #60a5fa;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-weight:600">+ 감리원 추가</button>
   </div>`;
 
   settingsEl.innerHTML = settingsHtml;
@@ -6173,6 +6191,44 @@ function renderCalcResult() {
       <td style="${TD2}">${monthsDisp2}개월</td>
       <td style="${TD2};font-weight:700">${convPM.toFixed(3)}</td>
       <td style="${TD2};font-size:7.5pt;white-space:pre-line">${autoNote}</td>
+    </tr>`;
+  });
+
+  // ── 직접 추가 감리원 행 (extraDeployRows) — renderDeployTable과 동일하게 산출근거에도 반영 (2026-05-13 버그 수정) ──
+  // 토목 순번 라벨 (전/후) 계산
+  const civExtraCountC = extraDeployRows.filter(r => r.field === '토목').length;
+  let civExtraIdxC = 0;
+  extraDeployRows.forEach(row => {
+    // 행 본인 데이터 우선 — extraDeployRows는 personnel/deployState와 별개로 row 자체에 startYM/endYM/months/convRate 보유
+    const rs_c = pjStart ? (parseYMShort(row.startYM) || pjStart) : null;
+    const re_c = pjEnd   ? (parseYMShort(row.endYM)   || pjEnd)   : null;
+    const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
+    const actM_c = dsM_c !== null ? dsM_c : ((rs_c && re_c) ? calcDeployMonths(rs_c, re_c) : 0);
+    const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
+    let cpm_c = floorAt3(actM_c * cr_c);
+    if (row.placement === '비상주') {
+      // 비상주 상한 적용 (renderDeployTable과 동일 정책)
+      cpm_c = nonresMax2 > 0 ? floorAt3(Math.max(0, Math.min(cpm_c, nonresRemaining2))) : cpm_c;
+      nonresConv += cpm_c;
+      nonresRemaining2 -= cpm_c;
+    }
+    totalConv += cpm_c;
+    let fieldLabel_c = row.field || '건축';
+    if (row.field === '토목') { civExtraIdxC++; fieldLabel_c = civExtraCountC >= 2 ? (civExtraIdxC === 1 ? '토목(전)' : '토목(후)') : '토목'; }
+    const sd_c = rs_c ? (rs_c.d || 1) : 1;
+    const ed_c = re_c ? (re_c.d || lastDay(re_c.y, re_c.m)) : 0;
+    const autoNote_c = rs_c && re_c ? `${fmtYMD(rs_c.y,rs_c.m,sd_c)}~\n${fmtYMD(re_c.y,re_c.m,ed_c)}` : '—';
+    const monthsDisp_c = fmtMonths(actM_c);
+    const TD2C='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111;background:#fffbeb';
+    supervisorRows+=`<tr>
+      <td style="${TD2C}">${escHtml(row.placement || '분야별')}</td>
+      <td style="${TD2C}">${escHtml(fieldLabel_c)}</td>
+      <td style="${TD2C}">${escHtml(row.name || '-')}</td>
+      <td style="${TD2C}">${escHtml(row.grade || '-')}</td>
+      <td style="${TD2C}">${cr_c.toFixed(3)}</td>
+      <td style="${TD2C}">${monthsDisp_c}개월</td>
+      <td style="${TD2C};font-weight:700">${cpm_c.toFixed(3)}</td>
+      <td style="${TD2C};font-size:7.5pt;white-space:pre-line">${autoNote_c}</td>
     </tr>`;
   });
 
