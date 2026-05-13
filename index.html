@@ -6455,15 +6455,15 @@ function renderByeolchum1() {
           </div>`;
   const signLines = (swearSignOrder === 'swap') ? (compLine + addrLine + ceoLine) : (addrLine + compLine + ceoLine);
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.4;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
+    <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
       <div>
         <div style="font-size:14px;font-weight:bold;margin-bottom:16px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:10px 0 16px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
         ${noticeLine}
         <div style="margin-bottom:10px;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-        <div style="margin-bottom:16px;">□ 사업주체 : ${escHtml(pj.client||'')}</div>
+        <div style="margin-bottom:21px;">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
         <div id="swearBodyDiv"
-          style="text-align:justify;line-height:2.4;">${bodyInner}</div>
+          style="text-align:justify;text-justify:inter-ideograph;word-break:keep-all;line-height:2.0;">${bodyInner}</div>
       </div>
       <div>
         <div style="text-align:${dateAlign};margin:20px 0 24px;${dateMargin}font-size:16px;">${dateStr}</div>
@@ -6528,28 +6528,27 @@ function setSwearNotice(on) {
 //   **__텍스트__** / __**텍스트**__ → <strong><u>..</u></strong>
 //   **텍스트** → <strong>..</strong>
 //   __텍스트__ → <u>..</u>
-//   빈줄(\n\n+) → 단락 분리, 단일 \n → <br>
-//   그 외 HTML 태그는 escape
+//   빈 줄(\n\n+) 또는 들여쓰기(2칸+)로 시작하는 줄 → 새 단락 분리
+//   그 외 단일 \n → <br>
+//   단락 단위 justify 적용으로 양끝맞춤 (각 단락 내 `<br>`가 적을수록 정상 동작)
 function markupToBodyHtml(text) {
   const src = String(text == null ? '' : text);
   // 1) HTML escape 먼저 (XSS 차단)
   const esc = src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  // 2) 단락 분리 (빈 줄 기준)
-  const paragraphs = esc.split(/\n\s*\n/);
-  // 줄 시작의 연속 공백을 &nbsp;로 보존 (사용자 들여쓰기 입력)
+  // 2) 빈 줄 + 들여쓰기로 시작하는 줄 → 단락 경계로 변환 (들여쓰기 줄 앞에 빈 줄 삽입)
+  //    한글 justify가 단락 내 <br>이 많을 때 동작하지 않는 문제 해결
+  const withParaBreaks = esc.replace(/\n( {2,})/g, '\n\n$1');
+  const paragraphs = withParaBreaks.split(/\n\s*\n/);
+  // 줄 시작의 연속 공백을 &nbsp;로 보존 + text-indent 효과 (사용자 들여쓰기)
   const preserveLeadingSpaces = (p) => {
     return p.split('\n').map(line => line.replace(/^( +)/, (m) => '&nbsp;'.repeat(m.length))).join('\n');
   };
   const applyInline = (p) => {
     let s = p;
-    // 굵은 밑줄 (양방향)
     s = s.replace(/\*\*__([\s\S]+?)__\*\*/g, '<strong><u>$1</u></strong>');
     s = s.replace(/__\*\*([\s\S]+?)\*\*__/g, '<strong><u>$1</u></strong>');
-    // 굵게
     s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
-    // 밑줄
     s = s.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
-    // 단일 줄바꿈은 <br>
     s = s.replace(/\n/g, '<br>');
     return s;
   };
@@ -6557,8 +6556,9 @@ function markupToBodyHtml(text) {
     const withLeadingPreserved = preserveLeadingSpaces(p);
     const inner = applyInline(withLeadingPreserved).trim();
     if (!inner) return '';
-    // 양끝맞춤(justify) — CSS 기본 동작상 마지막 줄(보통 "~니다.")은 자동으로 좌측정렬됨
-    return `<p style="margin:0 0 12px;text-align:justify;text-justify:inter-ideograph;">${inner}</p>`;
+    // 양끝맞춤(justify) — CSS 기본 동작상 마지막 줄("~니다.")은 자동 좌측정렬
+    // word-break: keep-all 로 한글 단어가 줄 끝에서 깨지지 않게 유지하면서 자간 조정으로 정렬
+    return `<p style="margin:0 0 12px;text-align:justify;text-justify:inter-ideograph;word-break:keep-all;">${inner}</p>`;
   }).filter(Boolean).join('');
 }
 
