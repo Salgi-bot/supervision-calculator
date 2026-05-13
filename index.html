@@ -5585,7 +5585,7 @@ function renderDeploySettings(force = false) {
     const eTitle = eErr ? `총괄 종료일(${cr.end}) 이후`   : 'YYMMDD 또는 YYYY.MM.DD';
     return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;flex-wrap:nowrap">
       <span style="min-width:110px;font-size:17px;font-weight:700;color:#222;white-space:nowrap">${escHtml(p.info.name)}</span>
-      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:96px">(${r.placement}·${grade})</span>
+      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:120px">(${r.field}·${r.placement}·${grade})</span>
       <input type="text" value="${startDisp}" placeholder="260101" maxlength="10" style="${sErr?ISTY_ERR:ISTY}" title="${sTitle}"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].startYM=this.value;deployState['${r.id}'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('${r.id}','start',this)">
@@ -5686,7 +5686,7 @@ function renderDeploySettings(force = false) {
     const eErrE = cr.end   && endDisp_e   && endDisp_e   > cr.end;
     settingsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
       <span style="min-width:110px;font-size:17px;font-weight:700;color:#065f46;white-space:nowrap">추가배치(건축)</span>
-      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:96px">(추가배치·-)</span>
+      <span style="font-size:15px;color:#666;white-space:nowrap;min-width:120px">(건축·추가배치·-)</span>
       <input type="text" value="${startDisp_e}" placeholder="260101" maxlength="10" style="${sErrE?ISTY_ERR:ISTY}" title="${sErrE?`총괄 시작일(${cr.start}) 이전`:'YYMMDD 또는 YYYY.MM.DD'}"
         oninput="if(!deployState['extra_arch'])deployState['extra_arch']={};deployState['extra_arch'].startYM=this.value;deployState['extra_arch'].months='';triggerAutoSave();renderDeployTable()"
         onblur="completeDate('extra_arch','start',this)">
