@@ -6460,12 +6460,8 @@ function markupToBodyHtml(text) {
     const withLeadingPreserved = preserveLeadingSpaces(p);
     const inner = applyInline(withLeadingPreserved).trim();
     if (!inner) return '';
-    // 단락 본문 마지막이 "니다." 또는 "니다" 로 끝나면 그 단락은 좌측정렬 (justify 미적용)
-    // — justify 컨테이너 안에서 마지막 줄이 양끝맞춤되지 않도록 단락 단위로 차단
-    const plain = inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-    const endsWithNida = /니다[.。!?]?\s*$/.test(plain);
-    const align = endsWithNida ? 'left' : 'justify';
-    return `<p style="margin:0 0 12px;text-align:${align};">${inner}</p>`;
+    // 양끝맞춤(justify) — CSS 기본 동작상 마지막 줄(보통 "~니다.")은 자동으로 좌측정렬됨
+    return `<p style="margin:0 0 12px;text-align:justify;text-justify:inter-ideograph;">${inner}</p>`;
   }).filter(Boolean).join('');
 }
 
