@@ -626,6 +626,10 @@ tbody tr:hover td { background: var(--ci-light); }
   .a4-preview:last-child, .a4-page:last-child { page-break-after: auto; }
   /* flex 페이지(서약서·위임장 등): 세로 균등 배치 — 전체 A4 높이 채우기 */
   .a4-page[style*="flex-direction:column"] { height: 267mm !important; min-height: 267mm !important; justify-content: space-between !important; overflow: visible !important; }
+  /* 별첨1 서약서: 상단·본문·하단 3블록 + spacer 2개로 본문을 페이지 세로 중앙에 배치 */
+  .a4-page.byeolchum1-page { justify-content: flex-start !important; }
+  .a4-page.byeolchum1-page .swear-spacer-top,
+  .a4-page.byeolchum1-page .swear-spacer-bottom { flex: 1 1 0 !important; }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -6511,18 +6515,22 @@ function renderByeolchum1() {
           </div>`;
   const signLines = (swearSignOrder === 'swap') ? (compLine + addrLine + ceoLine) : (addrLine + compLine + ceoLine);
   document.getElementById('byeolchum1Preview').innerHTML = `
-    <div class="a4-page" id="byeolchum1Doc" style="padding:38px 50px 12px 50px;min-height:0;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;display:flex;flex-direction:column;justify-content:space-between;">
-      <div>
+    <div class="a4-page byeolchum1-page" id="byeolchum1Doc" style="padding:38px 50px 12px 50px;min-height:0;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;display:flex;flex-direction:column;">
+      <div class="swear-top" style="flex:0 0 auto;">
         <div style="font-size:14px;font-weight:bold;margin-bottom:10px;text-align:${headerAlign};">【별첨 1】</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:10px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
         ${noticeLine}
         <div style="margin-bottom:0;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-        <div style="margin-bottom:20px;">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
+        <div style="margin-bottom:0;">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
+      </div>
+      <div class="swear-spacer-top" style="flex:1 1 0;min-height:12px;"></div>
+      <div class="swear-body" style="flex:0 0 auto;">
         <div id="swearBodyDiv"
           style="text-align:justify;text-justify:inter-ideograph;word-break:keep-all;line-height:2.2;">${bodyInner}</div>
       </div>
-      <div>
-        <div style="text-align:${dateAlign};margin:20px 0 24px;${dateMargin}font-size:16px;">${dateStr}</div>
+      <div class="swear-spacer-bottom" style="flex:1 1 0;min-height:12px;"></div>
+      <div class="swear-bottom" style="flex:0 0 auto;">
+        <div style="text-align:${dateAlign};margin:0 0 24px;${dateMargin}font-size:16px;">${dateStr}</div>
         <div style="text-align:right;margin-right:40px;line-height:2.0;">
           ${signLines}
         </div>
