@@ -5770,10 +5770,10 @@ function renderDeployTable() {
   //   그 외(중간월·1~14일 시작·16~말일 종료)는 양쪽 음영(풀월).
   // 같은 월 2셀의 시각 일체감을 위해 좌셀 border-right:none, 우셀 border-left:none.
   function ganttHalfCells(rs, re, y, m, fillColor, baseBorder) {
+    const cellBase = `${baseBorder};padding:0;height:50px`;
     const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
     if (!inside) {
-      const off = `background:#fff;${baseBorder};padding:0;height:50px`;
-      return `<td style="${off};border-right:none"></td><td style="${off};border-left:none"></td>`;
+      return `<td colspan="2" style="${cellBase};background:#fff"></td>`;
     }
     const isStart = (y === rs.y && m === rs.m);
     const isEnd   = (y === re.y && m === re.m);
@@ -5781,8 +5781,11 @@ function renderDeployTable() {
     const ed = re.d || lastDay(re.y, re.m);
     const leftOn  = !(isStart && sd >= 15);
     const rightOn = !(isEnd   && ed <= 15);
-    const stL = `background:${leftOn  ? fillColor : '#fff'};${baseBorder};border-right:none;padding:0;height:50px`;
-    const stR = `background:${rightOn ? fillColor : '#fff'};${baseBorder};border-left:none;padding:0;height:50px`;
+    if (leftOn && rightOn) {
+      return `<td colspan="2" style="${cellBase};background:${fillColor}"></td>`;
+    }
+    const stL = `background:${leftOn  ? fillColor : '#fff'};${cellBase};border-right:none`;
+    const stR = `background:${rightOn ? fillColor : '#fff'};${cellBase};border-left:none`;
     return `<td style="${stL}"></td><td style="${stR}"></td>`;
   }
 
@@ -5946,10 +5949,9 @@ function renderDeployTable() {
     </tr>`;
   });
 
-  // 총배치 인월수 행 — 옵션 D: 월당 2칸(좌·우)으로 분할, 좌셀 border-right:none / 우셀 border-left:none
+  // 총배치 인월수 행 — 풀월 셀 가운데 선 차단을 위해 월당 colspan=2 단일 셀
   const blankGantt = allMonths.map(() =>
-    `<td style="background:#f5f5f5;border:1px solid #ddd;border-right:none;height:50px"></td>` +
-    `<td style="background:#f5f5f5;border:1px solid #ddd;border-left:none;height:50px"></td>`
+    `<td colspan="2" style="background:#f5f5f5;border:1px solid #ddd;height:50px"></td>`
   ).join('');
   const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
   const convTotal = floorAt3(totalConvPM);
