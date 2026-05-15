@@ -5496,7 +5496,7 @@ function renderDeploySettings(force = false) {
   // 글씨 크기 2배 확대 (가독성 강화, 2026-05-13)
   const ISTY  = 'width:108px;font-size:18px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;text-align:center';
   const ISTY_ERR = 'width:108px;font-size:18px;padding:4px 6px;border:1.5px solid #dc2626;border-radius:4px;text-align:center;background:#fff5f5';
-  const NSTY  = 'width:74px;font-size:18px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;text-align:center';
+  const NSTY  = 'width:84px;font-size:18px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;text-align:center';
   const BSTY  = 'height:28px;width:28px;padding:0;font-size:14px;border:1px solid #bbb;border-radius:3px;background:#f8f8f8;cursor:pointer;line-height:1';
   const SELSTY = 'font-size:16px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;height:32px;background:#fff';
   const cr = getChiefRange(); // 총괄 범위
@@ -5675,7 +5675,7 @@ function renderDeploySettings(force = false) {
       <input type="number" value="${convRateE}" step="0.001" min="0.1" max="9.999" style="${NSTY}" title="환산비"
         oninput="updateExtraRow('${row.id}','convRate',parseFloat(this.value)||1)">
       <span style="font-size:15px;color:#444;white-space:nowrap">개월</span>
-      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:82px;" title="비워두면 자동"
+      <input type="number" value="${mValE}" step="0.001" min="0.1" max="999" placeholder="자동" style="${NSTY};width:105px;" title="비워두면 자동"
         oninput="updateExtraRow('${row.id}','months',this.value===''?'':parseFloat(this.value)||'')">
       <button onclick="removeExtraDeployRow('${row.id}')" style="font-size:20px;border:none;background:none;color:#dc2626;cursor:pointer;padding:0 6px;line-height:1;font-weight:700" title="삭제">×</button>
     </div>`;
