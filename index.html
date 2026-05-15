@@ -6174,13 +6174,9 @@ function renderCalcResult(unitCostHtml = '') {
   // 감리원별 산출
   const pjStart = parseYM(pj.startDate);
   const pjEnd   = parseYM(pj.endDate);
-  // 별첨3 산출근거: 활성 역할 중 "실제 경력 데이터(이름)가 입력된" 행만 산출 대상.
-  // '-' placeholder 는 산출 제외 (의도적 — 별지1호/배치/갠트와 달리 산출은 실데이터 필요).
-  // 활성 판정은 getActiveRoles() 가 담당. 이름 유무 판정은 이 서식 고유 정책.
-  const roles   = getActiveRoles().filter(r => {
-    const nm = personnel[r.id]?.info?.name;
-    return nm && nm !== '-';
-  });
+  // 산출근거: 활성 역할 전체 (별첨5 배치계획표와 합계 일치 정책 — 2026-05-15 사용자 승인).
+  // 이름이 '-'인 행도 환산인·월수 계산 포함 → 별첨5와 동일한 합계 표시.
+  const roles   = getActiveRoles();
 
   // 1패스: 상주 합계 → 비상주 상한
   let resConvTotal2 = 0;
@@ -6568,12 +6564,12 @@ function renderByeolchum1() {
         <div style="margin-bottom:0;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
         <div style="margin-bottom:0;">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
       </div>
-      <div class="swear-spacer-top" style="flex:1 1 0;min-height:12px;"></div>
+      <div class="swear-spacer-top" style="flex:0.5 1 0;min-height:12px;"></div>
       <div class="swear-body" style="flex:0 0 auto;">
         <div id="swearBodyDiv"
           style="text-align:justify;text-justify:inter-ideograph;word-break:keep-all;line-height:2.2;">${bodyInner}</div>
       </div>
-      <div class="swear-spacer-bottom" style="flex:1 1 0;min-height:12px;"></div>
+      <div class="swear-spacer-bottom" style="flex:0.5 1 0;min-height:12px;"></div>
       <div class="swear-bottom" style="flex:0 0 auto;">
         <div style="text-align:${dateAlign};margin:0 0 24px;${dateMargin}font-size:16px;">${dateStr}</div>
         <div style="text-align:right;margin-right:40px;line-height:2.0;">
