@@ -513,7 +513,7 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   line-height: 1.6;
 }
 @media screen {
-  .a4-page { max-width: min(96vw, 1100px); }
+  .a4-page { max-width: min(96vw, 900px); aspect-ratio: 210 / 297; }
 }
 .a4-preview, .a4-preview * { color: #000 !important; }
 .a4-page, .a4-page * { color: #000 !important; }
@@ -6567,7 +6567,7 @@ function renderByeolchum1() {
       <div class="swear-spacer-top" style="flex:0.5 1 0;min-height:12px;"></div>
       <div class="swear-body" style="flex:0 0 auto;">
         <div id="swearBodyDiv"
-          style="text-align:justify;text-justify:inter-ideograph;word-break:keep-all;line-height:2.2;">${bodyInner}</div>
+          style="text-align:justify;text-justify:inter-character;word-break:keep-all;line-height:2.2;">${bodyInner}</div>
       </div>
       <div class="swear-spacer-bottom" style="flex:0.5 1 0;min-height:12px;"></div>
       <div class="swear-bottom" style="flex:0 0 auto;">
@@ -6667,7 +6667,7 @@ function markupToBodyHtml(text) {
     // 양끝맞춤(justify) — CSS 기본 동작상 마지막 줄("~니다.")은 자동 좌측정렬
     // word-break: keep-all 로 한글 단어가 줄 끝에서 깨지지 않게 유지하면서 자간 조정으로 정렬
     // 단락 간 margin 0 — 모든 줄 높이를 line-height(2.0)만으로 균일하게
-    return `<p style="margin:0;text-align:justify;text-justify:inter-ideograph;word-break:keep-all;">${inner}</p>`;
+    return `<p style="margin:0 0 0.8em 0;text-align:justify;text-justify:inter-character;word-break:keep-all;">${inner}</p>`;
   }).filter(Boolean).join('');
 }
 
