@@ -1204,6 +1204,7 @@ tbody tr:hover td { background: var(--ci-light); }
       <div id="deployStatusSummary" style="margin-left:auto;font-size:11px"></div>
       <button class="btn" onclick="printDeployOnly()">🖨 배치계획표 인쇄</button>
       <button class="btn" onclick="printCalcResult()" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🖨 산출근거 인쇄</button>
+      <button class="btn" onclick="printUnitCost()" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe" title="수지분석(인건비 단가 산출) 단독 인쇄 — 내부 검토용, 입찰 제출 양식과 분리">🖨 수지분석 인쇄</button>
       <button class="btn" onclick="saveTabAsWord('deployTablePreview', null, '배치계획표', '배치계획표')">📄 Word 저장</button>
     </div>
     <div style="font-size:11px;color:#666;margin-bottom:4px">▼ 각 감리원 투입기간 — 비워두면 공사기간 전체 자동 적용</div>
@@ -6349,11 +6350,21 @@ function printDeployOnly() {
 function printCalcResult() {
   const calcEl = document.getElementById('calcResultDoc');
   if (!calcEl) { alert('산출근거를 먼저 생성하세요 (배치계획표 탭 진입 후 자동 생성)'); return; }
-  // 인건비 단가 산출(unitCostDoc)이 함께 렌더되어 있으면 산출근거 앞에 포함하여 인쇄
-  const unitEl = document.getElementById('unitCostDoc');
-  const body = (unitEl ? unitEl.outerHTML : '') + calcEl.outerHTML;
+  // 산출근거만 인쇄 (수지분석/인건비 단가 산출은 별도 printUnitCost로 분리)
+  const body = calcEl.outerHTML;
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>감리인·월수 산출근거</title>
+    <style>body{font-family:'Malgun Gothic',sans-serif;margin:20px}@media print{body{margin:0}}</style>
+    </head><body>${body}<script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+function printUnitCost() {
+  const unitEl = document.getElementById('unitCostDoc');
+  if (!unitEl) { alert('수지분석(인건비 단가 산출)을 먼저 생성하세요 (배치계획표 탭 진입 후 자동 생성)'); return; }
+  // 수지분석(인건비 단가 산출) 단독 인쇄 — 입찰 제출용 양식과 분리하여 내부 검토용으로만 사용
+  const body = unitEl.outerHTML;
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>인건비 단가 산출 (수지분석)</title>
     <style>body{font-family:'Malgun Gothic',sans-serif;margin:20px}@media print{body{margin:0}}</style>
     </head><body>${body}<script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
