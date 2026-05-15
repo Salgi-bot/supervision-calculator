@@ -1443,6 +1443,11 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearDateAlignCenter" onclick="setSwearAlign('date','center')" style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">중앙</button>
           <button type="button" id="swearDateAlignRight"  onclick="setSwearAlign('date','right')"  style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <span style="color:#64748b;margin-left:4px;">전화·FAX:</span>
+        <div role="group" aria-label="별첨1 전화·FAX 노출" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearContactOn"  onclick="setSwearAlign('contact','on')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
+          <button type="button" id="swearContactOff" onclick="setSwearAlign('contact','off')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
+        </div>
         <input type="text" id="swearNoticeNumberInput" readonly
           title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
           style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
@@ -1905,6 +1910,7 @@ let swearNoticeEnabled = false;   // 별첨1 서약서 상단 「□ 공 고 번
 let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입력값
 let swearSignOrder = 'default';   // 서약자 주소·업체명 순서: 'default'(주소→업체명) | 'swap'(업체명→주소)
 let swearDateAlign = 'center';    // 날짜 정렬: 'center' | 'right'
+let swearContactEnabled = false;  // 별첨1 서약서 하단 전화번호·FAX 라인 표시 여부
 let showStamp = true;             // 법인 도장 이미지 표시 여부
 let stampSize = 62;               // 법인 도장 직경(px)
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
@@ -1960,6 +1966,7 @@ function doAutoSave() {
     swearRecipientAlign: swearRecipientAlign,
     swearSignOrder: swearSignOrder,
     swearDateAlign: swearDateAlign,
+    swearContactEnabled: swearContactEnabled,
     swearNoticeEnabled: swearNoticeEnabled,
     swearNoticeNumber: swearNoticeNumber,
     swearBodyTemplates: swearBodyTemplates,
@@ -2158,6 +2165,7 @@ function loadAutoSave() {
     if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
     if (data.swearSignOrder === 'swap' || data.swearSignOrder === 'default') swearSignOrder = data.swearSignOrder;
     if (data.swearDateAlign === 'right' || data.swearDateAlign === 'center') swearDateAlign = data.swearDateAlign;
+    if (typeof data.swearContactEnabled === 'boolean') swearContactEnabled = data.swearContactEnabled;
     if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
     if (typeof data.swearNoticeNumber === 'string') {
       swearNoticeNumber = data.swearNoticeNumber;
@@ -5033,7 +5041,7 @@ function renderByeolji2Cover() {
       ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:64px;height:64px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px;line-height:1.3">
-      <span>구비서류 : 감리원배치계획서 1부.</span>
+      <span></span>
       <span>210㎜×297㎜[백상지(80g/㎡)]</span>
     </div>
   </div>`;
@@ -5752,8 +5760,31 @@ function renderDeployTable() {
   const TH_HDR  = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
   const TH_YR   = `${TH_BASE};background:#fff;color:#000;font-weight:700`;
   const TH_MO   = `${TH_BASE};background:#fff;color:#000;font-size:6.5pt;padding:1px 0`;
-  const yearRow  = yearGroups.map(g => `<th colspan="${g.count}" style="${TH_YR}">${g.y}년</th>`).join('');
-  const monthRow = allMonths.map(({m}) => `<th style="${TH_MO}">${m}</th>`).join('');
+  // 옵션 D: 각 월을 좌(전반)·우(후반) 2칸 분할. 헤더는 colspan=2로 머지하여 시각상 1칸 유지.
+  const yearRow  = yearGroups.map(g => `<th colspan="${g.count*2}" style="${TH_YR}">${g.y}년</th>`).join('');
+  const monthRow = allMonths.map(({m}) => `<th colspan="2" style="${TH_MO}">${m}</th>`).join('');
+
+  // 부분월 음영 판정 — 사용자 확정 규칙(2026-05-15):
+  //   start.day ≥ 15  → 시작월 좌측 미음영 (우반쪽만)
+  //   end.day   ≤ 15  → 종료월 우측 미음영 (좌반쪽만)
+  //   그 외(중간월·1~14일 시작·16~말일 종료)는 양쪽 음영(풀월).
+  // 같은 월 2셀의 시각 일체감을 위해 좌셀 border-right:none, 우셀 border-left:none.
+  function ganttHalfCells(rs, re, y, m, fillColor, baseBorder) {
+    const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
+    if (!inside) {
+      const off = `background:#fff;${baseBorder};padding:0;height:50px`;
+      return `<td style="${off};border-right:none"></td><td style="${off};border-left:none"></td>`;
+    }
+    const isStart = (y === rs.y && m === rs.m);
+    const isEnd   = (y === re.y && m === re.m);
+    const sd = rs.d || 1;
+    const ed = re.d || lastDay(re.y, re.m);
+    const leftOn  = !(isStart && sd >= 15);
+    const rightOn = !(isEnd   && ed <= 15);
+    const stL = `background:${leftOn  ? fillColor : '#fff'};${baseBorder};border-right:none;padding:0;height:50px`;
+    const stR = `background:${rightOn ? fillColor : '#fff'};${baseBorder};border-left:none;padding:0;height:50px`;
+    return `<td style="${stL}"></td><td style="${stR}"></td>`;
+  }
 
   // 감리원 행 생성 — 활성 역할 전체(getActiveRoles 단일 진입점). 보호 영역 주석 참조.
   const roles = getActiveRoles();
@@ -5803,10 +5834,7 @@ function renderDeployTable() {
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
 
-    const gantt = allMonths.map(({ y, m }) => {
-      const inside = (y > rs.y || (y === rs.y && m >= rs.m)) && (y < re.y || (y === re.y && m <= re.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
-    }).join('');
+    const gantt = allMonths.map(({ y, m }) => ganttHalfCells(rs, re, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
 
@@ -5843,10 +5871,7 @@ function renderDeployTable() {
     const re_c = parseYMShort(row.endYM)   || end;
     const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
     const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
-    const gantt_c = allMonths.map(({ y, m }) => {
-      const inside = (y > rs_c.y || (y === rs_c.y && m >= rs_c.m)) && (y < re_c.y || (y === re_c.y && m <= re_c.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
-    }).join('');
+    const gantt_c = allMonths.map(({ y, m }) => ganttHalfCells(rs_c, re_c, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
     const mDisp_c = fmtMonths(actM_c);
@@ -5875,10 +5900,7 @@ function renderDeployTable() {
     const re_e   = parseYMShort(ds_e.endYM)   || end;
     const dsM_e  = (ds_e.months !== undefined && ds_e.months !== '' && !isNaN(parseFloat(ds_e.months))) ? parseFloat(ds_e.months) : null;
     const actM_e = dsM_e !== null ? dsM_e : calcDeployMonths(rs_e, re_e);
-    const gantt_e = allMonths.map(({ y, m }) => {
-      const inside = (y > rs_e.y || (y === rs_e.y && m >= rs_e.m)) && (y < re_e.y || (y === re_e.y && m <= re_e.m));
-      return `<td style="background:${inside ? '#e0e0e0' : '#fff'};border:1px solid #ddd;padding:0;height:50px"></td>`;
-    }).join('');
+    const gantt_e = allMonths.map(({ y, m }) => ganttHalfCells(rs_e, re_e, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
     const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
     const mDisp_e = fmtMonths(actM_e);
@@ -5924,8 +5946,11 @@ function renderDeployTable() {
     </tr>`;
   });
 
-  // 총배치 인월수 행
-  const blankGantt = allMonths.map(() => `<td style="background:#f5f5f5;border:1px solid #ddd;height:50px"></td>`).join('');
+  // 총배치 인월수 행 — 옵션 D: 월당 2칸(좌·우)으로 분할, 좌셀 border-right:none / 우셀 border-left:none
+  const blankGantt = allMonths.map(() =>
+    `<td style="background:#f5f5f5;border:1px solid #ddd;border-right:none;height:50px"></td>` +
+    `<td style="background:#f5f5f5;border:1px solid #ddd;border-left:none;height:50px"></td>`
+  ).join('');
   const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
   const convTotal = floorAt3(totalConvPM);
   rows += `<tr>
@@ -5938,7 +5963,8 @@ function renderDeployTable() {
   </tr>`;
 
   const nonresRate = (_lp4cap > 0 && nonresPM > 0) ? (nonresPM / _lp4cap * 100).toFixed(1) : '0.0';
-  const colW = Math.max(11, Math.min(18, Math.floor(430 / Math.max(totalM, 1))));
+  // 옵션 D: 월당 col 2개 → 각 col 폭은 절반(최소 6px, 최대 9px). 전체 표 폭은 기존과 동일 유지.
+  const colW = Math.max(6, Math.min(9, Math.floor(430 / Math.max(totalM * 2, 1))));
 
   // 투입 인·월수 표시 (extra_arch 제외한 합계)
   const tcEl = document.getElementById('deployTotalConvPM');
@@ -5968,7 +5994,7 @@ function renderDeployTable() {
     <table style="border-collapse:collapse;width:100%;table-layout:fixed">
       <colgroup>
         <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
-        ${allMonths.map(() => `<col style="width:${colW}px">`).join('')}
+        ${allMonths.map(() => `<col style="width:${colW}px"><col style="width:${colW}px">`).join('')}
         <col style="width:28px"><col style="width:32px"><col style="width:48px"><col style="width:44px">
       </colgroup>
       <thead>
@@ -5977,7 +6003,7 @@ function renderDeployTable() {
           <th rowspan="3" style="${TH_HDR}">분야</th>
           <th rowspan="3" style="${TH_HDR}">성명</th>
           <th rowspan="3" style="${TH_HDR}">등급</th>
-          <th colspan="${totalM}" style="${TH_YR};font-size:8.5pt">투&ensp;입&ensp;기&ensp;간</th>
+          <th colspan="${totalM*2}" style="${TH_YR};font-size:8.5pt">투&ensp;입&ensp;기&ensp;간</th>
           <th rowspan="3" style="${TH_HDR}">개월</th>
           <th rowspan="3" style="${TH_HDR};font-size:7pt">환산비</th>
           <th rowspan="3" style="${TH_HDR}">인·월 수</th>
@@ -6513,10 +6539,15 @@ function renderByeolchum1() {
   // 서약자/업체명 순서 토글
   const addrLine = `<div>서약자 주소 : ${escHtml(co.address||'')}</div>`;
   const compLine = `<div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>`;
+  const phoneLine = `<div>전&emsp;화&emsp;번&emsp;호 : ${escHtml(co.phone||'')}</div>`;
+  const faxLine = `<div>FAX&emsp;번&emsp;호 : ${escHtml(co.fax||'')}</div>`;
+  const contactLines = swearContactEnabled ? (phoneLine + faxLine) : '';
   const ceoLine = `<div style="position:relative;">대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)
             ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
           </div>`;
-  const signLines = (swearSignOrder === 'swap') ? (compLine + addrLine + ceoLine) : (addrLine + compLine + ceoLine);
+  const signLines = (swearSignOrder === 'swap')
+    ? (compLine + addrLine + contactLines + ceoLine)
+    : (addrLine + compLine + contactLines + ceoLine);
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page byeolchum1-page" id="byeolchum1Doc" style="padding:38px 50px 12px 50px;min-height:0;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;display:flex;flex-direction:column;">
       <div class="swear-top" style="flex:0 0 auto;">
@@ -6551,6 +6582,7 @@ function setSwearAlign(target, align) {
   else if (target === 'recipient') swearRecipientAlign = (align === 'right') ? 'right' : 'left';
   else if (target === 'signOrder') swearSignOrder = (align === 'swap') ? 'swap' : 'default';
   else if (target === 'date') swearDateAlign = (align === 'right') ? 'right' : 'center';
+  else if (target === 'contact') swearContactEnabled = (align === 'on');
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolchum1();
 }
@@ -6572,6 +6604,8 @@ function updateSwearAlignButtons() {
   setActive('swearSignOrderSwap',       swearSignOrder === 'swap');
   setActive('swearDateAlignCenter',     swearDateAlign !== 'right');
   setActive('swearDateAlignRight',      swearDateAlign === 'right');
+  setActive('swearContactOn',           swearContactEnabled === true);
+  setActive('swearContactOff',          swearContactEnabled !== true);
   const inp = document.getElementById('swearNoticeNumberInput');
   if (inp) {
     const pjNo = (document.getElementById('pj_noticeNo')?.value || '').trim();
