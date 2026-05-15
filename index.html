@@ -512,6 +512,9 @@ hr.section { border: none; border-top: 1px solid var(--gray2); margin: 14px 0; }
   font-size: 11pt;
   line-height: 1.6;
 }
+@media screen {
+  .a4-page { max-width: min(96vw, 1100px); }
+}
 .a4-preview, .a4-preview * { color: #000 !important; }
 .a4-page, .a4-page * { color: #000 !important; }
 .a4-preview table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
@@ -5997,7 +6000,7 @@ function renderDeployTable() {
       <colgroup>
         <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
         ${allMonths.map(() => `<col style="width:${colW}px"><col style="width:${colW}px">`).join('')}
-        <col style="width:28px"><col style="width:32px"><col style="width:48px"><col style="width:44px">
+        <col style="width:30px"><col style="width:36px"><col style="width:62px"><col style="width:52px">
       </colgroup>
       <thead>
         <tr>
