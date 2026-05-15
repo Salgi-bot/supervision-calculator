@@ -6028,8 +6028,11 @@ function renderDeployTable() {
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
     </div>
-  </div>
-  ${(() => {
+  </div>`;
+
+  // 인건비 단가 산출 HTML — 배치계획표 본체와 분리하여 산출근거 미리보기에 prepend.
+  // (배치계획표 Word 저장(deployTablePreview)에는 포함되지 않아야 함 — 입찰 제출용 양식에서 단가 노출 방지)
+  const unitCostHtml = (() => {
     const baseFee   = parseFloat(String(pj.baseFee||'').replace(/,/g,'')) || 0;
     const sizeClass = document.getElementById('pj_sizeClass')?.value || '';
     let coef = null, coefLabel = '';
@@ -6087,7 +6090,7 @@ function renderDeployTable() {
     const boxStyle = `background:${boxBg};border:1px solid ${boxBorder};color:${boxText};padding:3px 12px;border-radius:4px;font-weight:700;font-size:12pt;display:inline-block`;
     const fmt = n => n.toLocaleString('ko-KR');
     return `
-  <div class="a4-page" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:11pt;line-height:2;color:#000">
+  <div class="a4-page" id="unitCostDoc" style="padding:45px 50px;font-family:'Batang','바탕',serif;font-size:11pt;line-height:2;color:#000">
     <div style="font-size:13pt;font-weight:800;margin-bottom:20px;text-align:center">■ 인건비 단가 산출</div>
     <div>① 기초금액 × 계수 (${coefLabel})</div>
     <div style="padding-left:2em">= ${fmt(baseFee)} × ${coef} = <strong>${fmt(contractAmt)} 원</strong></div>
@@ -6111,8 +6114,8 @@ function renderDeployTable() {
       • ④ ÷ 공사기간 = 월 균등 이윤 (⑤) → ⑤ > 0 이면 이익 발생
     </div>
   </div>`;
-  })()}`;
-  renderCalcResult();
+  })();
+  renderCalcResult(unitCostHtml);
   updateDeployAlignButtons();
 }
 // 배치계획표 정렬 토글
@@ -6132,7 +6135,7 @@ function updateDeployAlignButtons() {
   setActive('deployHeaderAlignLeft',  deployHeaderAlign !== 'right');
   setActive('deployHeaderAlignRight', deployHeaderAlign === 'right');
 }
-function renderCalcResult() {
+function renderCalcResult(unitCostHtml = '') {
   const pj = getProjectData();
   const costStr = pj.supervisionCost || '';
   const costThousand = parseFloat(String(costStr).replace(/,/g,''));
@@ -6140,7 +6143,7 @@ function renderCalcResult() {
   if (!el) return;
 
   if (isNaN(costThousand) || costThousand <= 0) {
-    el.innerHTML = '';
+    el.innerHTML = unitCostHtml || '';
     return;
   }
 
@@ -6279,7 +6282,7 @@ function renderCalcResult() {
   const nonresOk = parseFloat(nonresRate)<=15;
   const TH2='border:1px solid #ccc;padding:5px 8px;font-size:8.5pt;background:#f5f5f5;font-weight:700;text-align:center';
 
-  el.innerHTML = `
+  el.innerHTML = `${unitCostHtml || ''}
   <div class="a4-preview" id="calcResultDoc" style="padding:38px 30px 12px 30px;min-height:0;margin-top:16px">
     <div style="text-align:center;margin-bottom:18px;border-bottom:2px solid #333;padding-bottom:8px">
       <span style="font-size:13pt;font-weight:800;letter-spacing:3px;color:#111">감 리 인 · 월 수 산 출 근 거</span>
@@ -6348,12 +6351,15 @@ function printDeployOnly() {
   }, 500);
 }
 function printCalcResult() {
-  const el = document.getElementById('calcResultDoc');
-  if (!el) { alert('산출근거를 먼저 생성하세요 (배치계획표 탭 진입 후 자동 생성)'); return; }
+  const calcEl = document.getElementById('calcResultDoc');
+  if (!calcEl) { alert('산출근거를 먼저 생성하세요 (배치계획표 탭 진입 후 자동 생성)'); return; }
+  // 인건비 단가 산출(unitCostDoc)이 함께 렌더되어 있으면 산출근거 앞에 포함하여 인쇄
+  const unitEl = document.getElementById('unitCostDoc');
+  const body = (unitEl ? unitEl.outerHTML : '') + calcEl.outerHTML;
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>감리인·월수 산출근거</title>
     <style>body{font-family:'Malgun Gothic',sans-serif;margin:20px}@media print{body{margin:0}}</style>
-    </head><body>${el.outerHTML}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    </head><body>${body}<script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
 
