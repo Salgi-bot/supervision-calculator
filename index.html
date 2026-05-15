@@ -5618,7 +5618,7 @@ function renderDeploySettings(force = false) {
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].convRate=parseFloat(this.value)||1;triggerAutoSave();renderDeployTable()">
       <span style="font-size:15px;color:#444;white-space:nowrap">개월</span>
       <input type="number" value="${monthsVal}" step="0.001" min="0.1" max="999" placeholder="자동"
-        style="${NSTY};width:82px;"
+        style="${NSTY};width:105px;"
         title="비워두면 날짜 기반 자동 계산"
         oninput="if(!deployState['${r.id}'])deployState['${r.id}']={};deployState['${r.id}'].months=this.value===''?'':parseFloat(this.value)||'';triggerAutoSave();renderDeployTable()">
     </div>`;
@@ -6000,7 +6000,7 @@ function renderDeployTable() {
       <colgroup>
         <col style="width:38px"><col style="width:28px"><col style="width:38px"><col style="width:26px">
         ${allMonths.map(() => `<col style="width:${colW}px"><col style="width:${colW}px">`).join('')}
-        <col style="width:30px"><col style="width:36px"><col style="width:62px"><col style="width:52px">
+        <col style="width:48px"><col style="width:42px"><col style="width:62px"><col style="width:52px">
       </colgroup>
       <thead>
         <tr>
