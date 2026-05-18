@@ -6236,29 +6236,35 @@ function renderCalcResult(unitCostHtml = '') {
   const roles   = getActiveRoles();
 
   // 1패스: 상주 합계 → 비상주 상한
+  // ── 별첨5(배치계획표)와 합계 일치 정책 (2026-05-15 사용자 승인) ──
+  //   1) ds.months(배치계획표에서 사용자가 직접 수정한 월수) 우선 사용
+  //   2) auto.lockStart/lockEnd 분기는 데드코드(getDeployAutoRules가 항상 false) — 제거
+  //   3) 비상주 상한도 별첨5와 동일하게 사용자 입력 deployLawMonths 우선
   let resConvTotal2 = 0;
   roles.filter(r => r.placement !== '비상주').forEach(r => {
     const p = personnel[r.id];
     const ds = deployState[r.id] || {};
-    const auto = getDeployAutoRules(r);
-    const rs = pjStart ? (auto.lockStart ? pjStart : (parseYMShort(ds.startYM)||pjStart)) : null;
-    const re = pjEnd   ? (auto.lockEnd   ? pjEnd   : (parseYMShort(ds.endYM)  ||pjEnd  )) : null;
-    const m_f2 = (rs && re) ? calcDeployMonths(rs, re) : 0;
+    const rs = parseYMShort(ds.startYM) || pjStart;
+    const re = parseYMShort(ds.endYM)   || pjEnd;
+    const dsM = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+    const m_f2 = dsM !== null ? dsM : ((rs && re) ? calcDeployMonths(rs, re) : 0);
     const grade = p.info.appliedGrade||p.info.grade||'중급';
     const cr = (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : (CONV_RATE_DEFAULTS[grade]??1.00);
     resConvTotal2 += floorAt3(m_f2 * cr);
   });
-  const nonresMax2 = legalPM ? floorAt3(legalPM * 0.15) : 0; // 제6조②: 법정인월수 × 15%
+  // 제6조②: 비상주 상한 = 법정인월수 × 15%. 사용자가 deployLawMonths를 수정한 경우 그 값 우선 (별첨5와 동일)
+  const _lpForCap = parseFloat(document.getElementById('deployLawMonths')?.value) || legalPM || 0;
+  const nonresMax2 = _lpForCap ? floorAt3(_lpForCap * 0.15) : 0;
 
   let supervisorRows = '', totalConv = 0, nonresConv = 0, nonresRemaining2 = nonresMax2;
 
   roles.forEach(r => {
     const p  = personnel[r.id];
     const ds = deployState[r.id] || {};
-    const auto = getDeployAutoRules(r);
-    const rs = pjStart ? (auto.lockStart ? pjStart : (parseYMShort(ds.startYM)||pjStart)) : null;
-    const re = pjEnd   ? (auto.lockEnd   ? pjEnd   : (parseYMShort(ds.endYM)  ||pjEnd  )) : null;
-    const actualMonths2 = (rs && re) ? calcDeployMonths(rs, re) : 0;
+    const rs = parseYMShort(ds.startYM) || pjStart;
+    const re = parseYMShort(ds.endYM)   || pjEnd;
+    const dsM2 = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+    const actualMonths2 = dsM2 !== null ? dsM2 : ((rs && re) ? calcDeployMonths(rs, re) : 0);
     const grade   = p.info.appliedGrade||p.info.grade||'중급';
     const defRate = CONV_RATE_DEFAULTS[grade]??1.00;
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
