@@ -646,6 +646,18 @@ tbody tr:hover td { background: var(--ci-light); }
   body.print-alert #tab_alert .no-print.alert-print .btn { display: none !important; }
   .modal-overlay { display: none !important; }
   @page { margin: 0; size: A4; }
+  /* ── 별첨5(배치계획표) 가로 인쇄 fit (긴 사업 자동 발동) ──
+     - 별첨5 한정: portrait → landscape 전환 (page 규칙은 JS가 동적 <style id="deployPageRule">로 주입)
+     - 폭 297mm, 본문 폰트 9pt 다운
+     - body에 print-deploy-landscape가 있을 때만 적용 (다른 서식 인쇄에 영향 X)
+     - JS 측에서 scrollWidth/Height 측정 후 transform: scale 추가 적용 */
+  body.print-deploy-landscape { font-size: 9pt; }
+  body.print-deploy-landscape .a4-preview#deployDoc {
+    width: 297mm !important;
+    max-width: 297mm !important;
+    margin: 0 auto !important;
+    transform-origin: top left;
+  }
 }
 </style>
 </head>
@@ -4651,6 +4663,9 @@ async function printSingleByeolji(kind) {
   // 첫 출력 높이 버그 fix: 폰트·이미지 디코드·layout 측정 대기
   await _waitForPrintReady(targetEls);
 
+  // 별첨5(배치계획표) 단독 출력 시 가로 fit 적용 (다른 서식은 영향 X)
+  if (kind === 'deploy') _applyDeployFitForPrint();
+
   // afterprint 정리 핸들러 (1회성)
   const restore = () => {
     window.removeEventListener('afterprint', restore);
@@ -4662,6 +4677,7 @@ async function printSingleByeolji(kind) {
     document.title = origTitle;
     if (parent && originalChildren) originalChildren.forEach(el => parent.appendChild(el));
     if (modal) modal.style.visibility = '';
+    if (kind === 'deploy') _undoDeployFit();
     // 단독출력 후 다시 통합출력 모달이 떠 있을 수 있게 그대로 둠
   };
   window.addEventListener('afterprint', restore);
@@ -6732,6 +6748,116 @@ async function _waitForPrintReady(targetEls) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// 별첨5(배치계획표) 가로 인쇄 fit — 긴 사업(배치월 12 초과) 자동 발동
+// 4단계: (1) orientation 결정 (2) <col> 폭 동적 재계산 (3) 폰트 다운
+//        (4) scrollWidth/Height 측정 → transform: scale 안전망
+// 모든 변경은 _deployFitState에 백업 → _undoDeployFit()에서 복원.
+// ─────────────────────────────────────────────────────────────
+let _deployFitState = null;
+
+function _applyDeployFitForPrint() {
+  const doc = document.getElementById('deployDoc');
+  if (!doc) return;
+  // 총 월수 측정: thead 두 번째 row(yearRow) colspan 합 / 2
+  const headRows = doc.querySelectorAll('thead tr');
+  const yearTh = headRows[1] ? headRows[1].querySelectorAll('th') : [];
+  let totalM = 0;
+  yearTh.forEach(th => { totalM += (parseInt(th.getAttribute('colspan'),10)||0) / 2; });
+  totalM = Math.round(totalM);
+  if (totalM <= 0) return;
+
+  // (1) Orientation: 12개월 이하 portrait 유지, 초과 시 landscape
+  const orientation = totalM > 12 ? 'landscape' : 'portrait';
+
+  // 백업
+  _deployFitState = {
+    doc,
+    prevTransform: doc.style.transform,
+    prevTransformOrigin: doc.style.transformOrigin,
+    prevWidth: doc.style.width,
+    prevMaxWidth: doc.style.maxWidth,
+    colWidths: [],
+    pageStyleEl: null,
+    landscape: orientation === 'landscape'
+  };
+
+  // (2) <col> 폭 백업 + 인쇄용 재계산
+  const cols = Array.from(doc.querySelectorAll('colgroup col'));
+  cols.forEach(c => _deployFitState.colWidths.push(c.style.width));
+
+  // 페이지 인쇄 가능 폭(px @96dpi) — A4 portrait=210mm(793px), landscape=297mm(1122.5px), margin=0
+  const pageWpx = orientation === 'landscape' ? Math.round(297*96/25.4) : Math.round(210*96/25.4);
+  // doc padding 38(좌)+30(우 실제 30) → 좌우 합 60. 안전여유 −10 → 가용폭.
+  const padReserve = 60 + 10;
+  const innerWpx = pageWpx - padReserve;
+
+  // 좌측 4컬럼(38+28+38+26=130), 우측 4컬럼(48+42+62+52=204) 고정 폭
+  const LEFT_FIXED = 130, RIGHT_FIXED = 204;
+  const monthAvailable = Math.max(0, innerWpx - LEFT_FIXED - RIGHT_FIXED);
+  // 월당 2 cells. 셀당 폭 = floor(monthAvailable / (totalM*2)), 최소 6, 최대 9
+  const cells = totalM * 2;
+  let newColW = cells > 0 ? Math.floor(monthAvailable / cells) : 6;
+  newColW = Math.max(6, Math.min(9, newColW));
+
+  // colgroup 구조: [4 fixed left] + [totalM*2 month cols] + [4 fixed right]
+  if (cols.length >= 8 + cells) {
+    for (let i = 4; i < 4 + cells; i++) {
+      cols[i].style.width = newColW + 'px';
+    }
+  }
+
+  if (orientation === 'landscape') {
+    document.body.classList.add('print-deploy-landscape');
+    // @page는 body 클래스와 결합 불가 → 동적 <style> 인젝션으로 강제
+    const styleEl = document.createElement('style');
+    styleEl.id = 'deployPageRuleTmp';
+    styleEl.textContent = '@media print { @page { size: A4 landscape; margin: 0; } }';
+    document.head.appendChild(styleEl);
+    _deployFitState.pageStyleEl = styleEl;
+    doc.style.width = '297mm';
+    doc.style.maxWidth = '297mm';
+  }
+
+  // (4) 안전망: 실제 측정 후 폭/높이 초과 시 transform: scale
+  //    측정 시점에 doc는 visibility:hidden;display:block 상태(헬퍼가 잡아둠).
+  //    여기서 한 번 더 reflow 후 scrollWidth/Height 측정.
+  void doc.offsetHeight;
+  const measWpx = doc.scrollWidth;
+  const measHpx = doc.scrollHeight;
+  // A4 페이지 안쪽 폭/높이 (margin 0)
+  const pageHpx = orientation === 'landscape' ? Math.round(210*96/25.4) : Math.round(297*96/25.4);
+  let scale = 1;
+  if (measWpx > pageWpx) scale = Math.min(scale, pageWpx / measWpx);
+  if (measHpx > pageHpx) scale = Math.min(scale, pageHpx / measHpx);
+  if (scale < 0.999) {
+    // 소수4자리 버림(인쇄 안전 마진 0.5% 추가 축소)
+    scale = Math.floor(scale * 1000) / 1000 - 0.005;
+    if (scale < 0.5) scale = 0.5;
+    doc.style.transformOrigin = 'top left';
+    doc.style.transform = `scale(${scale})`;
+    _deployFitState.scaleApplied = scale;
+  }
+}
+
+function _undoDeployFit() {
+  const st = _deployFitState;
+  _deployFitState = null;
+  if (!st) return;
+  try {
+    document.body.classList.remove('print-deploy-landscape');
+    if (st.pageStyleEl && st.pageStyleEl.parentNode) st.pageStyleEl.parentNode.removeChild(st.pageStyleEl);
+    if (st.doc) {
+      st.doc.style.transform = st.prevTransform || '';
+      st.doc.style.transformOrigin = st.prevTransformOrigin || '';
+      st.doc.style.width = st.prevWidth || '';
+      st.doc.style.maxWidth = st.prevMaxWidth || '';
+      const cols = Array.from(st.doc.querySelectorAll('colgroup col'));
+      cols.forEach((c, i) => { c.style.width = st.colWidths[i] || ''; });
+    }
+  } catch (e) { console.error(e); }
+}
+
 async function printDeployOnly() {
   const tab = document.getElementById('tab6');
   if (!tab) return;
@@ -6739,10 +6865,12 @@ async function printDeployOnly() {
   tab.classList.add('print-target');
   document.body.classList.add('print-deploy-only');
   await _waitForPrintReady([tab]);
+  _applyDeployFitForPrint();
   window.print();
   setTimeout(() => {
     tab.classList.remove('print-target');
     document.body.classList.remove('print-deploy-only');
+    _undoDeployFit();
   }, 500);
 }
 function printCalcResult() {
@@ -6891,11 +7019,17 @@ async function _runBidExportStep() {
 
   // ★ 첫 출력 높이 버그 fix: hidden 탭 레이아웃 미계산 + 폰트/이미지 미대기 문제
   await _waitForPrintReady(targetEls);
+
+  // 별첨5(배치계획표) 포함 그룹만 가로 fit 적용 (별지1·2·서약서 그룹은 영향 X)
+  if (g.tabs.includes('tab6')) _applyDeployFitForPrint();
+
   try { window.print(); } catch(e) { console.error(e); }
 }
 
 function _onBidExportAfterPrint() {
   if (!_bidExportState) return;
+  // 이전 스텝이 배치계획표였다면 fit 복원
+  _undoDeployFit();
   _bidExportState.index += 1;
   if (_bidExportState.index < _bidExportState.groups.length) {
     setTimeout(_runBidExportStep, 600);
