@@ -744,10 +744,21 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
 
       <div id="bidExportStatus" style="margin-top:14px;font-size:12px;color:#1e40af;font-weight:600;min-height:18px"></div>
+
+      <div style="margin-top:18px;border-top:1px dashed #cbd5e1;padding-top:14px">
+        <div style="font-size:12px;color:#475569;font-weight:700;margin-bottom:8px">또는 서식별 단독 출력 (PDF · 1개 파일)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="printSingleByeolji('byeolji1')" style="font-size:12px;padding:6px 10px">📝 별지1호 단독</button>
+          <button class="btn btn-outline" onclick="printSingleByeolji('byeolji2')" style="font-size:12px;padding:6px 10px">📊 별지2호 단독</button>
+          <button class="btn btn-outline" onclick="printSingleByeolji('deploy')" style="font-size:12px;padding:6px 10px">📅 배치계획표 단독</button>
+          <button class="btn btn-outline" onclick="printSingleByeolji('swear')" style="font-size:12px;padding:6px 10px">📜 서약서 단독</button>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px">※ 단독 출력은 파일명 자동 지정(상단 파일 ①②③ 입력 무시) · 인쇄 대화상자에서 「PDF로 저장」 선택</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-gray" onclick="closeBidExportModal()">닫기</button>
-      <button class="btn btn-primary" id="bidExportStartBtn" onclick="startBidExport()" style="background:#065f46;border-color:#047857">출력 시작</button>
+      <button class="btn btn-primary" id="bidExportStartBtn" onclick="startBidExport()" style="background:#065f46;border-color:#047857">통합 출력 시작</button>
     </div>
   </div>
 </div>
@@ -4313,6 +4324,133 @@ function parseAnnouncementText(rawText) {
   // 위치 미추출 시 '-' 기본값
   if (!result.location) result.location = '-';
 
+  // ── 시공자 (사업주체와 분리, 행정처분 팝업용) ──
+  //   12번 블록의 "2) 시공자 [회사명]" 패턴을 우선 사용 (사업주체 회사명과 혼동 방지)
+  //   폴백: rawJoined 전역에서 "시공자" 라벨 뒤 회사명
+  {
+    // 1순위: 12번 항목 내 "2) 시공자" 패턴 — 가장 정확
+    const sec12Match = rawJoined.match(/12\s*[\.\)][\s\S]{0,2500}/);
+    if (sec12Match) {
+      const ctxt = sec12Match[0];
+      // "2) 시공자 (주)XXX의" / "2) 시공자 "(주)XXX""
+      const cm = ctxt.match(/2\s*\)\s*시\s*공\s*자\s*["'"'「『]?\s*((?:㈜|\(주\)|주식회사)?\s*[가-힣a-zA-Z0-9·]+(?:\s*(?:㈜|\(주\)|주식회사))?)\s*["'"'」』]?\s*(?:의|,)/);
+      if (cm) result.contractor = cm[1].replace(/\s+/g, '').trim();
+    }
+    // 2순위 폴백: "2) 시공자" 위치 직후 첫 회사명
+    if (!result.contractor) {
+      const cIdx = rawJoined.search(/2\s*\)\s*시\s*공\s*자/);
+      if (cIdx >= 0) {
+        const seg = rawJoined.slice(cIdx, cIdx + 300);
+        const cMatch = seg.match(/(?:㈜|\(주\)|주식회사)\s*[가-힣a-zA-Z0-9·]+/)
+                    || seg.match(/[가-힣a-zA-Z0-9·]+\s*(?:㈜|\(주\)|주식회사)/);
+        if (cMatch) result.contractor = cMatch[0].replace(/\s+/g, '').trim();
+      }
+    }
+    // 3순위 폴백: 전역 "시공자" 라벨 뒤 첫 회사명 (12번 항목 없을 때만)
+    if (!result.contractor) {
+      const cIdx = rawJoined.search(/시\s*공\s*자\s*[:：]/);
+      if (cIdx >= 0) {
+        const seg = rawJoined.slice(cIdx, cIdx + 200);
+        const fm = seg.match(/시\s*공\s*자\s*[:：]\s*((?:㈜|\(주\)|주식회사)?\s*[가-힣a-zA-Z0-9·]+(?:\s*(?:㈜|\(주\)|주식회사))?)/);
+        if (fm) result.contractor = fm[1].replace(/\s+/g, '').trim();
+      }
+    }
+  }
+
+  // ── 12번: 행정처분 이력 및 감리원 추가의무배치 파싱 ──
+  //   "감리원 추가의무배치"가 핵심 판정. "없음"/"있음"/"필요" 키워드와 결합.
+  //   "나. 감리원 추가의무배치" 블록을 잘라 그 안에서만 판정 (오판 방지).
+  {
+    // 1·2페이지 통합 텍스트 + 줄바꿈 보존본
+    const fullRaw = (rawText || '').replace(/\r/g, '').replace(/<<<PAGE2>>>/g, '');
+    const fullJoined = fullRaw.replace(/\s+/g, ' ');
+
+    const penalty = {
+      hasAdditional: false,      // 추가의무배치 필요 여부
+      additionalText: '',         // 추가의무배치 설명 원문
+      clientPenalty: '',          // 사업주체 행정처분 (요약)
+      contractorSuspension: '',   // 시공자 영업정지 (요약)
+      contractorDemerit: '',      // 시공자 벌점 (요약)
+      raw: ''                     // 12번 블록 전체 원문
+    };
+
+    // ── 12번 블록 추출: "12." 또는 "12 ." 시작 ~ 다음 항목("13.") 또는 끝 ──
+    let sec12 = '';
+    const m12 = fullRaw.match(/(?:^|\n)\s*12\s*[\.\)]\s*[\s\S]*?(?=(?:\n\s*1[3-9]\s*[\.\)])|(?:\n\s*[2-9]\d\s*[\.\)])|$)/);
+    if (m12) sec12 = m12[0];
+    else {
+      // 폴백: "행정처분 이력" 주변 ±1500자
+      const idx = fullRaw.search(/행정처분\s*이력/);
+      if (idx >= 0) sec12 = fullRaw.slice(Math.max(0, idx - 100), idx + 1500);
+    }
+    penalty.raw = sec12.trim();
+
+    if (sec12) {
+      const sec12Flat = sec12.replace(/\s+/g, ' ');
+
+      // ── 사업주체 행정처분 (1번 항목) ──
+      //   "1) 사업주체" ~ "2) 시공자" 구간
+      const clientBlock = sec12Flat.match(/1\s*\)\s*사업주체[\s\S]*?(?=2\s*\)\s*시공자|나\s*\.|$)/);
+      if (clientBlock) {
+        if (/해당사항\s*없음|해당없음|없음/.test(clientBlock[0])) {
+          penalty.clientPenalty = '해당사항 없음';
+        } else {
+          penalty.clientPenalty = clientBlock[0].replace(/^.*?:\s*/, '').slice(0, 200).trim();
+        }
+      }
+
+      // ── 시공자 영업정지·벌점 (2번 항목) ──
+      const contractorBlock = sec12Flat.match(/2\s*\)\s*시공자[\s\S]*?(?=나\s*\.\s*감리원|$)/);
+      if (contractorBlock) {
+        const cb = contractorBlock[0];
+        // 가) 영업정지
+        const sus = cb.match(/가\s*\)[^나]*?영업정지[\s\S]*?(?=나\s*\)|$)/);
+        if (sus) {
+          penalty.contractorSuspension = /해당사항\s*없음|해당없음|없음/.test(sus[0])
+            ? '해당사항 없음'
+            : sus[0].replace(/^.*?:\s*/, '').slice(0, 200).trim();
+        }
+        // 나) 벌점
+        const dem = cb.match(/나\s*\)[^다]*?벌점[\s\S]*?(?=다\s*\)|$)/);
+        if (dem) {
+          penalty.contractorDemerit = /해당사항\s*없음|해당없음|없음/.test(dem[0])
+            ? '해당사항 없음'
+            : dem[0].replace(/^.*?:\s*/, '').slice(0, 200).trim();
+        }
+      }
+
+      // ── 핵심: "감리원 추가의무배치" 판정 ──
+      //   "나. 감리원 추가의무배치" 블록 추출 후 그 안에서 없음/있음 판정
+      const addBlock = sec12Flat.match(/나\s*\.\s*감리원\s*추가의무배치[\s\S]*$/);
+      let addText = addBlock ? addBlock[0] : '';
+      // 폴백: 블록 추출 실패 시 "추가의무배치" 키워드 주변 ±300자
+      if (!addText) {
+        const addIdx = sec12Flat.search(/추가의무배치/);
+        if (addIdx >= 0) addText = sec12Flat.slice(Math.max(0, addIdx - 50), addIdx + 300);
+      }
+
+      if (addText) {
+        penalty.additionalText = addText.slice(0, 500).trim();
+        // 우선순위 1: "없음" / "해당하지 않아" / "해당없음" → 없음
+        const noPattern = /감리원\s*추가의무배치["'」』]?\s*(?:가\s*)?없음|해당하지\s*않아|해당사항\s*없음|해당없음/;
+        // 우선순위 2: "있음" / "필요" / "추가배치" + 명·인 숫자
+        const yesPattern = /추가의무배치\s*(?:가\s*)?(?:있음|필요|함)|추가배치\s*\d|감리원\s*\d+\s*명\s*추가/;
+        if (noPattern.test(addText)) {
+          penalty.hasAdditional = false;
+        } else if (yesPattern.test(addText)) {
+          penalty.hasAdditional = true;
+        } else {
+          // 우선순위 3: 영업정지/벌점 본문이 "해당사항 없음"이 아니면 보수적으로 "있음" 처리
+          const susHas = penalty.contractorSuspension && penalty.contractorSuspension !== '해당사항 없음';
+          const demHas = penalty.contractorDemerit && penalty.contractorDemerit !== '해당사항 없음';
+          penalty.hasAdditional = !!(susHas || demHas);
+        }
+      }
+    }
+
+    result.adminPenalty = penalty;
+  }
+
   return result;
 }
 
@@ -4370,6 +4508,169 @@ function showAnnouncementResult(parsed, rawText) {
   statusEl.innerHTML = html;
   // 파싱 결과를 임시 저장
   window._announceParsed = parsed;
+
+  // ★ 12번 행정처분/추가의무배치 결과 팝업 (파싱 직후 1회 노출)
+  if (parsed.adminPenalty) {
+    setTimeout(() => showAdminPenaltyPopup(parsed), 250);
+  }
+}
+
+// ──────────────────────────────────────────────
+// 12번 행정처분 / 감리원 추가의무배치 결과 팝업
+// ──────────────────────────────────────────────
+function _ensureAdminPenaltyModal() {
+  if (document.getElementById('adminPenaltyModal')) return;
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div class="modal-overlay" id="adminPenaltyModal" style="z-index:9999">
+      <div class="modal-box" id="adminPenaltyBox" style="width:min(620px,96vw)">
+        <div class="modal-header" id="adminPenaltyHeader">
+          <h2 id="adminPenaltyTitle">행정처분 / 감리원 추가의무배치</h2>
+          <button class="modal-close" onclick="closeAdminPenaltyPopup()">✕</button>
+        </div>
+        <div class="modal-body" id="adminPenaltyBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeAdminPenaltyPopup()" id="adminPenaltyOkBtn">확인</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(div.firstElementChild);
+}
+function closeAdminPenaltyPopup() {
+  const m = document.getElementById('adminPenaltyModal');
+  if (m) m.classList.remove('open');
+}
+function showAdminPenaltyPopup(parsed) {
+  _ensureAdminPenaltyModal();
+  const ap = parsed.adminPenalty || {};
+  const clientName = parsed.client || '(사업주체 미파싱)';
+  const ctorName = parsed.contractor || '(시공자 미파싱)';
+  const has = !!ap.hasAdditional;
+
+  // 색상 톤: 있음=빨강 파스텔, 없음=기본(녹색 톤)
+  const accent = has ? '#dc2626' : '#047857';
+  const bg = has ? '#fee2e2' : '#ecfdf5';
+  const border = has ? '#fca5a5' : '#a7f3d0';
+  const headerBg = has ? '#fecaca' : '#d1fae5';
+  const head = has
+    ? '🚨 감리원 추가의무배치 — <span style="color:#b91c1c">필요</span>'
+    : '✅ 감리원 추가의무배치 — 없음';
+
+  const titleEl = document.getElementById('adminPenaltyTitle');
+  const headerEl = document.getElementById('adminPenaltyHeader');
+  const boxEl = document.getElementById('adminPenaltyBox');
+  const bodyEl = document.getElementById('adminPenaltyBody');
+  const okBtn = document.getElementById('adminPenaltyOkBtn');
+  if (titleEl) titleEl.innerHTML = head;
+  if (headerEl) { headerEl.style.background = headerBg; headerEl.style.color = accent; }
+  if (boxEl) { boxEl.style.border = `2px solid ${border}`; boxEl.style.background = '#fff'; }
+  if (okBtn) { okBtn.style.background = accent; okBtn.style.borderColor = accent; }
+
+  const lineSty = 'padding:6px 0;font-size:13px;line-height:1.6';
+  const labelSty = 'display:inline-block;min-width:140px;color:#475569;font-weight:700';
+  const valSty = (v) => `color:${v && v !== '해당사항 없음' ? '#b91c1c' : '#0f172a'}`;
+
+  const bigBox = has
+    ? `<div style="margin:8px 0 16px;padding:14px 16px;border-radius:10px;background:${bg};border:1px solid ${border};text-align:center">
+         <div style="font-size:22px;font-weight:900;color:${accent};letter-spacing:1px">⚠️ 추가배치 필요</div>
+         <div style="font-size:12px;color:#7f1d1d;margin-top:4px">감리자지정기준에 따른 영업정지 처분 또는 합산벌점 해당</div>
+       </div>`
+    : `<div style="margin:8px 0 16px;padding:12px 16px;border-radius:10px;background:${bg};border:1px solid ${border};text-align:center">
+         <div style="font-size:16px;font-weight:800;color:${accent}">감리원 추가의무배치 없음</div>
+         <div style="font-size:12px;color:#065f46;margin-top:4px">행정처분 사항이 추가배치 기준에 해당하지 않음</div>
+       </div>`;
+
+  const detailRows = `
+    <div style="${lineSty}"><span style="${labelSty}">사업주체</span> <span>${escHtml(clientName)}</span></div>
+    <div style="${lineSty}"><span style="${labelSty}">└ 행정처분 이력</span> <span style="${valSty(ap.clientPenalty)}">${escHtml(ap.clientPenalty || '미파싱')}</span></div>
+    <div style="${lineSty};margin-top:6px"><span style="${labelSty}">시공자</span> <span>${escHtml(ctorName)}</span></div>
+    <div style="${lineSty}"><span style="${labelSty}">└ 영업정지(2년이내)</span> <span style="${valSty(ap.contractorSuspension)}">${escHtml(ap.contractorSuspension || '미파싱')}</span></div>
+    <div style="${lineSty}"><span style="${labelSty}">└ 합산벌점(최근2년)</span> <span style="${valSty(ap.contractorDemerit)}">${escHtml(ap.contractorDemerit || '미파싱')}</span></div>
+  `;
+
+  const rawDetail = ap.additionalText
+    ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#64748b">▾ 공고문 12번 원문 보기</summary>
+         <div style="margin-top:8px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:240px;overflow-y:auto;color:#334155">${escHtml((ap.raw || ap.additionalText))}</div>
+       </details>`
+    : '';
+
+  if (bodyEl) bodyEl.innerHTML = bigBox + `<div style="padding:4px 4px 0">${detailRows}</div>` + rawDetail;
+  document.getElementById('adminPenaltyModal').classList.add('open');
+}
+
+// ──────────────────────────────────────────────
+// 통합출력 모달에서 서식별 단독 PDF 출력
+//   - 모달을 잠시 숨기고 해당 탭만 print-target 적용
+//   - _waitForPrintReady로 첫 출력 높이 버그 동일 fix 적용
+// ──────────────────────────────────────────────
+async function printSingleByeolji(kind) {
+  const map = {
+    byeolji1: { tabs: ['tab4'], render: () => renderByeolji1(), suffix: '별지1호_감리자지정신청서' },
+    byeolji2: { tabs: ['tab5'], render: () => { renderByeolji2Cover(); if (typeof calcB2 === 'function') calcB2(); }, suffix: '별지2호_자기평가서' },
+    deploy:   { tabs: ['tab6'], render: () => { renderDeploySettings(); renderDeployTable(); }, suffix: '감리원_배치계획표' },
+    swear:    { tabs: ['tab8'], render: () => renderByeolchum1(), suffix: '별첨1_서약서' }
+  };
+  const conf = map[kind];
+  if (!conf) return;
+
+  // 렌더 강제 (탭 미진입 상태에서도 미리보기 보장)
+  try { conf.render(); } catch (e) { console.error(e); }
+
+  // 파일명 제목 자동 지정 (Print 대화상자의 document.title이 기본 파일명으로 사용됨)
+  const origTitle = document.title;
+  const pj = (typeof getProjectData === 'function') ? getProjectData() : {};
+  const site = ((pj.name || '주택건설공사') + '').replace(/[\\\/:*?"<>|\r\n]/g, '_').trim();
+  const dp = (typeof getPrintDatePrefix === 'function') ? getPrintDatePrefix() : '';
+  document.title = `${dp}_${site}_${conf.suffix}`;
+
+  // 모달 일시 숨김 (인쇄 미리보기에서 깔끔)
+  const modal = document.getElementById('bidExportModal');
+  const modalWasOpen = modal && modal.classList.contains('open');
+  if (modal) modal.style.visibility = 'hidden';
+
+  const parent = document.getElementById('tab4')?.parentNode;
+  const originalChildren = parent ? [...parent.children] : null;
+
+  // 모든 탭 초기화 후 대상 탭에 print-target 적용 + DOM 끝으로 이동
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.remove('print-target');
+    el.style.pageBreakBefore = '';
+  });
+  const targetEls = [];
+  conf.tabs.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('print-target');
+      if (i > 0) el.style.pageBreakBefore = 'always';
+      if (parent) parent.appendChild(el);
+      targetEls.push(el);
+    }
+  });
+  document.body.classList.add('print-deploy-only');
+
+  // 첫 출력 높이 버그 fix: 폰트·이미지 디코드·layout 측정 대기
+  await _waitForPrintReady(targetEls);
+
+  // afterprint 정리 핸들러 (1회성)
+  const restore = () => {
+    window.removeEventListener('afterprint', restore);
+    targetEls.forEach(el => {
+      el.classList.remove('print-target');
+      el.style.pageBreakBefore = '';
+    });
+    document.body.classList.remove('print-deploy-only');
+    document.title = origTitle;
+    if (parent && originalChildren) originalChildren.forEach(el => parent.appendChild(el));
+    if (modal) modal.style.visibility = '';
+    // 단독출력 후 다시 통합출력 모달이 떠 있을 수 있게 그대로 둠
+  };
+  window.addEventListener('afterprint', restore);
+
+  try { window.print(); } catch (e) { console.error(e); restore(); }
+  // afterprint를 못 받는 환경 대비 안전망 (10초 후 강제 복원)
+  setTimeout(() => {
+    if (document.body.classList.contains('print-deploy-only')) restore();
+  }, 10000);
 }
 
 function applyAnnouncement() {
@@ -6397,12 +6698,47 @@ function renderCalcResult(unitCostHtml = '') {
   </div>`;
 }
 
-function printDeployOnly() {
+// ★ 첫 출력 레이아웃 미계산 버그 fix를 위한 공통 헬퍼
+//   hidden 탭(@media print 외에는 display:none)에 print-target만 붙이면
+//   layout이 한 번도 안 잡혀 첫 인쇄에서 높이 계산이 어긋남.
+//   화면상 visibility:hidden + display:block로 강제 reflow 후 fonts/이미지 대기.
+async function _waitForPrintReady(targetEls) {
+  if (!targetEls || !targetEls.length) return;
+  const prevInline = targetEls.map(el => ({ el, display: el.style.display, visibility: el.style.visibility, position: el.style.position }));
+  targetEls.forEach(el => {
+    el.style.display = 'block';
+    el.style.visibility = 'hidden';
+    el.style.position = 'absolute';
+  });
+  try {
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (e) { /* ignore */ }
+    }
+    const imgs = [];
+    targetEls.forEach(el => el.querySelectorAll('img').forEach(im => imgs.push(im)));
+    await Promise.all(imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      if (typeof img.decode === 'function') return img.decode().catch(() => {});
+      return new Promise(res => { img.onload = img.onerror = () => res(); });
+    }));
+    targetEls.forEach(el => void el.offsetHeight);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  } finally {
+    prevInline.forEach(({ el, display, visibility, position }) => {
+      el.style.display = display || '';
+      el.style.visibility = visibility || '';
+      el.style.position = position || '';
+    });
+  }
+}
+
+async function printDeployOnly() {
   const tab = document.getElementById('tab6');
   if (!tab) return;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
   tab.classList.add('print-target');
   document.body.classList.add('print-deploy-only');
+  await _waitForPrintReady([tab]);
   window.print();
   setTimeout(() => {
     tab.classList.remove('print-target');
@@ -6527,7 +6863,7 @@ function startBidExport() {
   _runBidExportStep();
 }
 
-function _runBidExportStep() {
+async function _runBidExportStep() {
   const st = _bidExportState;
   if (!st) return;
   if (st.index >= st.groups.length) { _finishBidExport(); return; }
@@ -6540,18 +6876,22 @@ function _runBidExportStep() {
     el.classList.remove('print-target');
     el.style.pageBreakBefore = '';
   });
+  const targetEls = [];
   g.tabs.forEach((id, i) => {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('print-target');
       if (i > 0) el.style.pageBreakBefore = 'always';
       st.parent.appendChild(el);
+      targetEls.push(el);
     }
   });
   document.body.classList.add('print-deploy-only');
   document.title = g.title;
-  // 약간의 reflow 여유 후 인쇄
-  setTimeout(() => { try { window.print(); } catch(e) { console.error(e); } }, 120);
+
+  // ★ 첫 출력 높이 버그 fix: hidden 탭 레이아웃 미계산 + 폰트/이미지 미대기 문제
+  await _waitForPrintReady(targetEls);
+  try { window.print(); } catch(e) { console.error(e); }
 }
 
 function _onBidExportAfterPrint() {
@@ -6593,12 +6933,13 @@ window.addEventListener('afterprint', () => {
   if (_bidExportState) _onBidExportAfterPrint();
 });
 
-function printByeolji(num) {
+async function printByeolji(num) {
   const tabIdx = num + 3;
   const tab = document.getElementById('tab' + tabIdx);
   if (!tab) return;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
   tab.classList.add('print-target');
+  await _waitForPrintReady([tab]);
   window.print();
   setTimeout(() => tab.classList.remove('print-target'), 500);
 }
@@ -6652,22 +6993,24 @@ ${preview.innerHTML}
   showStatus(`📄 ${filename} 저장 완료`);
 }
 function saveByeolji1AsWord() { saveTabAsWord('byeolji1Preview', renderByeolji1, '별지 제1호 — 감리자 지정 신청서', '별지제1호_감리자지정신청서'); }
-function printTab(tabId) {
+async function printTab(tabId) {
   const tab = document.getElementById(tabId);
   if (!tab) return;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
   tab.classList.add('print-target');
+  await _waitForPrintReady([tab]);
   window.print();
   setTimeout(() => tab.classList.remove('print-target'), 500);
 }
 
 // ── 관리알림 탭 전용 인쇄 (no-print 카드를 일시적으로 표시) ──
-function printAlertTab() {
+async function printAlertTab() {
   const tab = document.getElementById('tab_alert');
   if (!tab) return;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
   tab.classList.add('print-target');
   document.body.classList.add('print-alert');
+  await _waitForPrintReady([tab]);
   window.print();
   setTimeout(() => {
     tab.classList.remove('print-target');
