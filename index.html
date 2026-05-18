@@ -644,6 +644,7 @@ tbody tr:hover td { background: var(--ci-light); }
   /* 관리알림 탭 인쇄 시: no-print 카드도 보이도록 (alert-print 마커가 있는 경우만) */
   body.print-alert .no-print.alert-print { display: block !important; }
   body.print-alert #tab_alert .no-print.alert-print .btn { display: none !important; }
+  .modal-overlay { display: none !important; }
   @page { margin: 0; size: A4; }
 }
 </style>
@@ -658,7 +659,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div id="last-generated" style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <button onclick="printAllForSubmit()" title="별지1호·별지2호·서약서·배치계획표 통합 인쇄" style="padding:4px 10px;background:#065f46;color:#fff;border:1px solid #047857;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:700">🖨 입찰서류 통합출력</button>
+    <button onclick="printAllForSubmit()" title="별지1호·별지2호·서약서·배치계획표를 3개 PDF 파일로 분리 출력 (서약서 결합 위치 및 파일명 선택 가능)" style="padding:4px 10px;background:#065f46;color:#fff;border:1px solid #047857;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:700">🖨 입찰서류 통합출력(PDF)</button>
 
     <button id="hb-const-btn" onclick="openConstEditor()" title="계산 기준값 편집 (법령 개정 시 업데이트)" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;">⚙️ 기준값</button>
     <span class="badge">v2.1 · ㈜아이팝엔지니어링</span>
@@ -692,6 +693,61 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="modal-footer">
       <button class="btn btn-gray" onclick="closePdfModal()">취소</button>
       <button class="btn btn-primary" id="importBtn" onclick="importParsed()">이 데이터로 가져오기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 입찰서류 통합 PDF 출력 옵션 MODAL ── -->
+<div class="modal-overlay" id="bidExportModal">
+  <div class="modal-box" style="width:min(640px,96vw)">
+    <div class="modal-header">
+      <h2>🖨 입찰서류 통합 PDF 출력</h2>
+      <button class="modal-close" onclick="closeBidExportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">
+        총 <b>3개의 PDF 파일</b>로 분리 출력됩니다. <b>서약서</b>를 어느 서식과 함께 출력할지 선택하세요.<br>
+        <span style="color:#666;font-size:12px">※ 인쇄 대화상자에서 <b>「대상: PDF로 저장」</b>을 선택하면 아래 입력한 제목이 파일명으로 사용됩니다.</span>
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+        <label style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer">
+          <input type="radio" name="bidExportGroup" value="A" checked onchange="updateBidExportTitles()" style="margin-top:3px">
+          <span style="font-size:13px">
+            <b>① 별지1호 + 서약서</b> &nbsp;/&nbsp; <b>② 별지2호</b> &nbsp;/&nbsp; <b>③ 배치계획표</b><br>
+            <span style="font-size:12px;color:#666">서약서를 별지1호와 함께 출력</span>
+          </span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer">
+          <input type="radio" name="bidExportGroup" value="B" onchange="updateBidExportTitles()" style="margin-top:3px">
+          <span style="font-size:13px">
+            <b>① 별지1호</b> &nbsp;/&nbsp; <b>② 별지2호 + 서약서</b> &nbsp;/&nbsp; <b>③ 배치계획표</b><br>
+            <span style="font-size:12px;color:#666">서약서를 별지2호와 함께 출력</span>
+          </span>
+        </label>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc">
+        <div style="font-size:12px;color:#475569;font-weight:700;margin-bottom:2px">각 PDF 파일 제목</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="width:48px;color:#0f172a;font-weight:600">파일 ①</span>
+          <input type="text" id="bidTitle1" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="width:48px;color:#0f172a;font-weight:600">파일 ②</span>
+          <input type="text" id="bidTitle2" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="width:48px;color:#0f172a;font-weight:600">파일 ③</span>
+          <input type="text" id="bidTitle3" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </label>
+      </div>
+
+      <div id="bidExportStatus" style="margin-top:14px;font-size:12px;color:#1e40af;font-weight:600;min-height:18px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeBidExportModal()">닫기</button>
+      <button class="btn btn-primary" id="bidExportStartBtn" onclick="startBidExport()" style="background:#065f46;border-color:#047857">출력 시작</button>
     </div>
   </div>
 </div>
@@ -6383,41 +6439,153 @@ function getPrintDatePrefix() {
   return `${String(y).slice(2)}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`;
 }
 
+// ─────────────────────────────────────────────────────────────
+// 입찰서류 통합 PDF 출력 (3개 파일 분리, 서약서 결합 위치 선택, 파일명 사용자 입력)
+// ─────────────────────────────────────────────────────────────
+let _bidExportState = null;
+
 function printAllForSubmit() {
+  // 미리보기 강제 렌더 (탭 미진입 상태에서도 보장)
   renderByeolji1();
   renderByeolji2Cover();
   if (typeof calcB2 === 'function') calcB2();
   renderByeolchum1();
   renderDeploySettings();
   renderDeployTable();
-  // 인쇄 순서: 별지1호 → 별지2호 → 서약서 → 배치계획표
-  const printOrder = ['tab4','tab5','tab8','tab6'];
-  const parent = document.getElementById('tab4').parentNode;
-  const originalChildren = [...parent.children];
+  openBidExportModal();
+}
 
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
-  printOrder.forEach((id, i) => {
+function openBidExportModal() {
+  updateBidExportTitles();
+  _bidExportState = null;
+  const st = document.getElementById('bidExportStatus');
+  if (st) st.textContent = '';
+  const btn = document.getElementById('bidExportStartBtn');
+  if (btn) { btn.textContent = '출력 시작'; btn.disabled = false; }
+  document.getElementById('bidExportModal').classList.add('open');
+}
+
+function closeBidExportModal() {
+  document.getElementById('bidExportModal').classList.remove('open');
+  // 진행 중이던 출력 상태가 남아 있으면 정리
+  if (_bidExportState) _restoreBidExportDom();
+  _bidExportState = null;
+}
+
+function updateBidExportTitles() {
+  const pj = (typeof getProjectData === 'function') ? getProjectData() : {};
+  const site = ((pj.name || '주택건설공사') + '').replace(/[\\\/:*?"<>|\r\n]/g, '_').trim();
+  const dp = getPrintDatePrefix();
+  const grp = document.querySelector('input[name="bidExportGroup"]:checked')?.value || 'A';
+  const t1 = document.getElementById('bidTitle1');
+  const t2 = document.getElementById('bidTitle2');
+  const t3 = document.getElementById('bidTitle3');
+  if (grp === 'A') {
+    if (t1) t1.value = `${dp}_${site}_별지1호+서약서`;
+    if (t2) t2.value = `${dp}_${site}_별지2호`;
+  } else {
+    if (t1) t1.value = `${dp}_${site}_별지1호`;
+    if (t2) t2.value = `${dp}_${site}_별지2호+서약서`;
+  }
+  if (t3) t3.value = `${dp}_${site}_감리원 배치계획표`;
+}
+
+function startBidExport() {
+  const grp = document.querySelector('input[name="bidExportGroup"]:checked')?.value || 'A';
+  const t1 = (document.getElementById('bidTitle1').value || '').trim() || '입찰서류_1';
+  const t2 = (document.getElementById('bidTitle2').value || '').trim() || '입찰서류_2';
+  const t3 = (document.getElementById('bidTitle3').value || '').trim() || '입찰서류_3';
+  // tab4=별지1호, tab5=별지2호, tab6=배치계획표, tab8=서약서
+  const groups = (grp === 'A')
+    ? [
+        { title: t1, tabs: ['tab4','tab8'] },
+        { title: t2, tabs: ['tab5'] },
+        { title: t3, tabs: ['tab6'] }
+      ]
+    : [
+        { title: t1, tabs: ['tab4'] },
+        { title: t2, tabs: ['tab5','tab8'] },
+        { title: t3, tabs: ['tab6'] }
+      ];
+  const parent = document.getElementById('tab4')?.parentNode;
+  if (!parent) { alert('탭 컨테이너를 찾지 못했습니다.'); return; }
+  _bidExportState = {
+    groups,
+    index: 0,
+    parent,
+    originalChildren: [...parent.children],
+    origTitle: document.title
+  };
+  const btn = document.getElementById('bidExportStartBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '출력 진행 중…'; }
+  _runBidExportStep();
+}
+
+function _runBidExportStep() {
+  const st = _bidExportState;
+  if (!st) return;
+  if (st.index >= st.groups.length) { _finishBidExport(); return; }
+  const g = st.groups[st.index];
+  const status = document.getElementById('bidExportStatus');
+  if (status) status.textContent = `📄 ${st.index + 1}/${st.groups.length} 출력 중: "${g.title}" — 인쇄 대화상자에서 「PDF로 저장」을 선택하세요.`;
+
+  // 모든 탭 초기화 후 그룹 탭만 print-target + DOM 끝으로 이동(원하는 순서로 인쇄)
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.remove('print-target');
+    el.style.pageBreakBefore = '';
+  });
+  g.tabs.forEach((id, i) => {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('print-target');
       if (i > 0) el.style.pageBreakBefore = 'always';
-      parent.appendChild(el);
+      st.parent.appendChild(el);
     }
   });
   document.body.classList.add('print-deploy-only');
-  const origTitle = document.title;
-  document.title = `${getPrintDatePrefix()}_주택법 감리자 지정 신청서`;
-  window.print();
-  setTimeout(() => {
-    document.title = origTitle;
-    originalChildren.forEach(el => parent.appendChild(el));
-    printOrder.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.classList.remove('print-target'); el.style.pageBreakBefore = ''; }
-    });
-    document.body.classList.remove('print-deploy-only');
-  }, 500);
+  document.title = g.title;
+  // 약간의 reflow 여유 후 인쇄
+  setTimeout(() => { try { window.print(); } catch(e) { console.error(e); } }, 120);
 }
+
+function _onBidExportAfterPrint() {
+  if (!_bidExportState) return;
+  _bidExportState.index += 1;
+  if (_bidExportState.index < _bidExportState.groups.length) {
+    setTimeout(_runBidExportStep, 600);
+  } else {
+    setTimeout(_finishBidExport, 200);
+  }
+}
+
+function _restoreBidExportDom() {
+  const st = _bidExportState;
+  if (!st) return;
+  document.title = st.origTitle;
+  // 원본 DOM 순서 복원
+  st.originalChildren.forEach(el => st.parent.appendChild(el));
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.remove('print-target');
+    el.style.pageBreakBefore = '';
+  });
+  document.body.classList.remove('print-deploy-only');
+}
+
+function _finishBidExport() {
+  const st = _bidExportState;
+  if (!st) return;
+  _restoreBidExportDom();
+  const total = st.groups.length;
+  _bidExportState = null;
+  const status = document.getElementById('bidExportStatus');
+  if (status) status.textContent = `✅ 전체 ${total}개 PDF 출력 단계 완료. 닫기를 누르세요.`;
+  const btn = document.getElementById('bidExportStartBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '다시 출력'; }
+}
+
+window.addEventListener('afterprint', () => {
+  if (_bidExportState) _onBidExportAfterPrint();
+});
 
 function printByeolji(num) {
   const tabIdx = num + 3;
