@@ -5900,7 +5900,8 @@ function renderDeploySettings(force = false) {
       ? parseFloat(dsNR.months) : (rsNR && reNR ? calcDeployMonths(rsNR, reNR) : 0);
     const gradeNR = personnel[r.id]?.info?.appliedGrade || personnel[r.id]?.info?.grade || '중급';
     const crNR = (dsNR.convRate !== undefined && dsNR.convRate !== '') ? parseFloat(dsNR.convRate) : (CONV_RATE_DEFAULTS[gradeNR] ?? 1.0);
-    nonresUsedSt += floorAt3(actMNR * crNR);
+    // B안: 표시 개월값으로 환산
+    nonresUsedSt += floorAt3(floorAt3(actMNR) * crNR);
   });
   extraDeployRows.filter(r => r.placement === '비상주').forEach(r => {
     const rsNR = parseYMShort(r.startYM || defStartDisp) || projStart;
@@ -5908,7 +5909,8 @@ function renderDeploySettings(force = false) {
     const actMNR = (r.months !== '' && r.months !== undefined && !isNaN(parseFloat(r.months)))
       ? parseFloat(r.months) : (rsNR && reNR ? calcDeployMonths(rsNR, reNR) : 0);
     const crNR = (r.convRate !== undefined && r.convRate !== '') ? parseFloat(r.convRate) : 1.139;
-    nonresUsedSt += floorAt3(actMNR * crNR);
+    // B안: 표시 개월값으로 환산
+    nonresUsedSt += floorAt3(floorAt3(actMNR) * crNR);
   });
   nonresUsedSt = floorAt3(nonresUsedSt);
   let settingsHtml = '';
@@ -5969,7 +5971,7 @@ function renderDeploySettings(force = false) {
     const reDisp = parseYMShort(endDisp)   || (isNonRes ? null : projEnd);
     const calcM  = (rsDisp && reDisp) ? calcDeployMonths(rsDisp, reDisp) : 0;
     const monthsVal = (ds.months !== undefined && ds.months !== '')
-      ? ds.months : (calcM > 0 ? calcM.toFixed(3) : '');
+      ? ds.months : (calcM > 0 ? floorAt3(calcM).toFixed(3) : '');
     // 총괄 범위 초과 여부 표시 (총괄 본인 제외, clamp 후이므로 정상이면 sErr=false)
     const sErr = !isChiefRole && cr.start && startDisp && startDisp < cr.start;
     const eErr = !isChiefRole && cr.end   && endDisp   && endDisp   > cr.end;
@@ -6023,7 +6025,7 @@ function renderDeploySettings(force = false) {
     const rsE = parseYMShort(startD) || projStart;
     const reE = parseYMShort(endD)   || projEnd;
     const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
-    const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? calcME.toFixed(3) : '');
+    const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? floorAt3(calcME).toFixed(3) : '');
     const convRateE = (row.convRate !== undefined && row.convRate !== '') ? row.convRate : 1.139;
     const poHtml = `<option value=""${!row.placement?' selected':''} disabled>-- 선택 --</option>` +
       ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
@@ -6073,7 +6075,7 @@ function renderDeploySettings(force = false) {
     const rsDisp_e = parseYMShort(startDisp_e) || projStart;
     const reDisp_e = parseYMShort(endDisp_e)   || projEnd;
     const calcM_e  = (rsDisp_e && reDisp_e) ? calcDeployMonths(rsDisp_e, reDisp_e) : 0;
-    const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? calcM_e.toFixed(3) : '');
+    const monthsVal_e = (ds_e.months !== undefined && ds_e.months !== '') ? ds_e.months : (calcM_e > 0 ? floorAt3(calcM_e).toFixed(3) : '');
     const sErrE = cr.start && startDisp_e && startDisp_e < cr.start;
     const eErrE = cr.end   && endDisp_e   && endDisp_e   > cr.end;
     settingsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:#f0fff4;flex-wrap:nowrap">
@@ -6182,7 +6184,8 @@ function renderDeployTable() {
     const grade = p.info.appliedGrade || p.info.grade || '중급';
     const defRate = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const cr = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
-    residentConvTotal += floorAt3(m_f * cr);
+    // B안: 표시 개월값으로 환산
+    residentConvTotal += floorAt3(floorAt3(m_f) * cr);
   });
   // 추가배치 상주 인월수 포함
   const sizeClass_1p = document.getElementById('pj_sizeClass')?.value || '';
@@ -6193,7 +6196,8 @@ function renderDeployTable() {
     const dsM_e1 = (ds_e1.months !== undefined && ds_e1.months !== '' && !isNaN(parseFloat(ds_e1.months))) ? parseFloat(ds_e1.months) : null;
     const m_e1 = dsM_e1 !== null ? dsM_e1 : calcDeployMonths(rs_e1, re_e1);
     const cr_e1 = (ds_e1.convRate !== undefined && ds_e1.convRate !== '') ? parseFloat(ds_e1.convRate) : 1.000;
-    residentConvTotal += floorAt3(m_e1 * cr_e1);
+    // B안: 표시 개월값으로 환산
+    residentConvTotal += floorAt3(floorAt3(m_e1) * cr_e1);
   }
   // 직접 추가 감리원은 환산비·인월수 '-' 표기이므로 합계 제외
   // 비상주 상한: 법정인월수 × 15% (제6조②)
@@ -6217,8 +6221,10 @@ function renderDeployTable() {
     const gantt = allMonths.map(({ y, m }) => ganttHalfCells(rs, re, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
+    // B안 (2026-05-21): 화면에 표시되는 개월값(floorAt3)으로 환산인·월수 산출 — 검산 일관성 + 합계 보수화
+    const actualMonthsDisp = floorAt3(actualMonths);
 
-    let convPM = floorAt3(actualMonths * convRate);
+    let convPM = floorAt3(actualMonthsDisp * convRate);
     if (r.placement === '비상주') {
       // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
       convPM = nonresMax > 0 ? floorAt3(Math.max(0, nonresMax - nonresPM)) : convPM;
@@ -6251,6 +6257,8 @@ function renderDeployTable() {
     const re_c = parseYMShort(row.endYM)   || end;
     const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
     const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
+    // B안 (2026-05-21): 표시 개월값(floorAt3)으로 환산인·월수 산출
+    const actM_cDisp = floorAt3(actM_c);
     const gantt_c = allMonths.map(({ y, m }) => ganttHalfCells(rs_c, re_c, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
@@ -6258,7 +6266,7 @@ function renderDeployTable() {
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraCountT >= 2 ? (civExtraIdxT === 1 ? '토목(전)' : '토목(후)') : '토목'; }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
-    let cpm_c = floorAt3(actM_c * cr_c);
+    let cpm_c = floorAt3(actM_cDisp * cr_c);
     if (row.placement === '비상주') {
       const remaining = nonresMax > 0 ? Math.max(0, nonresMax - nonresPM) : cpm_c;
       cpm_c = Math.min(cpm_c, remaining);
@@ -6567,7 +6575,8 @@ function renderCalcResult(unitCostHtml = '') {
     const m_f2 = dsM !== null ? dsM : ((rs && re) ? calcDeployMonths(rs, re) : 0);
     const grade = p.info.appliedGrade||p.info.grade||'중급';
     const cr = (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : (CONV_RATE_DEFAULTS[grade]??1.00);
-    resConvTotal2 += floorAt3(m_f2 * cr);
+    // B안: 표시 개월값으로 환산
+    resConvTotal2 += floorAt3(floorAt3(m_f2) * cr);
   });
   // 제6조②: 비상주 상한 = 법정인월수 × 15%. 사용자가 deployLawMonths를 수정한 경우 그 값 우선 (별첨5와 동일)
   const _lpForCap = parseFloat(document.getElementById('deployLawMonths')?.value) || legalPM || 0;
@@ -6582,10 +6591,12 @@ function renderCalcResult(unitCostHtml = '') {
     const re = parseYMShort(ds.endYM)   || pjEnd;
     const dsM2 = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths2 = dsM2 !== null ? dsM2 : ((rs && re) ? calcDeployMonths(rs, re) : 0);
+    // B안 (2026-05-21): 표시 개월값(floorAt3)으로 환산인·월수 산출
+    const actualMonths2Disp = floorAt3(actualMonths2);
     const grade   = p.info.appliedGrade||p.info.grade||'중급';
     const defRate = CONV_RATE_DEFAULTS[grade]??1.00;
     const convRate= (ds.convRate!==undefined&&ds.convRate!=='') ? parseFloat(ds.convRate) : defRate;
-    let convPM = floorAt3(actualMonths2 * convRate);
+    let convPM = floorAt3(actualMonths2Disp * convRate);
     if (r.placement==='비상주') {
       // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
       convPM = nonresMax2 > 0 ? floorAt3(Math.max(0, nonresRemaining2)) : convPM;
@@ -6621,8 +6632,10 @@ function renderCalcResult(unitCostHtml = '') {
     const re_c = pjEnd   ? (parseYMShort(row.endYM)   || pjEnd)   : null;
     const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
     const actM_c = dsM_c !== null ? dsM_c : ((rs_c && re_c) ? calcDeployMonths(rs_c, re_c) : 0);
+    // B안: 표시 개월값으로 환산
+    const actM_cDispS = floorAt3(actM_c);
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
-    let cpm_c = floorAt3(actM_c * cr_c);
+    let cpm_c = floorAt3(actM_cDispS * cr_c);
     if (row.placement === '비상주') {
       // 비상주 상한 적용 (renderDeployTable과 동일 정책)
       cpm_c = nonresMax2 > 0 ? floorAt3(Math.max(0, Math.min(cpm_c, nonresRemaining2))) : cpm_c;
