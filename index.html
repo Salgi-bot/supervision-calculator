@@ -6147,6 +6147,9 @@ function renderDeployTable() {
   //   start.day ≥ 15  → 시작월 좌측 미음영 (우반쪽만)
   //   end.day   ≤ 15  → 종료월 우측 미음영 (좌반쪽만)
   //   그 외(중간월·1~14일 시작·16~말일 종료)는 양쪽 음영(풀월).
+  // 2026-05-28 옵션 A로 갱신: sd===1 일 때만 시작월 좌반 풀, ed===lastDay일 때만 종료월 우반 풀.
+  //   그 외는 시작월 좌반쪽 미음영(우반쪽만 칠), 종료월 우반쪽 미음영(좌반쪽만 칠).
+  //   예: 8.10 시작 → 좌반 미음영(우반만), 6.9 종료 → 우반 미음영(좌반만).
   // 같은 월 2셀의 시각 일체감을 위해 좌셀 border-right:none, 우셀 border-left:none.
   function ganttHalfCells(rs, re, y, m, fillColor, baseBorder) {
     const cellBase = `${baseBorder};padding:0;height:50px`;
@@ -6158,8 +6161,8 @@ function renderDeployTable() {
     const isEnd   = (y === re.y && m === re.m);
     const sd = rs.d || 1;
     const ed = re.d || lastDay(re.y, re.m);
-    const leftOn  = !(isStart && sd >= 15);
-    const rightOn = !(isEnd   && ed <= 15);
+    const leftOn  = !(isStart && sd !== 1);
+    const rightOn = !(isEnd   && ed !== lastDay(re.y, re.m));
     if (leftOn && rightOn) {
       return `<td colspan="2" style="${cellBase};background:${fillColor}"></td>`;
     }
