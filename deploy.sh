@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail  # push 실패를 tee가 가리지 않도록 (배포 성공 오보 방지)
 # 주택건설공사 — GitHub Pages 배포 스크립트
 REPO="/Users/salgi/주택건설공사"
 FILE="index.html"

@@ -2656,7 +2656,7 @@ function updateRowDates(i, which, val) {
 
 function parseDate(s) {
   if (!s) return null;
-  const m = s.replace(/[^0-9]/g, '-').match(/(\d{4})-(\d{2})-(\d{2})/);
+  const m = String(s).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
   return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
 }
 
