@@ -8197,9 +8197,15 @@ function renderByeolchum3() {
   const b3Align = (byeolchum3HeaderAlign === 'right') ? 'right' : 'left';
   const _b3mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
   // 평가대상 감리원 (chief, arch/civil/mech, nonres)
-  const evalRoles = [...ROLES, ...nonEvalList];
+  // [활성 판정] getActiveRoles() 단일 진입점에 위임 — inline 토글 필터 금지(CLAUDE.md 보호 영역 §1).
+  // 토글 OFF(archEnabled·civil2Enabled 등) 역할은 데이터가 남아 있어도 출력하지 않는다 (2026-06-12 사용자 정책 확정).
+  // nonEvalList(비평가)는 토글 무관 항목이므로 그대로 포함, newEvalList(신규)는 아래 별첨4에서 별도 처리.
+  const _b3ActiveIds = new Set(getActiveRoles().map(r => r.id));
+  const evalRoles = [...ROLES.filter(r => _b3ActiveIds.has(r.id)), ...nonEvalList];
   evalRoles.forEach(role => {
-    if(role.id === 'arch' && _b3mode === '미만') return; // 300세대 미만: 건축감리원 제외
+    // [서식 분기] 300세대 미만 서식(별지2호 미만)에는 건축감리원 평가 항목이 없음 — 세대수 서식 분기이지
+    // 토글 활성 필터가 아니므로 getActiveRoles()와 별개 유지 (archManualOn으로 토글 ON이어도 미만 서식에선 제외).
+    if(role.id === 'arch' && _b3mode === '미만') return;
     const p = personnel[role.id];
     // [의도 명시] 별첨3 산출은 정책상 "실데이터 입력된 행만" 출력한다.
     // '-' 는 표시용 placeholder 이므로 실데이터가 아님 → 제외 (CLAUDE.md 보호 영역 §3 조치 항목).
