@@ -1682,6 +1682,7 @@ tbody tr:hover td { background: var(--ci-light); }
       <button class="btn" onclick="saveTabAsWord('byeolchum2Preview', renderByeolchum2, '별첨2 — 수행실적', '별첨2_수행실적')">📄 Word 저장</button>
     </div>
   </div>
+  <div id="byeolchum2Warn" class="no-print"></div>
   <div id="byeolchum2Preview"></div>
 </div>
 
@@ -1855,11 +1856,19 @@ function removeNewPerson(id) {
   triggerAutoSave();
 }
 
+// 안전 JSON 파서 — localStorage 값 손상 시 스크립트 로드 시점 throw(앱 백지화) 방지.
+// 정상 값이면 JSON.parse 와 완전히 동일하게 동작, 파싱 실패 시에만 fallback 반환.
+function safeParse(raw, fallback) {
+  if (raw === null || raw === undefined) return fallback;
+  try { return JSON.parse(raw); } catch (e) { console.warn('safeParse 실패, fallback 사용:', e.message); return fallback; }
+}
 // 건축 상주 / 토목(후) 포함 여부 토글
-let archEnabled  = JSON.parse(localStorage.getItem('archEnabled')  ?? 'true');
-let civil2Enabled = JSON.parse(localStorage.getItem('civil2Enabled') ?? 'true');
+let archEnabled  = safeParse(localStorage.getItem('archEnabled'), true);
+let civil2Enabled = safeParse(localStorage.getItem('civil2Enabled'), true);
+// 사용자가 토글 ON 으로 명시적 설정 시 true → _syncArchEnabled 의 자동 OFF/ON 덮어쓰기 차단 (옵션 B)
+let archManualOn = safeParse(localStorage.getItem('archManualOn'), false);
 // 사용자가 토글 ON 으로 명시적 설정 시 true → _syncCivil2Enabled 의 자동 OFF 차단 (옵션 B)
-let civil2ManualOn = JSON.parse(localStorage.getItem('civil2ManualOn') ?? 'false');
+let civil2ManualOn = safeParse(localStorage.getItem('civil2ManualOn'), false);
 // ============================================================================
 // [보호 영역] 역할 활성 판정 단일 진입점
 // ----------------------------------------------------------------------------
@@ -1903,10 +1912,23 @@ function _refreshAfterToggle() {
 function toggleArch() {
   archEnabled = !archEnabled;
   localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+  // 옵션 B: 사용자가 명시적으로 ON → 수동 우선권 활성, OFF → 우선권 해제(자동 동기화 복귀)
+  archManualOn = archEnabled;
+  localStorage.setItem('archManualOn', JSON.stringify(archManualOn));
   _refreshAfterToggle();
 }
 // 공사규모(세대수) 변경 시 분야별건축감리원 자동 ON/OFF
+// 옵션 B: 사용자가 토글로 명시적 ON 한 경우(archManualOn=true)
+//         세대수(sizeClass)가 300미만이어도 OFF 로 되돌리지 않음 (수동 ON 우선권).
 function _syncArchEnabled() {
+  if (archManualOn) {
+    if (!archEnabled) {
+      archEnabled = true;
+      localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+      return true;
+    }
+    return false;
+  }
   const val = document.getElementById('pj_sizeClass')?.value || '';
   const wantArch = (val !== '300미만');
   if (archEnabled !== wantArch) {
@@ -1972,6 +1994,8 @@ function toggleCivil2() {
 //  자동 저장 (localStorage) — 공고 정보 제외
 // ══════════════════════════════════════════════════════
 const AUTOSAVE_KEY = 'hb_autosave_v1';
+// docImages(base64) 분리 저장 키 — 본 autosave 가 5MB quota 에 걸려 통째로 유실되는 것 방지
+const DOCIMG_KEY = 'hb_docimages_v1';
 let _autoSaveTimer = null;
 
 // 자동 JSON 파일 백업 — 30분 간격, 변경 있을 때만 Downloads 폴더로 export
@@ -2036,10 +2060,12 @@ function doAutoSave() {
     b2NumState미만: b2NumState미만,
     b2EgState미만: b2EgState미만,
     perfRecords: typeof perfRecords !== 'undefined' ? perfRecords : [],
-    docImages: typeof docImages !== 'undefined' ? docImages : [],
+    // docImages(base64)는 용량이 커서 별도 키(DOCIMG_KEY)로 분리 저장 (quota 초과 시 본 데이터 보호).
+    // 하위 호환: loadAutoSave 에서 분리 키 우선, 없으면 기존 inline data.docImages 폴백 복원.
     civil2Enabled: civil2Enabled,
     civil2ManualOn: civil2ManualOn,
     archEnabled: archEnabled,
+    archManualOn: archManualOn,
     deployState: deployState,
     extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
@@ -2067,17 +2093,56 @@ function doAutoSave() {
     stampSize: stampSize,
     savedAt: new Date().toISOString(),
   };
+  let mainOk = false, imgOk = false;
   try {
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    mainOk = true;
+  } catch (e) {
+    console.warn('자동 저장 실패(본 데이터):', e.message);
+  }
+  // docImages 분리 저장 — 실패해도 본 데이터 저장에는 영향 없음
+  try {
+    localStorage.setItem(DOCIMG_KEY, JSON.stringify(typeof docImages !== 'undefined' ? docImages : []));
+    imgOk = true;
+  } catch (e) {
+    console.warn('자동 저장 실패(첨부 이미지):', e.message);
+  }
+  const el = document.getElementById('autoSaveStatus');
+  if (mainOk && imgOk) {
     _lastChangeAt = Date.now();
-    const el = document.getElementById('autoSaveStatus');
     if (el) {
       const t = new Date();
       el.textContent = `자동저장 ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+      el.style.color = '';
+      el.style.fontWeight = '';
     }
-  } catch (e) {
-    console.warn('자동 저장 실패:', e.message);
+  } else {
+    // 무음 실패 방지: 상태 표시 + 비차단 배너 (quota 초과 등)
+    if (el) {
+      el.textContent = mainOk ? '⚠ 저장 실패(첨부 이미지 용량 초과)' : '⚠ 저장 실패(용량 초과)';
+      el.style.color = '#dc2626';
+      el.style.fontWeight = '700';
+    }
+    _showAutoSaveFailBanner(mainOk);
   }
+}
+
+// 자동 저장 실패 비차단 배너 (localStorage quota 초과 등) — 중복 표시 방지
+function _showAutoSaveFailBanner(mainOk) {
+  if (document.getElementById('autoSaveFailBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'autoSaveFailBanner';
+  banner.className = 'no-print';
+  banner.style.cssText = 'position:fixed;top:16px;right:16px;z-index:99999;background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:14px 16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:340px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;line-height:1.5;color:#7f1d1d';
+  banner.innerHTML = `
+    <div style="font-weight:700;margin-bottom:6px">⚠ 자동 저장 실패 (브라우저 저장 용량 초과)</div>
+    <div style="margin-bottom:10px">${mainOk
+      ? '첨부 서류 이미지가 저장 용량을 초과했습니다. 입력 데이터는 저장되었지만 이미지는 새로고침 시 사라질 수 있습니다. 이미지 일부를 삭제하거나 "전체 저장 (JSON)"으로 파일 백업하세요.'
+      : '입력 데이터가 자동 저장되지 않았습니다. 새로고침 시 데이터가 사라질 수 있으니 즉시 "전체 저장 (JSON)" 버튼으로 파일 백업하세요.'}</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="this.closest('#autoSaveFailBanner').remove()" style="padding:6px 12px;background:#fff;color:#7f1d1d;border:1px solid #dc2626;border-radius:4px;cursor:pointer">확인</button>
+    </div>`;
+  document.body.appendChild(banner);
 }
 
 // 자동 JSON 파일 백업: 30분마다, 마지막 백업 이후 변경 있을 때만
@@ -2206,7 +2271,13 @@ function loadAutoSave() {
       perfRecords = data.perfRecords;
       if (typeof renderPerfTable === 'function') renderPerfTable();
     }
-    if (data.docImages && data.docImages.length) {
+    // docImages 복원: 분리 키(DOCIMG_KEY) 우선, 없으면 기존 autosave inline(data.docImages) 폴백 (하위 호환)
+    const _sepImgs = safeParse(localStorage.getItem(DOCIMG_KEY), null);
+    if (Array.isArray(_sepImgs) && _sepImgs.length) {
+      docImages = _sepImgs;
+      if (typeof renderDocImageList === 'function') renderDocImageList();
+      if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
+    } else if (data.docImages && data.docImages.length) {
       docImages = data.docImages;
       if (typeof renderDocImageList === 'function') renderDocImageList();
       if (typeof renderDocImagePreview === 'function') renderDocImagePreview();
@@ -2241,6 +2312,14 @@ function loadAutoSave() {
       if (archName && archName !== '-') archEnabled = true;
     }
     localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+    // archManualOn 복원 (옵션 B 수동 ON 우선권 플래그) — civil2ManualOn 과 동일한 호환 처리
+    if (typeof data.archManualOn === 'boolean') {
+      archManualOn = data.archManualOn;
+    } else {
+      // 이전 버전 호환: 저장값에 플래그가 없는데 arch가 ON 인 경우, 사용자 의도 보존을 위해 수동 ON 으로 간주
+      archManualOn = !!archEnabled;
+    }
+    localStorage.setItem('archManualOn', JSON.stringify(archManualOn));
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
@@ -2280,6 +2359,7 @@ function loadAutoSave() {
 function clearAutoSave() {
   if (!confirm('자동 저장 데이터를 초기화하시겠습니까?\n(감리원·회사 정보가 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
+  localStorage.removeItem(DOCIMG_KEY); // 분리 저장된 첨부 이미지도 함께 삭제 (quota 잔존 방지)
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2'); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
@@ -3130,6 +3210,7 @@ function clearProjectOnly() {
 function clearAll() {
   if (!confirm('모든 데이터를 초기화하시겠습니까?\n(자동 저장 데이터도 함께 삭제됩니다)')) return;
   localStorage.removeItem(AUTOSAVE_KEY);
+  localStorage.removeItem(DOCIMG_KEY); // 분리 저장된 첨부 이미지도 함께 삭제 (quota 잔존 방지)
   ROLES.forEach(r => { personnel[r.id] = makeEmptyPerson(r, r.id === 'civil2'); });
   nonEvalList.forEach(r => { delete personnel[r.id]; });
   nonEvalList = []; nonEvalCounter = 0;
@@ -7903,6 +7984,20 @@ function renderByeolchum2() {
   // 합계는 표시값(개별 절사 억원)의 합 — 화면에 보이는 숫자와 일치
   const totalConverted = Math.round(calcs.reduce((s,c) => s + floorAt2(c.calcAmount), 0) * 100) / 100;
   let html = '';
+  // 공고일 미입력 경고 — 오늘 날짜 폴백으로 계산된 환산금액은 제출용으로 부정확할 수 있음.
+  // ★ 화면 전용: 배너는 byeolchum2Preview "바깥"의 형제 컨테이너(#byeolchum2Warn, class=no-print)에 넣는다.
+  //   ① 인쇄: @media print 의 .no-print { display:none !important } 규칙으로 숨김.
+  //   ② Word 저장: saveTabAsWord 가 byeolchum2Preview.innerHTML 만 복사하므로 원천 미포함.
+  //   → 제출 서식(인쇄·PDF·Word) 어디에도 경고가 찍히지 않는다 (서식 오염 = 실격 위험 방지).
+  const _b2WarnEl = document.getElementById('byeolchum2Warn');
+  if (_b2WarnEl) {
+    _b2WarnEl.innerHTML = (annParts.length < 3)
+      ? `<div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#dc2626;font-size:13px;font-weight:700;">
+           ⚠ 공고일(모집공고일)이 입력되지 않아 오늘 날짜 기준으로 환산금액이 계산되었습니다.
+           데이터 입력 탭의 "모집공고일"을 입력해야 정확한 3년 기준 환산금액이 산출됩니다. (이 경고는 인쇄·Word에 포함되지 않습니다)
+         </div>`
+      : '';
+  }
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
   const b2cAlign = (byeolchum2HeaderAlign === 'right') ? 'right' : 'left';
@@ -8106,7 +8201,11 @@ function renderByeolchum3() {
   evalRoles.forEach(role => {
     if(role.id === 'arch' && _b3mode === '미만') return; // 300세대 미만: 건축감리원 제외
     const p = personnel[role.id];
-    if(!p.info.name) return;
+    // [의도 명시] 별첨3 산출은 정책상 "실데이터 입력된 행만" 출력한다.
+    // '-' 는 표시용 placeholder 이므로 실데이터가 아님 → 제외 (CLAUDE.md 보호 영역 §3 조치 항목).
+    // 활성 판정 프록시가 아니라 "데이터 유무" 판정이므로 getActiveRoles() 와 별개로 유지.
+    const nm = p.info.name;
+    if(!nm || nm === '-') return;
     const careers = p.careers || [];
     if(careers.length === 0) return; // 경력 없으면 페이지 제외
     const totalConvDays = careers.reduce((s,c) => s + Math.floor((c.days||0)*getRate(c.conType,c.workType,c.resident)), 0);
