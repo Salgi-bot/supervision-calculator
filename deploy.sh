@@ -23,9 +23,18 @@ if git diff --cached --quiet; then
   exit 0
 fi
 
+# ── 골든 테스트 게이트 (실패 시 배포 중단) ──────────────
+command -v node >/dev/null 2>&1 || { echo "node 없음 — PATH 확인 후 재실행"; exit 1; }
+if ! node "$REPO/test_calc.mjs" > /tmp/test_calc_last.log 2>&1; then
+  echo "골든 테스트 실패 — 배포 중단 (로그: /tmp/test_calc_last.log)"
+  tail -5 /tmp/test_calc_last.log
+  exit 1
+fi
+echo "골든 테스트 통과"
+
 # ── 백업 태그 ────────────────────────────────────────────
 BACKUP_TAG="backup-$(date '+%Y%m%d-%H%M%S')"
-git tag "$BACKUP_TAG"
+git tag "$BACKUP_TAG" || { echo "백업 태그 생성 실패 ($BACKUP_TAG 중복 가능) — 배포 중단"; exit 1; }
 
 # ── 커밋 & 푸시 ──────────────────────────────────────────
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
@@ -38,6 +47,8 @@ if git commit -m "deploy: $TIMESTAMP ${VERSION:+($VERSION)}"; then
     echo "백업 태그: $BACKUP_TAG"
     echo "$GH_URL"
     echo "[$(date '+%H:%M:%S')] 성공 ($VERSION)" >> "$LOG"
+    # 백업 태그 정리 — 최근 20개만 유지
+    git tag -l 'backup-*' | LC_ALL=C sort -r | tail -n +21 | xargs git tag -d >/dev/null 2>&1 || true
   else
     echo "푸시 실패 — 롤백 중..."
     git reset HEAD~1
