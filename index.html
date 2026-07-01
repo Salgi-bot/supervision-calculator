@@ -636,6 +636,12 @@ tbody tr:hover td { background: var(--ci-light); }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
+  /* 별지2호 자기평가서: 표+서명줄 높이가 A4 1장을 살짝 넘겨, 인쇄 시 페이지 경계에서
+     교체빈도 칸(rowspan) 테두리가 겹쳐 "줄 하나 더"처럼 보이는 문제 방지.
+     인쇄 한정으로 행 높이만 압축(폭·화면·항목·점수 불변) → 항상 1페이지.
+     단독출력·통합출력 모두 tab5에 print-target를 부여하므로 양쪽 적용됨. */
+  #tab5.print-target table td, #tab5.print-target table th { padding-top: 0 !important; padding-bottom: 0 !important; line-height: 10px !important; height: auto !important; }
+  #tab5.print-target table input { line-height: 10px !important; height: auto !important; }
   .btn, button:not(.no-print-exclude) { display: none !important; }
   .person-upload-zone, .upload-zone { display: none !important; }
   body.print-deploy-only #calcResultPreview { display: none !important; }
