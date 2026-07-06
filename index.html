@@ -3108,8 +3108,11 @@ function loadV2Data(data) {
   if (typeof data.civil2Enabled === 'boolean') {
     civil2Enabled = data.civil2Enabled;
   } else {
+    // 구버전 파일(토글키 없음): 실명 있거나 배치데이터(기간) 있으면 자동 ON — 토목후 누락 방지
     const _c2Name = personnel['civil2']?.info?.name;
-    if (_c2Name && _c2Name !== '-') civil2Enabled = true;
+    const _c2Dep = data.deployState && data.deployState['civil2'];
+    const _hasDep = _c2Dep && (_c2Dep.startYM || _c2Dep.endYM || _c2Dep.months);
+    if ((_c2Name && _c2Name !== '-') || _hasDep) civil2Enabled = true;
   }
   localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
   if (typeof data.civil2ManualOn === 'boolean') civil2ManualOn = data.civil2ManualOn;
