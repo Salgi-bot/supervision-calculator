@@ -7838,17 +7838,18 @@ function renderPerfTable() {
     tbody.innerHTML += `<tr><td colspan="9" style="padding:6px;color:#dc2626;font-size:12px;border:1px solid #ccc">⚠ 데이터 입력 탭의 "공고일"을 입력해야 정확한 3년 기준 계산이 됩니다.</td></tr>`;
   }
 }
-// 만N년 방식 일수 (고시 [부표]): 시작일부터 만 N년 = N×365, 나머지 = 실제일수(초일산입).
+// 고시 [별표] 방식 = 달력연도(역년): 온전히 걸친 달력연도는 각 365일(윤년도 365), 앞·뒤 부분연도는 실제일수. 초일산입.
+// 근거: 별표 준공 예시 "122일(부분 2010) + 2년×365(온전 2011·2012)". (함수명은 레거시 유지, 로직은 역년 분해)
 function _manNyeonDays(s, e) {
   if (!s || !e || e < s) return 0;
-  let n = 0, cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-  while (true) {
-    const nxtM1 = new Date(cur.getFullYear()+1, cur.getMonth(), cur.getDate()-1); // 만1년 완성일
-    if (nxtM1 <= e) { n++; cur = new Date(cur.getFullYear()+1, cur.getMonth(), cur.getDate()); }
-    else break;
+  let total = 0;
+  for (let y = s.getFullYear(); y <= e.getFullYear(); y++) {
+    const ys = new Date(y, 0, 1), ye = new Date(y, 11, 31);
+    const segS = s > ys ? s : ys, segE = e < ye ? e : ye;
+    const isFull = (segS.getTime() === ys.getTime() && segE.getTime() === ye.getTime());
+    total += isFull ? 365 : (Math.floor((segE - segS) / 86400000) + 1);
   }
-  const rem = (e >= cur) ? Math.floor((e-cur)/86400000)+1 : 0;
-  return n*365 + rem;
+  return total;
 }
 function calcPerfRecord(r, announcementDate) {
   const parseD = s => { if(!s) return null; const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
