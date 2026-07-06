@@ -1279,7 +1279,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:12px">
         <label style="white-space:nowrap">법정 인·월수</label>
-        <input type="text" id="deployLawMonths" placeholder="00.0" style="width:56px;font-size:12px" oninput="renderDeployTable()">
+        <input type="text" id="deployLawMonths" placeholder="자동" readonly title="법정 인·월수는 감리대상 공사비에서 자동 산정됩니다 (수정 불가)" style="width:56px;font-size:12px;background:#f1f5f9;color:#334155;cursor:not-allowed">
         <span style="font-size:11px;color:#666">인·월</span>
         <button onclick="autoCalcLegalMonths()" style="font-size:11px;padding:2px 8px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;white-space:nowrap">공사비로 자동계산</button>
         <label style="white-space:nowrap;margin-left:8px">투입 인·월수</label>
@@ -2168,6 +2168,8 @@ function _triggerJsonDownload() {
     extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
+    civil2Enabled: civil2Enabled,
+    civil2ManualOn: civil2ManualOn,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -2508,6 +2510,7 @@ function switchTab(visualIdx) {
   if (visualIdx === 5) { renderDeploySettings(); renderDeployTable(); }
   if (visualIdx === 6) renderSayongIngam();
   if (visualIdx === 7) renderDelegation();
+  if (visualIdx === 8) renderByeolchum2();
   if (visualIdx === 9) renderByeolchum3();
   if (visualIdx === 10) renderAlertTab();
 }
@@ -2935,6 +2938,8 @@ function saveAllJSON() {
     b2EgState미만: b2EgState미만,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
+    civil2Enabled: civil2Enabled,
+    civil2ManualOn: civil2ManualOn,
   };
   const pjName = data.project.name || '감리자지정';
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2959,6 +2964,8 @@ function savePersonnelJSON() {
     extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
+    civil2Enabled: civil2Enabled,
+    civil2ManualOn: civil2ManualOn,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -3096,6 +3103,18 @@ function loadV2Data(data) {
       }
     });
   }
+  // civil2(토목후) 활성 토글 복원 — 파일 우선, 없으면 이름 기반 추론(구버전 호환). loadAutoSave 규칙과 동일.
+  // 저장 파일이 토글을 실어오므로, 다른 입찰로 civil2가 OFF 된 브라우저에서 이 파일을 다시 불러와도 ON 으로 복원됨.
+  if (typeof data.civil2Enabled === 'boolean') {
+    civil2Enabled = data.civil2Enabled;
+  } else {
+    const _c2Name = personnel['civil2']?.info?.name;
+    if (_c2Name && _c2Name !== '-') civil2Enabled = true;
+  }
+  localStorage.setItem('civil2Enabled', JSON.stringify(civil2Enabled));
+  if (typeof data.civil2ManualOn === 'boolean') civil2ManualOn = data.civil2ManualOn;
+  else civil2ManualOn = !!civil2Enabled;
+  localStorage.setItem('civil2ManualOn', JSON.stringify(civil2ManualOn));
   // 비평가·추가평가 감리원 목록 복원 (없으면 유지)
   if (data.nonEvalList) {
     nonEvalList = data.nonEvalList;
@@ -3140,9 +3159,8 @@ function loadV2Data(data) {
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
   if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
-  if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
-  // 저장된 개월수 없으면 공사비 기준 자동 계산
-  else { syncDeployLawMonths(); }
+  // 법정 인·월수는 저장값을 신뢰하지 않고 항상 현재 공사비에서 자동 산정 (잔재값·임의변경 방지)
+  syncDeployLawMonths();
   renderDeploySettings();
   loadPersonToForm(currentPersonId);
   renderCareerTable();
@@ -6195,7 +6213,10 @@ function renderDeployTable() {
   syncPersonInfo();
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
-  const lawMonths = document.getElementById('deployLawMonths')?.value || '';
+  // 법정 인·월수는 항상 감리대상 공사비에서 자동 산정 (저장값·수동값 미신뢰). 칸은 표시용으로만 동기화.
+  const _autoLM = calcLegalMonths(pj.supervisionCost);
+  const lawMonths = (_autoLM !== null) ? String(_autoLM) : '';
+  { const _el = document.getElementById('deployLawMonths'); if (_el && _el.value !== lawMonths) _el.value = lawMonths; }
 
   const start = parseYM(pj.startDate);
   const end   = parseYM(pj.endDate);
@@ -6752,7 +6773,8 @@ function renderCalcResult(unitCostHtml = '') {
     </tr>`;
   });
 
-  const lawMonthsInput = parseFloat(document.getElementById('deployLawMonths')?.value)||legalPM;
+  const lawMonthsInput = legalPM; // 법정 인·월수는 항상 공사비 계산값 사용 (저장값·수동값 미신뢰)
+  { const _el = document.getElementById('deployLawMonths'); if (_el && String(_el.value) !== String(legalPM)) _el.value = String(legalPM); }
   const totalConvFixed = floorAt3(totalConv);
   const isOk = totalConvFixed >= lawMonthsInput;
   const okSty  = 'padding:2px 10px;border-radius:3px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0';
@@ -7787,15 +7809,15 @@ function renderPerfTable() {
     return `<tr style="${rowStyle}">
     <td style="text-align:center;border:1px solid #ccc;padding:4px">${i+1}</td>
     <td style="text-align:center;border:1px solid #ccc;padding:4px"><input type="checkbox" ${enabled?'checked':''} onchange="perfRecords[${i}].enabled=this.checked;renderPerfTable();triggerAutoSave()" title="서식에 포함"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value;renderPerfTable()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="number" value="${r.suspendDays||0}" onchange="perfRecords[${i}].suspendDays=+this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
-    <td style="border:1px solid #ccc;padding:2px"><select onchange="perfRecords[${i}].type=this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px">
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${escHtml(r.name)}" onchange="perfRecords[${i}].name=this.value;renderPerfTable();triggerAutoSave()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.startDate}" onchange="perfRecords[${i}].startDate=this.value;renderPerfTable();triggerAutoSave()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="text" value="${r.endDate}" onchange="perfRecords[${i}].endDate=this.value;renderPerfTable();triggerAutoSave()" placeholder="YYYY.MM.DD" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" value="${r.suspendDays||0}" onchange="perfRecords[${i}].suspendDays=+this.value;renderPerfTable();triggerAutoSave()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><select onchange="perfRecords[${i}].type=this.value;renderPerfTable();triggerAutoSave()" style="width:100%;border:none;padding:4px;font-size:12px">
       <option value="주택건설" ${r.type==='주택건설'?'selected':''}>주택건설(100%)</option>
       <option value="비주택건축" ${r.type==='비주택건축'?'selected':''}>비주택건축(80%)</option>
     </select></td>
-    <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value;renderPerfTable()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
+    <td style="border:1px solid #ccc;padding:2px"><input type="number" step="0.01" value="${r.amount||0}" onchange="perfRecords[${i}].amount=+this.value;renderPerfTable();triggerAutoSave()" style="width:100%;border:none;padding:4px;font-size:12px"></td>
     <td style="border:1px solid #ccc;padding:4px;text-align:center;background:#f0f9ff;font-size:12px;font-weight:700" title="${calcTip}">${calcDisp}</td>
     <td style="border:1px solid #ccc;padding:2px;text-align:center;white-space:nowrap">
       <button onclick="movePerfRow(${i},-1)" style="${btnSty}color:#555" title="위로">▲</button>
@@ -7816,24 +7838,37 @@ function renderPerfTable() {
     tbody.innerHTML += `<tr><td colspan="9" style="padding:6px;color:#dc2626;font-size:12px;border:1px solid #ccc">⚠ 데이터 입력 탭의 "공고일"을 입력해야 정확한 3년 기준 계산이 됩니다.</td></tr>`;
   }
 }
+// 만N년 방식 일수 (고시 [부표]): 시작일부터 만 N년 = N×365, 나머지 = 실제일수(초일산입).
+function _manNyeonDays(s, e) {
+  if (!s || !e || e < s) return 0;
+  let n = 0, cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  while (true) {
+    const nxtM1 = new Date(cur.getFullYear()+1, cur.getMonth(), cur.getDate()-1); // 만1년 완성일
+    if (nxtM1 <= e) { n++; cur = new Date(cur.getFullYear()+1, cur.getMonth(), cur.getDate()); }
+    else break;
+  }
+  const rem = (e >= cur) ? Math.floor((e-cur)/86400000)+1 : 0;
+  return n*365 + rem;
+}
 function calcPerfRecord(r, announcementDate) {
   const parseD = s => { if(!s) return null; const p=s.split(/[.\-\/]/); return p.length>=3 ? new Date(+p[0],+p[1]-1,+p[2]) : null; };
   const s = parseD(r.startDate), e = parseD(r.endDate);
   if(!s||!e) return null;
-  const totalDays = Math.floor((e-s)/86400000) + 1; // 초일산입 (착공일·준공일 양쪽 포함)
+  const totalDays = _manNyeonDays(s, e); // 고시 [부표] 만N년 방식 (착공일부터 만N년×365 + 나머지 실제일수)
   if(totalDays<=0) return null;
   const suspend = Math.max(0, r.suspendDays || 0);
   const applicableDays = Math.max(0, totalDays - suspend); // 해당일수 = 총감리일수 - 중지일수
   // 모집공고일 기준
   const annDate = announcementDate || new Date();
-  // 3년 이내 기준일 (초일불산입: 공고일 기산, 역산 3년 → 공고일-3년+1일)
-  const cutoff = new Date(annDate.getFullYear()-3, annDate.getMonth(), annDate.getDate()+1);
+  // 3년 기준일(시기) = 공고일-3년 (만3년 창: 종점=공고일 전날, 거기서 만3년 소급 → 공고일-3년. 표시값과 일치)
+  const cutoff = new Date(annDate.getFullYear()-3, annDate.getMonth(), annDate.getDate());
   // 3년 이내 시작일 = max(착공일, 기준일)
   const effStart = s < cutoff ? cutoff : s;
   // 준공 여부에 따라 종료일 결정
   const isCompleted = e <= annDate;
-  const effEnd = isCompleted ? e : annDate; // 수행중: 모집공고일 포함
-  const recentDays = Math.max(0, Math.floor((effEnd-effStart)/86400000) + 1); // 초일산입
+  const annDayBefore = new Date(annDate.getFullYear(), annDate.getMonth(), annDate.getDate() - 1); // 공고일 전날 (고시 [부표] 계산례 종점)
+  const effEnd = e <= annDayBefore ? e : annDayBefore; // min(준공일, 공고일전날) — 각주·고시 [부표]와 일치 (isCompleted 라벨은 종전 유지)
+  const recentDays = Math.max(0, _manNyeonDays(effStart, effEnd)); // 고시 [부표] 만N년 방식
   // 3년이내 중지일수 = 전체 중지일수를 기간 비율로 배분 (올림 → 중지일수 최대화 → 적용일수 최소화 → 보수적 계산)
   const recentSuspend = totalDays > 0 ? Math.ceil(suspend * recentDays / totalDays) : 0;
   const appliedDays = Math.max(0, recentDays - recentSuspend); // 적용일수
