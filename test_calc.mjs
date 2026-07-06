@@ -57,11 +57,11 @@ const src = [
   extract(/function calcLegalMonths\(costStr\) /),
   extract(/function _manNyeonDays\(s, e\) /),
   extract(/function calcPerfRecord\(r, announcementDate\) /),
-  'export { getRate, floorAt2, ceilAt3, calcLegalMonths, calcPerfRecord };',
+  'export { getRate, floorAt2, ceilAt3, calcLegalMonths, calcPerfRecord, _manNyeonDays };',
 ].join('\n');
 
 const mod = await import('data:text/javascript;base64,' + Buffer.from(src).toString('base64'));
-const { getRate, floorAt2, ceilAt3, calcLegalMonths, calcPerfRecord } = mod;
+const { getRate, floorAt2, ceilAt3, calcLegalMonths, calcPerfRecord, _manNyeonDays } = mod;
 
 // ── 테스트 러너 ──
 let pass = 0, fail = 0;
@@ -96,8 +96,8 @@ console.log('═══ 1. calcPerfRecord — 수행실적 환산금액 (별첨2)
   const c = calcPerfRecord({ name:'A', startDate:'2021.01.01', endDate:'2024.06.30', suspendDays:100, type:'주택건설', amount:50 }, ann);
   eq('A.totalDays (초일산입)', c.totalDays, 1277);
   eq('A.applicableDays', c.applicableDays, 1177);
-  eq('A.recentDays', c.recentDays, 395);
-  eq('A.recentSuspend (올림)', c.recentSuspend, 31);
+  eq('A.recentDays', c.recentDays, 396);
+  eq('A.recentSuspend (올림)', c.recentSuspend, 32);
   eq('A.appliedDays', c.appliedDays, 364);
   eq('A.ratio (4자리 버림)', c.ratio, 0.3092);
   // ★ 알려진 fp 동작 (2026-06-12 골든 테스트로 실측):
@@ -149,9 +149,22 @@ console.log('═══ 1. calcPerfRecord — 수행실적 환산금액 (별첨2)
   const ann = new Date(2013, 8, 1); // 2013.9.1
   const c = calcPerfRecord({ name:'고시부표', startDate:'2011.01.01', endDate:'2015.12.31', suspendDays:0, type:'주택건설', amount:30 }, ann);
   eq('D.isCompleted (수행중)', c.isCompleted, false);
-  eq('D.recentDays (만N년·전날 = 고시 973)', c.recentDays, 973);
-  eq('D.totalDays (만N년 5년×365 = 고시 1825)', c.totalDays, 1825);
+  eq('D.recentDays (역년·전날 = 고시② 973)', c.recentDays, 973);
+  eq('D.totalDays (역년 5년×365 = 고시② 1825)', c.totalDays, 1825);
 }
+
+// [케이스 E] 고시 [별표] ① 준공 예시 — 달력연도(역년) 방식, 연중 시작 창
+//   공고 2013.9.1, 착공 2009.1.1, 준공 2012.12.31, 30억 → 계상창 2010.9.1~2012.12.31
+//   고시 관보: 852일 [122(2010 부분) + 2년×365(2011·2012 온전)] / 4년×365=1460 → 1,750,684,931원(요율 미절사)
+{
+  const ann = new Date(2013, 8, 1);
+  const c = calcPerfRecord({ name:'고시①준공', startDate:'2009.01.01', endDate:'2012.12.31', suspendDays:0, type:'주택건설', amount:30 }, ann);
+  eq('E.recentDays (역년 852 = 고시①)', c.recentDays, 852);
+  eq('E.totalDays (4년×365 = 1460)', c.totalDays, 1460);
+}
+// [케이스 F] 달력연도 vs 만N년 판별 — 연중 시작+부분연도 윤년 (역년 회귀 고정)
+//   2020.6.1~2024.5.31: 역년=1461(2024 부분에 2.29 산입) / 만N년이면 1460(회전년에 2.29 드롭) → FAIL
+eq('F._manNyeonDays 역년 판별 (1461, 만N년이면 1460)', _manNyeonDays(new Date(2020,5,1), new Date(2024,4,31)), 1461);
 
 console.log('═══ 2. calcLegalMonths — 법정 감리인·월수 (보간 + ceilAt3 올림) ═══');
 // 입력 단위: 천원. 총공사비 100억 = 10,000,000천원
