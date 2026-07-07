@@ -636,12 +636,10 @@ tbody tr:hover td { background: var(--ci-light); }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
-  /* 별지2호 자기평가서: 표+서명줄 높이가 A4 1장을 살짝 넘겨, 인쇄 시 페이지 경계에서
-     교체빈도 칸(rowspan) 테두리가 겹쳐 "줄 하나 더"처럼 보이는 문제 방지.
-     인쇄 한정으로 행 높이만 압축(폭·화면·항목·점수 불변) → 항상 1페이지.
-     단독출력·통합출력 모두 tab5에 print-target를 부여하므로 양쪽 적용됨. */
-  #tab5.print-target table td, #tab5.print-target table th { padding-top: 0 !important; padding-bottom: 0 !important; line-height: 10px !important; height: auto !important; }
-  #tab5.print-target table input { line-height: 10px !important; height: auto !important; }
+  /* 별지2호 자기평가서 1페이지 맞춤:
+     (구) line-height:10px 강제 압축 — 세로로만 찌그러뜨려 표가 과압축되고 아래 여백이 크게 남던 문제.
+     (신) _applyByeoljiFitForPrint()가 넘칠 때만 zoom으로 "비례" 축소 → 자연스러운 1페이지.
+     별지1호도 동일 방식으로 넘칠 때만 축소, 적을 땐 자연 레이아웃 유지. */
   .btn, button:not(.no-print-exclude) { display: none !important; }
   .person-upload-zone, .upload-zone { display: none !important; }
   body.print-deploy-only #calcResultPreview { display: none !important; }
@@ -4773,6 +4771,9 @@ async function printSingleByeolji(kind) {
 
   // 별첨5(배치계획표) 단독 출력 시 가로 fit 적용 (다른 서식은 영향 X)
   if (kind === 'deploy') _applyDeployFitForPrint();
+  // 별지1·2호 단독 출력 시 세로 1페이지 fit (넘칠 때만 비례 축소)
+  if (kind === 'byeolji1') _applyByeoljiFitForPrint(['tab4']);
+  if (kind === 'byeolji2') _applyByeoljiFitForPrint(['tab5']);
 
   // afterprint 정리 핸들러 (1회성)
   const restore = () => {
@@ -4786,6 +4787,7 @@ async function printSingleByeolji(kind) {
     if (parent && originalChildren) originalChildren.forEach(el => parent.appendChild(el));
     if (modal) modal.style.visibility = '';
     if (kind === 'deploy') _undoDeployFit();
+    _undoByeoljiFit();
     // 단독출력 후 다시 통합출력 모달이 떠 있을 수 있게 그대로 둠
   };
   window.addEventListener('afterprint', restore);
@@ -6986,6 +6988,71 @@ function _undoDeployFit() {
   } catch (e) { console.error(e); }
 }
 
+// ─────────────────────────────────────────────────────────────
+// 별지1·2호(portrait A4) 세로 인쇄 fit
+//   목적: 내용이 A4 1장을 "넘칠 때만" 필요한 만큼 비례 축소 → 항상 깔끔한 1페이지.
+//         넘치지 않으면 아무 것도 안 함(자연 레이아웃 유지 = 과압축·불필요 축소 방지).
+//   방식: transform:scale은 레이아웃 박스를 안 줄여 빈 2페이지가 남으므로 ✗.
+//         Blink는 zoom을 레이아웃에 반영(=박스가 실제로 줄어 페이지 수 감소)하므로 zoom 사용
+//         (515줄에서 화면 미리보기가 이미 zoom:1.3 사용 — 선례·호환성 확인됨).
+//   측정: 화면 미리보기는 zoom:1.3로 확대돼 있어, 측정 전 zoom:'1'로 상쇄해야 인쇄 실제(1x)
+//         높이를 잰다. 또 인쇄 대상 tab이 화면에서 display:none이면 scrollHeight=0이라
+//         측정용으로 잠깐 off-screen 절대배치로 강제 표시한다.
+//   대상: tab 안의 .a4-preview 각각(총괄표·인원별 세부평가서 모두). 서약서(.a4-page)·배치
+//         계획표(#deployDoc, 자체 fit)는 대상에서 제외.
+// ─────────────────────────────────────────────────────────────
+let _byeoljiFitState = [];
+
+function _applyByeoljiFitForPrint(tabIds) {
+  _byeoljiFitState = [];
+  // A4 portrait 인쇄 가능 높이(px @96dpi, @page margin:0 → 297mm 전체 ≈1122).
+  // 단, Chrome print-to-pdf 실측상 내용이 1페이지에 들어가는 실사용 높이는 ≈1101px로
+  // 이론값보다 ~21px 작다(반올림 특성). 그 아래로 넉넉히 잡아야 "살짝 넘침"까지 방지된다.
+  const pageHpx = Math.round(297 * 96 / 25.4); // ≈1122
+  const avail = pageHpx - 42;                   // ≈1080: 실측 임계(1101) 아래 안전 마진
+  (tabIds || []).forEach(tabId => {
+    const tab = document.getElementById(tabId);
+    if (!tab) return;
+    const docs = Array.from(tab.querySelectorAll('.a4-preview')).filter(d => d.id !== 'deployDoc');
+    if (!docs.length) return;
+    // 측정창 강제: 화면에서 tab이 숨겨져 있으면(scrollHeight=0) 잠깐 off-screen 표시
+    const needForce = tab.offsetParent === null && tab.getClientRects().length === 0;
+    const tp = { display: tab.style.display, position: tab.style.position, left: tab.style.left,
+                 top: tab.style.top, visibility: tab.style.visibility, width: tab.style.width };
+    if (needForce) {
+      tab.style.display = 'block'; tab.style.position = 'absolute';
+      tab.style.left = '-99999px'; tab.style.top = '0';
+      tab.style.visibility = 'hidden'; tab.style.width = '210mm';
+    }
+    docs.forEach(doc => {
+      const st = { doc, prevZoom: doc.style.zoom };
+      doc.style.zoom = '1';          // 화면 1.3배 미리보기 확대 상쇄 → 인쇄 1x 기준 측정
+      void doc.offsetHeight;
+      const H = doc.scrollHeight;
+      if (H > avail && H > 0) {
+        // 보수적 축소(소수3자리 버림 + 0.5% 추가 여유), 하한 0.6
+        let z = Math.floor((avail / H) * 1000) / 1000 - 0.005;
+        if (z < 0.5) z = 0.5;   // 하한(가독성). 현실 별지는 여기 안 걸림; 극단 데이터만 해당
+        doc.style.zoom = String(z);
+      } else {
+        doc.style.zoom = '';         // 안 넘치면 자연 레이아웃 유지(인쇄 1x)
+      }
+      _byeoljiFitState.push(st);
+    });
+    if (needForce) {
+      tab.style.display = tp.display || ''; tab.style.position = tp.position || '';
+      tab.style.left = tp.left || ''; tab.style.top = tp.top || '';
+      tab.style.visibility = tp.visibility || ''; tab.style.width = tp.width || '';
+    }
+  });
+}
+
+function _undoByeoljiFit() {
+  const arr = _byeoljiFitState;
+  _byeoljiFitState = [];
+  arr.forEach(st => { try { st.doc.style.zoom = st.prevZoom || ''; } catch (e) { console.error(e); } });
+}
+
 async function printDeployOnly() {
   const tab = document.getElementById('tab6');
   if (!tab) return;
@@ -7150,6 +7217,9 @@ async function _runBidExportStep() {
 
   // 별첨5(배치계획표) 포함 그룹만 가로 fit 적용 (별지1·2·서약서 그룹은 영향 X)
   if (g.tabs.includes('tab6')) _applyDeployFitForPrint();
+  // 별지1·2호 포함 그룹은 세로 1페이지 fit (서약서 tab8은 .a4-page라 대상서 제외됨)
+  const _byeoljiTabs = g.tabs.filter(t => t === 'tab4' || t === 'tab5');
+  if (_byeoljiTabs.length) _applyByeoljiFitForPrint(_byeoljiTabs);
 
   try { window.print(); } catch(e) { console.error(e); }
 }
@@ -7158,6 +7228,7 @@ function _onBidExportAfterPrint() {
   if (!_bidExportState) return;
   // 이전 스텝이 배치계획표였다면 fit 복원
   _undoDeployFit();
+  _undoByeoljiFit();
   _bidExportState.index += 1;
   if (_bidExportState.index < _bidExportState.groups.length) {
     setTimeout(_runBidExportStep, 600);
@@ -7202,8 +7273,9 @@ async function printByeolji(num) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
   tab.classList.add('print-target');
   await _waitForPrintReady([tab]);
+  _applyByeoljiFitForPrint(['tab' + tabIdx]);   // 별지1·2호 세로 1페이지 fit
   window.print();
-  setTimeout(() => tab.classList.remove('print-target'), 500);
+  setTimeout(() => { tab.classList.remove('print-target'); _undoByeoljiFit(); }, 500);
 }
 
 function saveTabAsWord(previewId, renderFn, title, filenamePrefix) {
