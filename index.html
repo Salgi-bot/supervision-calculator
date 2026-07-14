@@ -2333,6 +2333,7 @@ function loadAutoSave() {
     localStorage.setItem('archManualOn', JSON.stringify(archManualOn));
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
+    _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
     if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
     if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
@@ -5842,6 +5843,26 @@ function _defaultDeployRange(roleId, cs, ce) {
   }
   return { startYM: s, endYM: e };
 }
+// [불변조건] 어떤 경우에도 감리원 배치기간은 공사기간 범위를 벗어날 수 없다 (2026-07-14 사용자 규칙)
+//   저장값 복원·독립 렌더 등 어떤 경로로 진입해도 공사기간(pj 날짜) 경계로 clamp.
+//   ★ 일자까지 있는 '완전값'만 교정 → 타이핑 중 부분입력(YYMM 등)은 건드리지 않음(오염 방지).
+function _clampDeployRangesToConstruction() {
+  const cs = _projDateForced('start'), ce = _projDateForced('end');
+  const csP = parseYMShort(cs), ceP = parseYMShort(ce);
+  if (!csP || !ceP) return;
+  const val = (p) => p.y * 10000 + p.m * 100 + (p.d || 1);   // 비교용 수치
+  const csV = val(csP), ceV = val(ceP);
+  const clampOne = (o) => {
+    if (!o) return;
+    let ps = parseYMShort(o.startYM), pe = parseYMShort(o.endYM);
+    if (ps && ps.d !== undefined && val(ps) < csV) { o.startYM = cs; o.months = ''; ps = parseYMShort(cs); }
+    if (pe && pe.d !== undefined && val(pe) > ceV) { o.endYM   = ce; o.months = ''; pe = parseYMShort(ce); }
+    if (ps && pe && ps.d !== undefined && pe.d !== undefined && val(ps) > val(pe)) { o.startYM = o.endYM; o.months = ''; }
+  };
+  getAllRoles().forEach(r => clampOne(deployState[r.id]));
+  clampOne(deployState['extra_arch']);
+  if (Array.isArray(extraDeployRows)) extraDeployRows.forEach(clampOne);
+}
 function completeDate(roleId, field, el) {
   const val = el.value.trim();
   if (!val) return;
@@ -6255,6 +6276,7 @@ function renderDeploySettings(force = false) {
 
 function renderDeployTable() {
   syncPersonInfo();
+  _clampDeployRangesToConstruction(); // [불변조건] 산출 전 배치기간을 공사기간 범위로 정규화
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   // 법정 인·월수는 항상 감리대상 공사비에서 자동 산정 (저장값·수동값 미신뢰). 칸은 표시용으로만 동기화.
@@ -6673,6 +6695,7 @@ function updateDeployAlignButtons() {
   setActive('deployHeaderAlignRight', deployHeaderAlign === 'right');
 }
 function renderCalcResult(unitCostHtml = '') {
+  _clampDeployRangesToConstruction(); // [불변조건] 수지분석 전 배치기간을 공사기간 범위로 정규화
   const pj = getProjectData();
   const costStr = pj.supervisionCost || '';
   const costThousand = parseFloat(String(costStr).replace(/,/g,''));
