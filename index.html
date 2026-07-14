@@ -5833,9 +5833,10 @@ function _defaultDeployRange(roleId, cs, ce) {
     e = split.frontEnd;                    // 토목(전) 종료 = 절반점
   } else if (roleId === 'civil2' && split) {
     s = split.backStart;                   // 토목(후) 시작 = 절반점 다음달
-  } else if (roleId === 'mech') {
-    // 설비 시작 = 토목(전) 종료 다음달 1일 (항상 civil 기준). civil 미확정이면 절반점 사용
-    const civilEnd = (deployState['civil'] && deployState['civil'].endYM) || (split ? split.frontEnd : ce);
+  } else if (roleId === 'mech' && split) {
+    // civil2 ON(토목 전/후 분할): 설비 시작 = 토목(전) 종료 다음달 1일, 종료 = 준공
+    //   civil2 OFF(토목 1명 풀배치)면 이 분기를 건너뜀 → 설비 = 전체 공사기간(s=cs, e=ce)
+    const civilEnd = (deployState['civil'] && deployState['civil'].endYM) || split.frontEnd;
     const p = parseYMShort(civilEnd);
     if (p) { let ny = p.y, nm = p.m + 1; if (nm > 12) { nm = 1; ny++; } s = String(ny).slice(-2) + String(nm).padStart(2,'0') + '01'; }
   }
