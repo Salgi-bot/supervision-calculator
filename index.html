@@ -2333,6 +2333,7 @@ function loadAutoSave() {
     localStorage.setItem('archManualOn', JSON.stringify(archManualOn));
     if (data.deployState) deployState = data.deployState;
     if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
+    _recomputeFieldDeployRanges();      // [2026-07-14 A안] 로드 시 분야별·비평가를 공사기간에서 재계산(stale 갱신)
     _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
     if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
     if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
@@ -3011,6 +3012,8 @@ function loadPersonnelJSON(input) {
       }
       if (data.deployState) deployState = data.deployState;
       if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
+      _recomputeFieldDeployRanges();      // [2026-07-14 A안] 감리원 로드 시에도 분야별·비평가 재계산(현 공사기간 기준)
+      _clampDeployRangesToConstruction(); // [불변조건] 배치기간 공사기간 범위 정규화
       if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
       if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
       if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
@@ -3140,6 +3143,8 @@ function loadV2Data(data) {
   // 배치계획표 상태
   if (data.deployState) deployState = data.deployState;
   if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
+  _recomputeFieldDeployRanges();      // [2026-07-14 A안] 파일 로드 시 분야별·비평가를 공사기간에서 재계산(stale 갱신)
+  _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
   if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
   if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
   if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
@@ -5761,26 +5766,21 @@ function syncLockedRoleDates() {
   const pe = _projDateForced('end');
   if (!ps || !pe) return;
   // 공사기간 변경 시 동기화 (2026-07-13 정책: 총괄·비상주=공사기간 강제 통일 / 분야별=clamp만)
+  // 총괄·비상주: 공사기간 전체 강제 통일
   getAllRoles().forEach(r => {
     if (!deployState[r.id]) deployState[r.id] = {};
-    // 총괄·비상주: 공사기간 전체 강제 reset (비상주도 총괄과 통일)
     if (r.placement === '총괄' || r.placement === '비상주') {
       deployState[r.id].startYM = ps;
       deployState[r.id].endYM   = pe;
       deployState[r.id].months  = '';
-    } else if (r.placement === '분야별') {
-      // 분야별: 빈 값은 절반분할 기본값(단일 헬퍼)으로 채움 → 산출/서식 폴백과 표시값 일치
-      //   사용자 입력이 있으면 clamp만. (getAllRoles 순서상 civil이 mech보다 먼저 채워져 의존 성립)
-      const _def = _defaultDeployRange(r.id, ps, pe);
-      if (!deployState[r.id].startYM) deployState[r.id].startYM = _def.startYM;
-      else if (deployState[r.id].startYM < ps) deployState[r.id].startYM = ps;
-      if (!deployState[r.id].endYM) deployState[r.id].endYM = _def.endYM;
-      else if (deployState[r.id].endYM > pe) deployState[r.id].endYM = pe;
     }
   });
+  // 분야별·비평가: 항상 공사기간에서 재계산 (2026-07-14 A안 — 저장값 무시)
+  _recomputeFieldDeployRanges();
+  // extraDeployRows: 비상주=강제 통일 / 비평가=위 재계산이 처리 / 그 외 기타=clamp
   extraDeployRows.forEach(r => {
-    if (r.placement === '비상주') return; // 비상주 추가행도 제외
-    // 분야별·기타: 사용자 입력 보존 + clamp
+    if (r.placement === '비상주') { r.startYM = ps; r.endYM = pe; r.months = ''; return; }
+    if (r.placement === '비평가') return; // _recomputeFieldDeployRanges가 처리
     if (!r.startYM) r.startYM = ps;
     else if (r.startYM < ps) r.startYM = ps;
     if (!r.endYM) r.endYM = pe;
@@ -5842,6 +5842,38 @@ function _defaultDeployRange(roleId, cs, ce) {
     if (p) { let ny = p.y, nm = p.m + 1; if (nm > 12) { nm = 1; ny++; } s = String(ny).slice(-2) + String(nm).padStart(2,'0') + '01'; }
   }
   return { startYM: s, endYM: e };
+}
+// [2026-07-14 A안] 분야별·비평가 배치기간을 공사기간에서 항상 재계산 (저장값 무시)
+//   토목전/후·설비·건축 = 절반분할 규칙(_defaultDeployRange). 비평가는 field→규칙 매핑(토목은 등장순서로 전/후).
+//   로드·공사기간 변경 시 호출 → 옛 공사기간 기준으로 저장된 stale 값을 현재 공사기간으로 갱신.
+function _recomputeFieldDeployRanges() {
+  const cs = _projDateForced('start'), ce = _projDateForced('end');
+  if (!cs || !ce) return;
+  // 기존 6역할 분야별 (getAllRoles 순서 civil→civil2→mech: mech가 civil 종료 참조 성립)
+  getAllRoles().forEach(r => {
+    if (r.placement !== '분야별') return;
+    if (!deployState[r.id]) deployState[r.id] = {};
+    const _def = _defaultDeployRange(r.id, cs, ce);
+    deployState[r.id].startYM = _def.startYM;
+    deployState[r.id].endYM   = _def.endYM;
+    deployState[r.id].months  = '';
+  });
+  // 비평가 행 (field 기반 → 규칙 매핑). 토목이 2개면 등장순서로 전/후 배정
+  if (Array.isArray(extraDeployRows)) {
+    const civilCount = extraDeployRows.filter(r => r.placement === '비평가' && r.field === '토목').length;
+    let civilOrder = 0;
+    extraDeployRows.forEach(r => {
+      if (r.placement !== '비평가') return;
+      let rid;
+      if (r.field === '설비') rid = 'mech';
+      else if (r.field === '토목') { civilOrder++; rid = (civilCount >= 2 && civilOrder === 2) ? 'civil2' : 'civil'; }
+      else rid = 'arch'; // 건축 등
+      const _def = _defaultDeployRange(rid, cs, ce);
+      r.startYM = _def.startYM;
+      r.endYM   = _def.endYM;
+      r.months  = '';
+    });
+  }
 }
 // [불변조건] 어떤 경우에도 감리원 배치기간은 공사기간 범위를 벗어날 수 없다 (2026-07-14 사용자 규칙)
 //   저장값 복원·독립 렌더 등 어떤 경로로 진입해도 공사기간(pj 날짜) 경계로 clamp.
