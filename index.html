@@ -639,6 +639,9 @@ tbody tr:hover td { background: var(--ci-light); }
   .a4-page.byeolchum1-page { justify-content: flex-start !important; }
   .a4-page.byeolchum1-page .swear-spacer-top,
   .a4-page.byeolchum1-page .swear-spacer-bottom { flex: 1 1 0 !important; }
+  /* 별지1호: 내용 높이만큼만 렌더돼 하단 공백 과다 → 별지2호와 동일하게 페이지 채우고 유의사항 푸터를 하단 고정
+     (컨테이너 flex-column + 내부 spacer). min-height로 채우되 height:auto(634)는 상속 유지 → 넘침 시 페이지2 방지. (2026-07-15) */
+  #byeolji1Doc { min-height: 267mm !important; }
   .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   table { page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -4992,7 +4995,7 @@ function renderByeolji1() {
   const b1hAlign = (byeolji1HeaderAlign === 'right') ? 'right' : 'left';
   const b1rAlign = (byeolji1RecipientAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolji1Preview').innerHTML = `
-    <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:0">
+    <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:297mm;display:flex;flex-direction:column">
       ${showByeolji1Header ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>` : ''}
       <div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
@@ -5096,6 +5099,7 @@ function renderByeolji1() {
         ${escHtml(pj.authority || '')} 귀하
       </div>
 
+      <div style="flex:1 1 auto"></div>
       <div style="background:#f0f0f0;border:1px solid #aaa;padding:3px 6px;margin-top:4px;font-size:7pt;line-height:1.2">
         <div style="font-weight:700;text-align:center;margin-bottom:1px;line-height:1.2">유의사항</div>
         '주택건설공사 감리자지정기준' 제5조제3항제9호에 따른 '감리원배치계획표 양식'에 당해 용역에 참여하는 감리원을 배치한 '감리원 배치계획표'를 동 신청서와 함께 제출하며 미제출할 경우에는 실격처리됨<br>
@@ -6002,12 +6006,15 @@ function adjustDeployDate(roleId, field, delta) {
 }
 // 추가 감리원 행 관리
 function addExtraDeployRow() {
-  const pj = getProjectData();
-  const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
-  const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
-  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'', field:'건축', grade:'특급',
-    startYM: '',
-    endYM:   '',
+  // [2026-07-15] 추가행은 항상 '비평가'. 분야는 건축→토목→설비 무한 반복 자동배정(드롭다운으로 수정 가능).
+  //   placement 기본을 '비평가'로 둬야 별지1호(placement==='비평가'만 표시)에 정상 노출됨.
+  const FIELD_CYCLE = ['건축', '토목', '설비'];
+  const newField = FIELD_CYCLE[extraDeployRows.length % FIELD_CYCLE.length];
+  const id = 'ec_' + Date.now();
+  const period = getFieldDeployPeriod(newField, id); // 배정 분야의 배치기간 자동연동(토목은 전/후 순차 매칭)
+  extraDeployRows.push({ id, name:'', placement:'비평가', field:newField, grade:'특급',
+    startYM: period.startYM,
+    endYM:   period.endYM,
     convRate: 1.139, months: '' });
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
@@ -6235,8 +6242,9 @@ function renderDeploySettings(force = false) {
     const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
     const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? floorAt3(calcME).toFixed(3) : '');
     const convRateE = (row.convRate !== undefined && row.convRate !== '') ? row.convRate : 1.139;
-    const poHtml = `<option value=""${!row.placement?' selected':''} disabled>-- 선택 --</option>` +
-      ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
+    // [2026-07-15] 추가행은 비평가 전용 — 드롭다운도 비평가만 노출(총괄/분야별/비상주 제거).
+    //   주의: 고정 비상주 감리원은 별도 role이라 영향 없음. 추가 비상주 행만 UI에서 불가.
+    const poHtml = ['비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
     const fieldBadge = row.field === '토목' ? `<span style="font-size:14px;color:#1d4ed8;white-space:nowrap;font-weight:600">${civExtraLabel[rowIdx]}</span>` : '';
