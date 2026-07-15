@@ -6006,12 +6006,15 @@ function adjustDeployDate(roleId, field, delta) {
 }
 // 추가 감리원 행 관리
 function addExtraDeployRow() {
-  const pj = getProjectData();
-  const ps = parseYM(pj.startDate), pe = parseYM(pj.endDate);
-  const _f6 = (y,m,d) => String(y).slice(-2)+String(m).padStart(2,'0')+String(d).padStart(2,'0');
-  extraDeployRows.push({ id:'ec_'+Date.now(), name:'', placement:'', field:'건축', grade:'특급',
-    startYM: '',
-    endYM:   '',
+  // [2026-07-15] 추가행은 항상 '비평가'. 분야는 건축→토목→설비 무한 반복 자동배정(드롭다운으로 수정 가능).
+  //   placement 기본을 '비평가'로 둬야 별지1호(placement==='비평가'만 표시)에 정상 노출됨.
+  const FIELD_CYCLE = ['건축', '토목', '설비'];
+  const newField = FIELD_CYCLE[extraDeployRows.length % FIELD_CYCLE.length];
+  const id = 'ec_' + Date.now();
+  const period = getFieldDeployPeriod(newField, id); // 배정 분야의 배치기간 자동연동(토목은 전/후 순차 매칭)
+  extraDeployRows.push({ id, name:'', placement:'비평가', field:newField, grade:'특급',
+    startYM: period.startYM,
+    endYM:   period.endYM,
     convRate: 1.139, months: '' });
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
@@ -6239,8 +6242,9 @@ function renderDeploySettings(force = false) {
     const calcME = (rsE && reE) ? calcDeployMonths(rsE, reE) : 0;
     const mValE = (row.months !== '' && row.months !== undefined) ? row.months : (calcME > 0 ? floorAt3(calcME).toFixed(3) : '');
     const convRateE = (row.convRate !== undefined && row.convRate !== '') ? row.convRate : 1.139;
-    const poHtml = `<option value=""${!row.placement?' selected':''} disabled>-- 선택 --</option>` +
-      ['총괄','분야별','비상주','비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
+    // [2026-07-15] 추가행은 비평가 전용 — 드롭다운도 비평가만 노출(총괄/분야별/비상주 제거).
+    //   주의: 고정 비상주 감리원은 별도 role이라 영향 없음. 추가 비상주 행만 UI에서 불가.
+    const poHtml = ['비평가'].map(o => `<option value="${o}"${row.placement===o?' selected':''}>${o}</option>`).join('');
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
     const fieldBadge = row.field === '토목' ? `<span style="font-size:14px;color:#1d4ed8;white-space:nowrap;font-weight:600">${civExtraLabel[rowIdx]}</span>` : '';
