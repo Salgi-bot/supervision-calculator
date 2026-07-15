@@ -4952,7 +4952,7 @@ function renderByeolji1() {
     let fieldLabel = row.field || '건축';
     if (row.field === '토목') {
       civNEIdx++;
-      fieldLabel = civNECount >= 2 ? (civNEIdx === 1 ? '토목(전)' : '토목(후)') : '토목';
+      fieldLabel = civNECount >= 2 ? (civNEIdx % 2 === 1 ? '토목(전)' : '토목(후)') : '토목';
     }
     allPRows.push({ structLabel: '비평가', field: fieldLabel,
       name: row.name || '-', birthdate: '-',
@@ -6041,7 +6041,8 @@ function getFieldDeployPeriod(fieldName, skipRowId) {
   if (!candidates.length) return { startYM: defS, endYM: defE };
   // 토목처럼 복수 role이 있을 때: 이미 같은 분야 배정된 extra 수 기준으로 role 선택
   const existingCount = extraDeployRows.filter(r => r.id !== skipRowId && r.field === fieldName).length;
-  const role = candidates[existingCount] || candidates[0];
+  // 토목 순번(existingCount)을 후보 수로 나눈 나머지로 전/후 교대 매칭 → 반복 순환 시 전·후·전·후 유지
+  const role = candidates[existingCount % candidates.length] || candidates[0];
   const ds = deployState[role.id] || {};
   return { startYM: ds.startYM || defS, endYM: ds.endYM || defE };
 }
@@ -6226,7 +6227,7 @@ function renderDeploySettings(force = false) {
   const civExtraLabel = extraDeployRows.map(r => {
     if (r.field === '토목') {
       civExtraIdx++;
-      return civExtraCount >= 2 ? (civExtraIdx === 1 ? '토목(전)' : '토목(후)') : '토목';
+      return civExtraCount >= 2 ? (civExtraIdx % 2 === 1 ? '토목(전)' : '토목(후)') : '토목';
     }
     return r.field || '건축';
   });
@@ -6491,7 +6492,7 @@ function renderDeployTable() {
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
     const mDisp_c = fmtMonths(actM_c);
     let fieldLabel_c = row.field || '건축';
-    if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraCountT >= 2 ? (civExtraIdxT === 1 ? '토목(전)' : '토목(후)') : '토목'; }
+    if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraCountT >= 2 ? (civExtraIdxT % 2 === 1 ? '토목(전)' : '토목(후)') : '토목'; }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
     let cpm_c = floorAt3(actM_cDisp * cr_c);
     if (row.placement === '비상주') {
@@ -6872,7 +6873,7 @@ function renderCalcResult(unitCostHtml = '') {
     }
     totalConv += cpm_c;
     let fieldLabel_c = row.field || '건축';
-    if (row.field === '토목') { civExtraIdxC++; fieldLabel_c = civExtraCountC >= 2 ? (civExtraIdxC === 1 ? '토목(전)' : '토목(후)') : '토목'; }
+    if (row.field === '토목') { civExtraIdxC++; fieldLabel_c = civExtraCountC >= 2 ? (civExtraIdxC % 2 === 1 ? '토목(전)' : '토목(후)') : '토목'; }
     const sd_c = rs_c ? (rs_c.d || 1) : 1;
     const ed_c = re_c ? (re_c.d || lastDay(re_c.y, re_c.m)) : 0;
     const autoNote_c = rs_c && re_c ? `${fmtYMD(rs_c.y,rs_c.m,sd_c)}~\n${fmtYMD(re_c.y,re_c.m,ed_c)}` : '—';
