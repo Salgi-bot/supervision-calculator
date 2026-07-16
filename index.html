@@ -5834,6 +5834,15 @@ function _civilSplitBoundary(startYMMDD, endYMMDD) {
   const backStart = String(sy).slice(-2) + String(sm).padStart(2,'0') + '01';
   return { frontEnd, backStart };
 }
+// [2026-07-16] 설비(mech) 시작 = 토목(전)=civil 종료 다음달 1일 — 단일 소스(중복 방지).
+//   분할(civil2) 활성 시에만 의미. 반환 YYMMDD 또는 null(파싱 불가).
+//   _defaultDeployRange(기본값 재계산)와 completeDate·adjustDeployDate(수동 수정 시 연동)가 공유.
+function _mechStartFromCivilEnd(civilEndYMMDD) {
+  const p = parseYMShort(civilEndYMMDD);
+  if (!p) return null;
+  let ny = p.y, nm = p.m + 1; if (nm > 12) { nm = 1; ny++; }
+  return String(ny).slice(-2) + String(nm).padStart(2,'0') + '01';
+}
 // 분야별 역할의 배치기간 기본값 단일 진입점 (2026-07-13)
 //   renderDeploySettings·syncLockedRoleDates 공유 → 산출/서식 폴백과 표시값 일치 보장
 //   반환 {startYM, endYM}. cs/ce=총괄(공사기간) 시작·종료(YYMMDD)
@@ -5848,8 +5857,8 @@ function _defaultDeployRange(roleId, cs, ce) {
     // civil2 ON(토목 전/후 분할): 설비 시작 = 토목(전) 종료 다음달 1일, 종료 = 준공
     //   civil2 OFF(토목 1명 풀배치)면 이 분기를 건너뜀 → 설비 = 전체 공사기간(s=cs, e=ce)
     const civilEnd = (deployState['civil'] && deployState['civil'].endYM) || split.frontEnd;
-    const p = parseYMShort(civilEnd);
-    if (p) { let ny = p.y, nm = p.m + 1; if (nm > 12) { nm = 1; ny++; } s = String(ny).slice(-2) + String(nm).padStart(2,'0') + '01'; }
+    const ms = _mechStartFromCivilEnd(civilEnd);
+    if (ms) s = ms;
   }
   return { startYM: s, endYM: e };
 }
@@ -5884,6 +5893,8 @@ function _recomputeFieldDeployRanges() {
       r.months  = '';
     });
   }
+  // [3-b] 3a(위: 모든 비평가 field 기본값)를 마친 뒤, 마지막 비평가 1인만 미달분만큼 축소(override). 순서 3a→3b 보장.
+  _autofillLastNonEval();
 }
 // [불변조건] 어떤 경우에도 감리원 배치기간은 공사기간 범위를 벗어날 수 없다 (2026-07-14 사용자 규칙)
 //   저장값 복원·독립 렌더 등 어떤 경로로 진입해도 공사기간(pj 날짜) 경계로 clamp.
@@ -5933,7 +5944,15 @@ function completeDate(roleId, field, el) {
   if (!deployState[roleId]) deployState[roleId] = {};
   if (field === 'start') deployState[roleId].startYM = completed;
   else                   deployState[roleId].endYM   = completed;
-  
+  // [2026-07-16] 토목(전)=civil 종료 수정 시 설비(mech) 시작 자동 연동(다음달 1일). 설비 시작은 이후 별도 수동 수정 가능.
+  if (field === 'end' && roleId === 'civil' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
+    const ms = _mechStartFromCivilEnd(completed);
+    if (ms) {
+      if (!deployState['mech']) deployState['mech'] = {};
+      deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
+      deployState['mech'].months  = '';
+    }
+  }
   renderDeploySettings();
   renderDeployTable();
 }
@@ -6001,6 +6020,15 @@ function adjustDeployDate(roleId, field, delta) {
     if (row) { row[fKey] = nv; row.months = ''; }
   } else {
     deployState[roleId][fKey] = nv; deployState[roleId].months = '';
+  }
+  // [2026-07-16] 토목(전)=civil 종료 ±조정 시 설비(mech) 시작 자동 연동(다음달 1일). completeDate와 동일 규칙.
+  if (!isExtra && roleId === 'civil' && field === 'end' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
+    const ms = _mechStartFromCivilEnd(nv);
+    if (ms) {
+      if (!deployState['mech']) deployState['mech'] = {};
+      deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
+      deployState['mech'].months  = '';
+    }
   }
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
@@ -6081,6 +6109,7 @@ function updateExtraRow(id, field, value) {
 function renderDeploySettings(force = false) {
   const settingsEl = document.getElementById('deployPersonSettings');
   if (!settingsEl || (!force && settingsEl.contains(document.activeElement))) return;
+  _autofillLastNonEval();  // [3-b] 표시 前 마지막 비평가 endYM 확정 → 설정칸 1사이클 지연 방지(요청1↔3b 상호작용)
   const pj = getProjectData();
   const projStart = parseYM(pj.startDate);
   const projEnd   = parseYM(pj.endDate);
@@ -6325,9 +6354,106 @@ function renderDeploySettings(force = false) {
   settingsEl.innerHTML = settingsHtml;
 }
 
+// [단일 소스] 배치계획표 투입 인·월(convPM) 누산 — renderDeployTable 표시·총합과 _autofillLastNonEval의 판정이 공유.
+//   복제 금지 원칙: per-row convPM 공식(floorAt3 이중버림·비상주 순차배정·폴백)을 여기 한 곳에서만 계산한다.
+//   순서·규칙은 renderDeployTable(상주→비상주→extra) 누산과 비트 동일이어야 함(미세 불일치=실격).
+//   opts.excludeExtraId: 지정 extraDeployRows id는 totalConvPM 합에서만 제외(자동채움 '나머지 충족' 게이트용).
+//     convByKey·nonresPM에는 영향 없음(비평가는 nonresPM 미관여이므로 total = 전체 − 해당 cpm 정확 성립).
+//   반환 { convByKey:Map<id,convPM>, totalConvPM, nonresPM, nonresMax, law }.
+//   extra_arch(300세대↑ 추가배치)는 convPM 미포함(noConv) — 여기서도 제외.
+function computeDeployConvData(opts) {
+  const excludeExtraId = (opts && opts.excludeExtraId) || null;
+  const pj = getProjectData();
+  const start = parseYM(pj.startDate);
+  const end   = parseYM(pj.endDate);
+  const law = calcLegalMonths(pj.supervisionCost) || 0;
+  const nonresMax = law > 0 ? floorAt3(law * 0.15) : 0;
+  const convByKey = new Map();
+  let totalConvPM = 0, nonresPM = 0;
+  if (!start || !end) return { convByKey, totalConvPM, nonresPM, nonresMax, law };
+
+  // 상주·비상주 (getActiveRoles 단일 진입점 — renderDeployTable과 동일)
+  getActiveRoles().forEach(r => {
+    const p  = personnel[r.id];
+    const ds = deployState[r.id] || {};
+    const rs = parseYMShort(ds.startYM) || start;
+    const re = parseYMShort(ds.endYM)   || end;
+    const grade    = p.info.appliedGrade || p.info.grade || '중급';
+    const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
+    const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
+    const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
+    const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
+    const actualMonthsDisp = floorAt3(actualMonths);
+    let convPM = floorAt3(actualMonthsDisp * convRate);
+    if (r.placement === '비상주') {
+      convPM = nonresMax > 0 ? floorAt3(Math.max(0, nonresMax - nonresPM)) : convPM;
+      nonresPM += convPM;
+    }
+    convByKey.set(r.id, convPM);
+    totalConvPM += convPM;
+  });
+
+  // 직접 추가 감리원(비평가·비상주extra)
+  extraDeployRows.forEach(row => {
+    const rs_c = parseYMShort(row.startYM) || start;
+    const re_c = parseYMShort(row.endYM)   || end;
+    const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
+    const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
+    const actM_cDisp = floorAt3(actM_c);
+    const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
+    let cpm_c = floorAt3(actM_cDisp * cr_c);
+    if (row.placement === '비상주') {
+      const remaining = nonresMax > 0 ? Math.max(0, nonresMax - nonresPM) : cpm_c;
+      cpm_c = Math.min(cpm_c, remaining);
+      cpm_c = floorAt3(cpm_c);
+      nonresPM += cpm_c;
+    }
+    convByKey.set(row.id, cpm_c);
+    if (row.id !== excludeExtraId) totalConvPM += cpm_c;
+  });
+
+  return { convByKey, totalConvPM, nonresPM, nonresMax, law };
+}
+
+// [3-b] 마지막 비평가 감리원 부분배치 자동채움 — 값만 세팅(render()·triggerAutoSave() 호출 금지, 호출자가 렌더).
+//   목적: 마지막 비평가 1인의 배치기간(endYM)을 법정 인·월 미달분만큼만 축소해 투입≥법정을 정확히 만족.
+//   startYM(3a 기본값)은 유지, months는 ''(배치기간 기반). 나머지 비평가·기본 감리원은 손대지 않음.
+//   판정: 후보 endYM마다 full computeDeployConvData()로 floorAt3(totalConvPM)>=law (렌더 배지와 동일식)
+//     → 월중시작(부분월)·FP경계를 한 경로로 처리, undershoot(실격) 원천 차단. 최소 초과 endYM 채택.
+//   호출 지점: renderDeployTable 진입 직후 + _recomputeFieldDeployRanges 말미(3a→3b 순서 보장).
+function _autofillLastNonEval() {
+  const pj = getProjectData();
+  const start = parseYM(pj.startDate), end = parseYM(pj.endDate);
+  if (!start || !end) return;
+  const law = calcLegalMonths(pj.supervisionCost) || 0; // deployLawMonths.value(동기화 前 stale 가능) 대신 원값 재계산
+  if (law <= 0) return;
+  const nonEval = extraDeployRows.filter(r => r.placement === '비평가');
+  const target = nonEval[nonEval.length - 1];
+  if (!target) return;
+  // 게이트: 마지막 비평가를 뺀 나머지만으로 이미 충족이면 손대지 않음(3a 기본값 유지)
+  const base = computeDeployConvData({ excludeExtraId: target.id });
+  if (floorAt3(base.totalConvPM) >= law) return;
+  // 미달 → startYM 고정, endYM을 최소 월부터 확장하며 첫 충족 채택(없으면 공사종료로 cap = 미달 잔존)
+  const rs = parseYMShort(target.startYM) || start;
+  const ceY = end.y, ceM = end.m, ceD = end.d || lastDay(end.y, end.m);
+  const pad2 = (n) => String(n).padStart(2, '0');
+  let cy = rs.y, cm = rs.m, picked = null;
+  while (cy < ceY || (cy === ceY && cm <= ceM)) {
+    const isLast = (cy === ceY && cm === ceM);
+    const cd = isLast ? ceD : lastDay(cy, cm);
+    const cand = String(cy).slice(-2) + pad2(cm) + pad2(cd);
+    target.endYM = cand; target.months = '';
+    if (floorAt3(computeDeployConvData().totalConvPM) >= law) { picked = cand; break; }
+    if (isLast) { picked = cand; break; } // 공사종료까지 미달 → cap
+    if (++cm > 12) { cm = 1; cy++; }
+  }
+  if (picked) { target.endYM = picked; target.months = ''; }
+}
+
 function renderDeployTable() {
   syncPersonInfo();
   _clampDeployRangesToConstruction(); // [불변조건] 산출 전 배치기간을 공사기간 범위로 정규화
+  _autofillLastNonEval();             // [3-b] 계산 前 마지막 비평가 endYM 확정(데이터에 먼저 쓰기 → 화면·산출근거·인쇄 일관)
   const pj = getProjectData();
   const annexNo   = document.getElementById('deployAnnexNo')?.value  || '5';
   // 법정 인·월수는 항상 감리대상 공사비에서 자동 산정 (저장값·수동값 미신뢰). 칸은 표시용으로만 동기화.
@@ -6430,10 +6556,11 @@ function renderDeployTable() {
   // 직접 추가 감리원은 환산비·인월수 '-' 표기이므로 합계 제외
   // 비상주 상한: 법정인월수 × 15% (제6조②)
   const _lp4cap = parseFloat(lawMonths) || calcLegalMonths(pj.supervisionCost) || 0;
-  const nonresMax = _lp4cap > 0 ? floorAt3(_lp4cap * 0.15) : 0;
+  // [단일 소스] convPM·nonresPM·total은 computeDeployConvData에서만 산출. 아래 루프는 표시용으로 그 값을 읽는다.
+  const _dc = computeDeployConvData();
 
   // 2패스: 행 데이터 수집 후 rowspan 계산으로 중복 분야 합치기
-  let totalConvPM = 0, nonresPM = 0, totalActualPM = 0;
+  let totalActualPM = 0;
   const rowDataArr = [];
 
   roles.forEach(r => {
@@ -6449,16 +6576,9 @@ function renderDeployTable() {
     const gantt = allMonths.map(({ y, m }) => ganttHalfCells(rs, re, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
-    // B안 (2026-05-21): 화면에 표시되는 개월값(floorAt3)으로 환산인·월수 산출 — 검산 일관성 + 합계 보수화
-    const actualMonthsDisp = floorAt3(actualMonths);
 
-    let convPM = floorAt3(actualMonthsDisp * convRate);
-    if (r.placement === '비상주') {
-      // 비상주 인월수 = 법정인월수 × 15% 전액 배정 (제6조②)
-      convPM = nonresMax > 0 ? floorAt3(Math.max(0, nonresMax - nonresPM)) : convPM;
-      nonresPM += convPM;
-    }
-    totalConvPM += convPM;
+    // [단일 소스] 환산인·월수는 computeDeployConvData 결과를 읽는다(표시=합계 동일 보장).
+    const convPM = _dc.convByKey.get(r.id);
     if (r.placement !== '비상주') totalActualPM += actualMonths;
 
     const startD = rs.d || 1;
@@ -6485,8 +6605,6 @@ function renderDeployTable() {
     const re_c = parseYMShort(row.endYM)   || end;
     const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
     const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
-    // B안 (2026-05-21): 표시 개월값(floorAt3)으로 환산인·월수 산출
-    const actM_cDisp = floorAt3(actM_c);
     const gantt_c = allMonths.map(({ y, m }) => ganttHalfCells(rs_c, re_c, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
@@ -6494,14 +6612,8 @@ function renderDeployTable() {
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목') { civExtraIdxT++; fieldLabel_c = civExtraCountT >= 2 ? (civExtraIdxT % 2 === 1 ? '토목(전)' : '토목(후)') : '토목'; }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
-    let cpm_c = floorAt3(actM_cDisp * cr_c);
-    if (row.placement === '비상주') {
-      const remaining = nonresMax > 0 ? Math.max(0, nonresMax - nonresPM) : cpm_c;
-      cpm_c = Math.min(cpm_c, remaining);
-      cpm_c = floorAt3(cpm_c);
-      nonresPM += cpm_c;
-    }
-    totalConvPM += cpm_c;
+    // [단일 소스] 환산인·월수는 computeDeployConvData 결과를 읽는다(표시=합계 동일 보장).
+    const cpm_c = _dc.convByKey.get(row.id);
     if (row.placement !== '비상주') totalActualPM += actM_c;
     rowDataArr.push({ structLabel: row.placement || '분야별', fieldLabel: fieldLabel_c,
       name: row.name || '-', grade: row.grade || '-',
@@ -6567,7 +6679,7 @@ function renderDeployTable() {
     `<td colspan="2" style="background:#f5f5f5;border:1px solid #ddd;height:50px"></td>`
   ).join('');
   const TD_TOT = 'border:1px solid #999;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5;color:#000;padding:3px';
-  const convTotal = floorAt3(totalConvPM);
+  const convTotal = floorAt3(_dc.totalConvPM);
   rows += `<tr>
     <td colspan="4" style="${TD_TOT}">총배치 인·월 수</td>
     ${blankGantt}
@@ -6577,13 +6689,13 @@ function renderDeployTable() {
     <td style="${TD_TOT}"></td>
   </tr>`;
 
-  const nonresRate = (_lp4cap > 0 && nonresPM > 0) ? (nonresPM / _lp4cap * 100).toFixed(1) : '0.0';
+  const nonresRate = (_lp4cap > 0 && _dc.nonresPM > 0) ? (_dc.nonresPM / _lp4cap * 100).toFixed(1) : '0.0';
   // 옵션 D: 월당 col 2개 → 각 col 폭은 절반(최소 6px, 최대 9px). 전체 표 폭은 기존과 동일 유지.
   const colW = Math.max(6, Math.min(9, Math.floor(430 / Math.max(totalM * 2, 1))));
 
   // 투입 인·월수 표시 (extra_arch 제외한 합계)
   const tcEl = document.getElementById('deployTotalConvPM');
-  if (tcEl) tcEl.textContent = fmtMonths(totalConvPM);
+  if (tcEl) tcEl.textContent = fmtMonths(_dc.totalConvPM);
 
   // 충족여부 확인 테이블
   const _lp4sum = parseFloat(document.getElementById('deployLawMonths')?.value) || _lp4cap;
@@ -6593,9 +6705,9 @@ function renderDeployTable() {
   const sumEl = document.getElementById('deployStatusSummary');
   if (sumEl && _lp4sum > 0) {
     const invest_ok = convTotal >= _lp4sum;
-    const nonres_ok = nonresPM <= _nonresLimit4sum + 0.0005;
+    const nonres_ok = _dc.nonresPM <= _nonresLimit4sum + 0.0005;
     const b1 = `<span style="${invest_ok?okStyS:ngStyS}">${invest_ok?'✓ 충족':'✗ 미달'}</span>`;
-    const b2 = nonresPM > 0 ? `<span style="${nonres_ok?okStyS:ngStyS};margin-left:6px">${nonres_ok?'✓ 비상주 이내':'✗ 비상주 초과'}</span>` : '';
+    const b2 = _dc.nonresPM > 0 ? `<span style="${nonres_ok?okStyS:ngStyS};margin-left:6px">${nonres_ok?'✓ 비상주 이내':'✗ 비상주 초과'}</span>` : '';
     sumEl.innerHTML = b1 + b2;
   } else if (sumEl) { sumEl.innerHTML = ''; }
 
@@ -6633,7 +6745,7 @@ function renderDeployTable() {
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')} 천원</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
       <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${nonresPM}&ensp;인·월&ensp;(15% 이내)</div>
+      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${_dc.nonresPM}&ensp;인·월&ensp;(15% 이내)</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
@@ -6747,6 +6859,7 @@ function updateDeployAlignButtons() {
 }
 function renderCalcResult(unitCostHtml = '') {
   _clampDeployRangesToConstruction(); // [불변조건] 수지분석 전 배치기간을 공사기간 범위로 정규화
+  _autofillLastNonEval();             // [3-b] 산출근거도 확정 endYM 공유 → 배치계획표 총인월과 일치(순서 무관성 보장)
   const pj = getProjectData();
   const costStr = pj.supervisionCost || '';
   const costThousand = parseFloat(String(costStr).replace(/,/g,''));
