@@ -2028,6 +2028,7 @@ let b2EgState미만 = {};  // 별지2호 산출근거 (300세대 미만)
 let b2ViewMode = null;   // null=자동(pj_sizeClass 기준) | '이상' | '미만'
 let deployState = {}; // 배치계획표 감리원별 투입기간 { roleId: {startYM, endYM, note} }
 let extraDeployRows = []; // 배치계획표 직접 추가 감리원 [{ id,name,placement,field,grade,startYM,endYM,convRate,months }]
+let extraRowCounter = 0;  // 추가행 id 단조 카운터 — 루프(자동배치) 내 동일 ms Date.now() 충돌 방지
 let swearBodyHtml = ''; // 서약서 본문 (사용자 수정 가능) — (레거시, 마이그레이션용)
 let swearHeaderAlign = 'left';    // 별첨1 서약서 상단 「【별첨 1】」 정렬: 'left' | 'right'
 let swearRecipientAlign = 'left'; // 별첨1 서약서 하단 수신처(귀하) 정렬: 'left' | 'right'
@@ -6033,22 +6034,50 @@ function adjustDeployDate(roleId, field, delta) {
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
 // 추가 감리원 행 관리
-function addExtraDeployRow() {
-  // [2026-07-15] 추가행은 항상 '비평가'. 분야는 분야별 감리원 구성을 미러링해 순환 자동배정(드롭다운 수정 가능).
-  //   토목 전/후 분리(활성 토목 분야별 role 2개)면 건축→토목(전)→토목(후)→설비, 아니면 건축→토목→설비. 무한 반복.
-  //   전/후 라벨·기간은 civExtraLabel·getFieldDeployPeriod가 토목 행 순번(1→전,2→후)으로 자동 부여.
-  //   placement 기본 '비평가'라야 별지1호(placement==='비평가'만 표시)에 정상 노출됨.
-  //   보호영역 규칙 준수: civil2Enabled 직접 참조 대신 getAllRoles 단일 진입점으로 토목 role 수 판정.
+// [코어] 비평가 행 1개 push만(render/save 없음) → id 반환. 루프(자동배치)·단건 추가가 공유.
+//   [2026-07-15] 추가행은 항상 '비평가'. 분야는 분야별 감리원 구성을 미러링해 순환 자동배정(드롭다운 수정 가능).
+//   토목 전/후 분리(활성 토목 분야별 role 2개)면 건축→토목(전)→토목(후)→설비, 아니면 건축→토목→설비. 무한 반복.
+//   전/후 라벨·기간은 civExtraLabel·getFieldDeployPeriod가 토목 행 순번(1→전,2→후)으로 자동 부여.
+//   placement 기본 '비평가'라야 별지1호(placement==='비평가'만 표시)에 정상 노출됨.
+//   보호영역 규칙 준수: civil2Enabled 직접 참조 대신 getAllRoles 단일 진입점으로 토목 role 수 판정.
+function _pushExtraDeployRow() {
   const civilRoleCount = getAllRoles().filter(r => r.placement === '분야별' && r.field === '토목').length;
   const FIELD_CYCLE = civilRoleCount >= 2 ? ['건축', '토목', '토목', '설비'] : ['건축', '토목', '설비'];
   const newField = FIELD_CYCLE[extraDeployRows.length % FIELD_CYCLE.length];
-  const id = 'ec_' + Date.now();
+  const id = 'ec_' + Date.now() + '_' + (extraRowCounter++); // 단조 카운터로 루프 내 동일 ms 충돌 방지
   const period = getFieldDeployPeriod(newField, id); // 배정 분야의 배치기간 자동연동(토목은 전/후 순차 매칭)
   extraDeployRows.push({ id, name:'', placement:'비평가', field:newField, grade:'특급',
     startYM: period.startYM,
     endYM:   period.endYM,
     convRate: 1.139, months: '' });
+  return id;
+}
+function addExtraDeployRow() {
+  _pushExtraDeployRow();
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
+}
+// [법정 맞춰 자동배치] 버튼 전용. 법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가(각 풀배치),
+//   렌더 시 _autofillLastNonEval가 마지막 1명을 미달분만큼 축소 → N-1명 풀 + 마지막 1명 부분 = 최소 인원 충족.
+//   ★ 채우기만 함: 공사비를 낮춰 초과가 돼도 잉여 비평가를 자동 삭제하지 않음(사용자가 직접 x로 제거).
+//   상한(폭주 방지) 도달·미달 시 반드시 알림(조용한 실패 금지).
+function autofillDeployToLegal() {
+  const pj = getProjectData();
+  const start = parseYM(pj.startDate), end = parseYM(pj.endDate);
+  if (!start || !end) { showStatus('공사기간(시작·종료)을 먼저 입력하세요'); return; }
+  const law = calcLegalMonths(pj.supervisionCost) || 0;
+  if (law <= 0) { showStatus('감리대상 공사비를 먼저 입력하세요'); return; }
+  if (floorAt3(computeDeployConvData().totalConvPM) >= law) { showStatus('이미 법정 인·월수 충족 — 추가 배치 불필요'); return; }
+  const before = extraDeployRows.length;
+  const LIMIT = 60; // 폭주 방지 상한(0기여 행 반복 등 비수렴 대비)
+  let guard = 0;
+  while (guard < LIMIT && floorAt3(computeDeployConvData().totalConvPM) < law) {
+    _pushExtraDeployRow(); guard++;
+  }
+  triggerAutoSave(); renderDeploySettings(); renderDeployTable(); // 렌더 시 _autofillLastNonEval가 마지막 1명 부분배치
+  const added = extraDeployRows.length - before;
+  const ok = floorAt3(computeDeployConvData().totalConvPM) >= law; // 부분배치 후 최종 충족 여부
+  if (ok) showStatus(`법정 맞춰 감리원 ${added}명 자동배치 완료`);
+  else    showStatus(`${added}명 배치했으나 상한(${LIMIT}명) 도달·여전히 미달 — 공사비/공사기간을 확인하세요`);
 }
 function removeExtraDeployRow(id) {
   extraDeployRows = extraDeployRows.filter(r => r.id !== id);
@@ -6346,9 +6375,10 @@ function renderDeploySettings(force = false) {
     </div>`;
   }
 
-  // ── + 감리원 추가 버튼 ──
-  settingsHtml += `<div style="padding:10px 0 4px">
+  // ── + 감리원 추가 / 법정 맞춰 자동배치 버튼 ──
+  settingsHtml += `<div style="padding:10px 0 4px;display:flex;gap:8px;flex-wrap:wrap">
     <button onclick="addExtraDeployRow()" style="font-size:15px;padding:6px 16px;border:1px dashed #60a5fa;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-weight:600">+ 감리원 추가</button>
+    <button onclick="autofillDeployToLegal()" title="법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가하고 마지막 1명을 딱 맞춥니다(채우기만·삭제 안 함)" style="font-size:15px;padding:6px 16px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#15803d;cursor:pointer;font-weight:600">⚡ 법정 맞춰 자동배치</button>
   </div>`;
 
   settingsEl.innerHTML = settingsHtml;
