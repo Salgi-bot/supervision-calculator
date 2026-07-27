@@ -6141,7 +6141,7 @@ function updateExtraRow(id, field, value) {
   //   ★ oninput 경로라 한 글자만 입력해도 잠긴다 — 타이핑 도중 _autofillLastNonEval에 덮이지 않으려면 이 시점이어야 한다.
   //   칸을 비우면 값은 렌더에서 총괄 기간으로 복구되지만 잠금은 유지(해제는 🔓 또는 ⚡ 버튼).
   if (field === 'startYM' || field === 'endYM') { row.months = ''; row._deployUserEdited = true; }
-  if (field === 'months') row._deployUserEdited = true;
+  if (field === 'months' && value !== '') row._deployUserEdited = true; // 개월 칸을 비우면(placeholder '자동') 잠그지 않음 — 자동으로 되돌리려는 동작이므로
   if (field === 'placement') {
     delete row._deployUserEdited; // 배치구분 변경 = 기간을 기본값으로 다시 잡는 분기 → 기존 수동 잠금 해제
     // 비상주: 기간 빈 값 유지. 그 외: 공사기간 기준 기본값 자동 설정
