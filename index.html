@@ -6097,14 +6097,6 @@ function autofillDeployToLegal() {
   if (ok) showStatus(`법정 맞춰 감리원 ${added}명 자동배치 완료`);
   else    showStatus(`${added}명 배치했으나 상한(${LIMIT}명) 도달·여전히 미달 — 공사비/공사기간을 확인하세요`);
 }
-// [2026-07-27] 배치기간 자동 조정 잠금 해제(행 단위). 잠금은 사용자가 시작·종료·개월을 직접 수정하면 걸린다.
-//   해제 후 렌더 경로의 _autofillLastNonEval가 다시 법정 인·월에 맞춰 마지막 비평가 기간을 조정한다.
-function unlockExtraRowPeriod(id) {
-  const row = extraDeployRows.find(r => r.id === id); if (!row) return;
-  delete row._deployUserEdited;
-  triggerAutoSave(); renderDeploySettings(true); renderDeployTable(); // 버튼에 포커스가 남으므로 force 재렌더
-  showStatus('배치기간 수동 고정 해제 — 법정 인·월 기준으로 다시 자동 조정됩니다');
-}
 function removeExtraDeployRow(id) {
   extraDeployRows = extraDeployRows.filter(r => r.id !== id);
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
@@ -6139,7 +6131,7 @@ function updateExtraRow(id, field, value) {
   if (field === 'convRate') row._convRateUserEdited = true;
   // [2026-07-27] 배치기간(시작·종료·개월) 직접 수정 = 자동 조정 잠금(_convRateUserEdited와 동일 패턴).
   //   ★ oninput 경로라 한 글자만 입력해도 잠긴다 — 타이핑 도중 _autofillLastNonEval에 덮이지 않으려면 이 시점이어야 한다.
-  //   칸을 비우면 값은 렌더에서 총괄 기간으로 복구되지만 잠금은 유지(해제는 🔓 또는 ⚡ 버튼).
+  //   칸을 비우면 값은 렌더에서 총괄 기간으로 복구되지만 잠금은 유지(해제는 ⚡ 자동배치 버튼).
   if (field === 'startYM' || field === 'endYM') { row.months = ''; row._deployUserEdited = true; }
   if (field === 'months' && value !== '') row._deployUserEdited = true; // 개월 칸을 비우면(placeholder '자동') 잠그지 않음 — 자동으로 되돌리려는 동작이므로
   if (field === 'placement') {
@@ -6343,15 +6335,11 @@ function renderDeploySettings(force = false) {
     const foHtml = ['건축','토목','설비'].map(o => `<option value="${o}"${row.field===o?' selected':''}>${o}</option>`).join('');
     const goHtml = ['특급','고급','중급','초급'].map(o => `<option value="${o}"${row.grade===o?' selected':''}>${o}</option>`).join('');
     const fieldBadge = row.field === '토목' ? `<span style="font-size:14px;color:#1d4ed8;white-space:nowrap;font-weight:600">${civExtraLabel[rowIdx]}</span>` : '';
-    // [2026-07-27] 배치기간을 직접 수정한 행 표시 + 잠금 해제 버튼(잠긴 행에만 노출 — 행이 nowrap이라 요소 1개만 추가).
-    const lockBadge = row._deployUserEdited
-      ? `<button onclick="unlockExtraRowPeriod('${row.id}')" style="font-size:13px;padding:2px 6px;border:1px solid #f59e0b;border-radius:4px;background:#fffbeb;color:#b45309;cursor:pointer;white-space:nowrap;line-height:1.3;font-weight:600" title="배치기간을 직접 수정해 자동 조정이 잠긴 상태입니다. 누르면 잠금을 풀고 법정 인·월 기준 자동 조정으로 되돌립니다">🔓 수동</button>`
-      : '';
     const sErrR = cr.start && startD && startD < cr.start;
     const eErrR = cr.end   && endD   && endD   > cr.end;
     settingsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:#fffbeb;flex-wrap:nowrap">
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','placement',this.value)">${poHtml}</select>
-      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}${lockBadge}
+      <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','field',this.value)">${foHtml}</select>${fieldBadge}
       <select style="${SELSTY}" onchange="updateExtraRow('${row.id}','grade',this.value)">${goHtml}</select>
       <input type="text" value="${startD}" placeholder="260101" maxlength="10" style="${sErrR?ISTY_ERR:ISTY}" title="${sErrR?`총괄 시작일(${cr.start}) 이전`:'YYMMDD'}"
         oninput="updateExtraRow('${row.id}','startYM',this.value)"
@@ -6414,7 +6402,7 @@ function renderDeploySettings(force = false) {
   // ── + 감리원 추가 / 법정 맞춰 자동배치 버튼 ──
   settingsHtml += `<div style="padding:10px 0 4px;display:flex;gap:8px;flex-wrap:wrap">
     <button onclick="addExtraDeployRow()" style="font-size:15px;padding:6px 16px;border:1px dashed #60a5fa;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-weight:600">+ 감리원 추가</button>
-    <button onclick="autofillDeployToLegal()" title="법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가하고 마지막 1명을 딱 맞춥니다(채우기만·삭제 안 함). 마지막 비평가의 배치기간을 직접 수정해 [🔓 수동]이 걸려 있으면 그 잠금을 풀고 다시 자동 조정합니다" style="font-size:15px;padding:6px 16px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#15803d;cursor:pointer;font-weight:600">⚡ 법정 맞춰 자동배치</button>
+    <button onclick="autofillDeployToLegal()" title="법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가하고 마지막 1명을 딱 맞춥니다(채우기만·삭제 안 함). 배치기간을 직접 수정해 둔 상태에서 누르면 그 값을 버리고 다시 자동으로 맞춥니다" style="font-size:15px;padding:6px 16px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#15803d;cursor:pointer;font-weight:600">⚡ 법정 맞춰 자동배치</button>
   </div>`;
 
   settingsEl.innerHTML = settingsHtml;
@@ -6497,7 +6485,7 @@ function _autofillLastNonEval() {
   const target = nonEval[nonEval.length - 1];
   if (!target) return;
   // [2026-07-27] 게이트①: 사용자가 이 행의 배치기간(시작·종료·개월)을 직접 수정했으면 자동 조정하지 않는다(임의 수정 허용).
-  //   잠금 해제 경로는 두 개뿐 — 행의 [🔓 수동] 버튼(unlockExtraRowPeriod) 또는 [⚡ 법정 맞춰 자동배치] 버튼.
+  //   잠금 해제 경로는 [⚡ 법정 맞춰 자동배치] 버튼(누르면 다시 자동으로 맞춰짐). 별도 해제 UI는 두지 않는다.
   //   잠금으로 법정 인·월 미달이 남을 수 있으나, 상단 배지가 '✗ 미달'로, 산출근거·별첨 ⑤ 충족여부도 미달로 그대로 노출되므로
   //   조용한 통과(실격 위험 은폐)는 발생하지 않는다.
   if (target._deployUserEdited) return;
