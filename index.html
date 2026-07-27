@@ -5888,6 +5888,10 @@ function _recomputeFieldDeployRanges() {
       if (r.field === '설비') rid = 'mech';
       else if (r.field === '토목') { civilOrder++; rid = (civilCount >= 2 && civilOrder === 2) ? 'civil2' : 'civil'; }
       else rid = 'arch'; // 건축 등
+      // [2026-07-27] 사용자가 배치기간을 직접 수정한 행(_deployUserEdited)은 재계산 대상에서 제외 — 임의 수정값 보존.
+      //   ★ civilOrder(토목 전/후 순번)는 위에서 이미 증가시킨 뒤 스킵 → 뒤따르는 토목 행의 전/후 배정이 어긋나지 않는다.
+      //   공사기간 이탈은 _clampDeployRangesToConstruction이 별도 교정하므로 "배치기간 ⊆ 공사기간" 불변조건은 유지된다.
+      if (r._deployUserEdited) return;
       const _def = _defaultDeployRange(rid, cs, ce);
       r.startYM = _def.startYM;
       r.endYM   = _def.endYM;
@@ -6018,7 +6022,8 @@ function adjustDeployDate(roleId, field, delta) {
   const nv = clampYYMMDD(_f6(ny, nm, nd), cr.start, cr.end);
   if (isExtra) {
     const row = extraDeployRows.find(r => r.id === roleId);
-    if (row) { row[fKey] = nv; row.months = ''; }
+    // [2026-07-27] ◀▶ 조정도 사용자의 직접 수정 → 자동 조정 잠금. (이 경로는 updateExtraRow를 거치지 않으므로 여기서 별도 세팅)
+    if (row) { row[fKey] = nv; row.months = ''; row._deployUserEdited = true; }
   } else {
     deployState[roleId][fKey] = nv; deployState[roleId].months = '';
   }
@@ -6066,7 +6071,20 @@ function autofillDeployToLegal() {
   if (!start || !end) { showStatus('공사기간(시작·종료)을 먼저 입력하세요'); return; }
   const law = calcLegalMonths(pj.supervisionCost) || 0;
   if (law <= 0) { showStatus('감리대상 공사비를 먼저 입력하세요'); return; }
-  if (floorAt3(computeDeployConvData().totalConvPM) >= law) { showStatus('이미 법정 인·월수 충족 — 추가 배치 불필요'); return; }
+  // [2026-07-27] 이 버튼 = '자동 배치 재개' 진입점. 자동 조정 대상인 마지막 비평가 1명만 수동 잠금을 해제한다.
+  //   ★ 해제 범위를 1명으로 좁힌 근거: _autofillLastNonEval가 실제로 건드리는 행이 그 1명뿐 →
+  //     전체 해제는 사용자가 손본 다른 행의 기간까지 조용히 되돌리게 된다.
+  //   해제 직후 한 번 자동 조정해 보고(불필요한 행 추가 방지), 그래도 미달일 때만 아래 루프로 인원을 늘린다.
+  const _neRows = extraDeployRows.filter(r => r.placement === '비평가');
+  const _lastNE = _neRows[_neRows.length - 1];
+  let _unlocked = false;
+  if (_lastNE && _lastNE._deployUserEdited) { delete _lastNE._deployUserEdited; _autofillLastNonEval(); _unlocked = true; }
+  if (floorAt3(computeDeployConvData().totalConvPM) >= law) {
+    // ★ 잠금 해제로 기간이 바뀐 경우엔 반드시 재렌더 — 렌더 없이 return하면 데이터만 고쳐지고 화면·배지가 옛 값으로 남는다.
+    if (_unlocked) { triggerAutoSave(); renderDeploySettings(true); renderDeployTable(); }
+    showStatus(_unlocked ? '수동 고정 해제 — 법정 인·월에 맞춰 배치기간 재조정 완료' : '이미 법정 인·월수 충족 — 추가 배치 불필요');
+    return;
+  }
   const before = extraDeployRows.length;
   const LIMIT = 60; // 폭주 방지 상한(0기여 행 반복 등 비수렴 대비)
   let guard = 0;
@@ -6111,8 +6129,13 @@ function updateExtraRow(id, field, value) {
     if (!row._convRateUserEdited) row.convRate = CONV_RATE_DEFAULTS[value] ?? 1.000;
   }
   if (field === 'convRate') row._convRateUserEdited = true;
-  if (field === 'startYM' || field === 'endYM') row.months = '';
+  // [2026-07-27] 배치기간(시작·종료·개월) 직접 수정 = 자동 조정 잠금(_convRateUserEdited와 동일 패턴).
+  //   ★ oninput 경로라 한 글자만 입력해도 잠긴다 — 타이핑 도중 _autofillLastNonEval에 덮이지 않으려면 이 시점이어야 한다.
+  //   칸을 비우면 값은 렌더에서 총괄 기간으로 복구되지만 잠금은 유지(해제는 ⚡ 자동배치 버튼).
+  if (field === 'startYM' || field === 'endYM') { row.months = ''; row._deployUserEdited = true; }
+  if (field === 'months' && value !== '') row._deployUserEdited = true; // 개월 칸을 비우면(placeholder '자동') 잠그지 않음 — 자동으로 되돌리려는 동작이므로
   if (field === 'placement') {
+    delete row._deployUserEdited; // 배치구분 변경 = 기간을 기본값으로 다시 잡는 분기 → 기존 수동 잠금 해제
     // 비상주: 기간 빈 값 유지. 그 외: 공사기간 기준 기본값 자동 설정
     if (value !== '비상주') {
       const pj = getProjectData();
@@ -6127,6 +6150,7 @@ function updateExtraRow(id, field, value) {
     setTimeout(() => renderDeploySettings(true), 0);
   }
   if (field === 'field') {
+    delete row._deployUserEdited; // 분야 변경 = 새 분야 기준으로 기간 재배정 → 기존 수동 잠금 해제
     const period = getFieldDeployPeriod(value, id);
     row.startYM = period.startYM;
     row.endYM = period.endYM;
@@ -6378,7 +6402,7 @@ function renderDeploySettings(force = false) {
   // ── + 감리원 추가 / 법정 맞춰 자동배치 버튼 ──
   settingsHtml += `<div style="padding:10px 0 4px;display:flex;gap:8px;flex-wrap:wrap">
     <button onclick="addExtraDeployRow()" style="font-size:15px;padding:6px 16px;border:1px dashed #60a5fa;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-weight:600">+ 감리원 추가</button>
-    <button onclick="autofillDeployToLegal()" title="법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가하고 마지막 1명을 딱 맞춥니다(채우기만·삭제 안 함)" style="font-size:15px;padding:6px 16px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#15803d;cursor:pointer;font-weight:600">⚡ 법정 맞춰 자동배치</button>
+    <button onclick="autofillDeployToLegal()" title="법정 인·월 미달 시 충족될 때까지 비평가를 자동 추가하고 마지막 1명을 딱 맞춥니다(채우기만·삭제 안 함). 배치기간을 직접 수정해 둔 상태에서 누르면 그 값을 버리고 다시 자동으로 맞춥니다" style="font-size:15px;padding:6px 16px;border:1px solid #16a34a;border-radius:6px;background:#f0fdf4;color:#15803d;cursor:pointer;font-weight:600">⚡ 법정 맞춰 자동배치</button>
   </div>`;
 
   settingsEl.innerHTML = settingsHtml;
@@ -6460,7 +6484,12 @@ function _autofillLastNonEval() {
   const nonEval = extraDeployRows.filter(r => r.placement === '비평가');
   const target = nonEval[nonEval.length - 1];
   if (!target) return;
-  // 게이트: 마지막 비평가를 뺀 나머지만으로 이미 충족이면 손대지 않음(3a 기본값 유지)
+  // [2026-07-27] 게이트①: 사용자가 이 행의 배치기간(시작·종료·개월)을 직접 수정했으면 자동 조정하지 않는다(임의 수정 허용).
+  //   잠금 해제 경로는 [⚡ 법정 맞춰 자동배치] 버튼(누르면 다시 자동으로 맞춰짐). 별도 해제 UI는 두지 않는다.
+  //   잠금으로 법정 인·월 미달이 남을 수 있으나, 상단 배지가 '✗ 미달'로, 산출근거·별첨 ⑤ 충족여부도 미달로 그대로 노출되므로
+  //   조용한 통과(실격 위험 은폐)는 발생하지 않는다.
+  if (target._deployUserEdited) return;
+  // 게이트②: 마지막 비평가를 뺀 나머지만으로 이미 충족이면 손대지 않음(3a 기본값 유지)
   const base = computeDeployConvData({ excludeExtraId: target.id });
   if (floorAt3(base.totalConvPM) >= law) return;
   // 미달 → startYM 고정, endYM을 최소 월부터 확장하며 첫 충족 채택(없으면 공사종료로 cap = 미달 잔존)
