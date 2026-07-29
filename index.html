@@ -5972,6 +5972,12 @@ function _recomputeFieldDeployRanges() {
   getAllRoles().forEach(r => {
     if (r.placement !== '분야별') return;
     if (!deployState[r.id]) deployState[r.id] = {};
+    // [2026-07-29] 비평가 행과 동일 규칙을 평가대상 분야별에도 적용 — 직접 수정한 배치기간 보존.
+    //   절반분할 기본값은 예정공정표와 무관하므로, 공정표대로 넣은 값을 덮어쓰면
+    //   '배치계획서-예정공정표 불일치 = 실격'(모집공고문 유의사항)에 직접 걸린다.
+    //   ★ 해제 UI는 두지 않는다 — [⚡ 법정 맞춰 자동배치]는 마지막 비평가 1명만 푸는 버튼이라
+    //     평가대상에는 관여하지 않는다. 되돌리려면 화면에서 날짜를 다시 입력하면 된다.
+    if (deployState[r.id]._deployUserEdited) return;
     const _def = _defaultDeployRange(r.id, cs, ce);
     deployState[r.id].startYM = _def.startYM;
     deployState[r.id].endYM   = _def.endYM;
@@ -6048,10 +6054,15 @@ function completeDate(roleId, field, el) {
   if (!deployState[roleId]) deployState[roleId] = {};
   if (field === 'start') deployState[roleId].startYM = completed;
   else                   deployState[roleId].endYM   = completed;
+  deployState[roleId].months = '';
+  // [2026-07-29] 직접 입력 = 자동 재계산 잠금 (비평가 행 _deployUserEdited와 동일 패턴)
+  deployState[roleId]._deployUserEdited = true;
   // [2026-07-16] 토목(전)=civil 종료 수정 시 설비(mech) 시작 자동 연동(다음달 1일). 설비 시작은 이후 별도 수동 수정 가능.
+  //   [2026-07-29] 단, 설비 시작을 이미 직접 입력했으면 연동하지 않는다 — 공정표상 설비 착수는
+  //   토목(전) 종료 다음달과 무관할 수 있다(행신2-1: 토목전 27.07 종료 / 설비 27.04 착수).
   if (field === 'end' && roleId === 'civil' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
     const ms = _mechStartFromCivilEnd(completed);
-    if (ms) {
+    if (ms && !(deployState['mech'] && deployState['mech']._deployUserEdited)) {
       if (!deployState['mech']) deployState['mech'] = {};
       deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
       deployState['mech'].months  = '';
@@ -6124,12 +6135,15 @@ function adjustDeployDate(roleId, field, delta) {
     // [2026-07-27] ◀▶ 조정도 사용자의 직접 수정 → 자동 조정 잠금. (이 경로는 updateExtraRow를 거치지 않으므로 여기서 별도 세팅)
     if (row) { row[fKey] = nv; row.months = ''; row._deployUserEdited = true; }
   } else {
+    // [2026-07-29] ◀▶ 조정도 직접 수정 → 자동 재계산 잠금 (비평가 행과 동일)
     deployState[roleId][fKey] = nv; deployState[roleId].months = '';
+    deployState[roleId]._deployUserEdited = true;
   }
   // [2026-07-16] 토목(전)=civil 종료 ±조정 시 설비(mech) 시작 자동 연동(다음달 1일). completeDate와 동일 규칙.
+  //   [2026-07-29] 설비 시작을 직접 입력한 경우는 연동 제외 — completeDate와 동일.
   if (!isExtra && roleId === 'civil' && field === 'end' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
     const ms = _mechStartFromCivilEnd(nv);
-    if (ms) {
+    if (ms && !(deployState['mech'] && deployState['mech']._deployUserEdited)) {
       if (!deployState['mech']) deployState['mech'] = {};
       deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
       deployState['mech'].months  = '';
