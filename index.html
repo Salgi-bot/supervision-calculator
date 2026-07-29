@@ -6057,17 +6057,9 @@ function completeDate(roleId, field, el) {
   deployState[roleId].months = '';
   // [2026-07-29] 직접 입력 = 자동 재계산 잠금 (비평가 행 _deployUserEdited와 동일 패턴)
   deployState[roleId]._deployUserEdited = true;
-  // [2026-07-16] 토목(전)=civil 종료 수정 시 설비(mech) 시작 자동 연동(다음달 1일). 설비 시작은 이후 별도 수동 수정 가능.
-  //   [2026-07-29] 단, 설비 시작을 이미 직접 입력했으면 연동하지 않는다 — 공정표상 설비 착수는
-  //   토목(전) 종료 다음달과 무관할 수 있다(행신2-1: 토목전 27.07 종료 / 설비 27.04 착수).
-  if (field === 'end' && roleId === 'civil' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
-    const ms = _mechStartFromCivilEnd(completed);
-    if (ms && !(deployState['mech'] && deployState['mech']._deployUserEdited)) {
-      if (!deployState['mech']) deployState['mech'] = {};
-      deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
-      deployState['mech'].months  = '';
-    }
-  }
+  // [2026-07-29] 토목(전) 종료 수정 시 설비 시작을 다음달 1일로 끌어오던 자동 연동을 제거했다(2026-07-16 도입분).
+  //   배치기간은 예정공정표를 보고 입력하는 값이라, 한 칸을 고칠 때 다른 칸이 따라 바뀌면
+  //   방금 공정표대로 넣은 값이 조용히 어긋난다(행신2-1: 토목전 27.07 종료 / 설비 27.04 착수 — 연동값과 무관).
   renderDeploySettings();
   renderDeployTable();
 }
@@ -6139,16 +6131,7 @@ function adjustDeployDate(roleId, field, delta) {
     deployState[roleId][fKey] = nv; deployState[roleId].months = '';
     deployState[roleId]._deployUserEdited = true;
   }
-  // [2026-07-16] 토목(전)=civil 종료 ±조정 시 설비(mech) 시작 자동 연동(다음달 1일). completeDate와 동일 규칙.
-  //   [2026-07-29] 설비 시작을 직접 입력한 경우는 연동 제외 — completeDate와 동일.
-  if (!isExtra && roleId === 'civil' && field === 'end' && typeof civil2Enabled !== 'undefined' && civil2Enabled && getAllRoles().some(r => r.id === 'mech')) {
-    const ms = _mechStartFromCivilEnd(nv);
-    if (ms && !(deployState['mech'] && deployState['mech']._deployUserEdited)) {
-      if (!deployState['mech']) deployState['mech'] = {};
-      deployState['mech'].startYM = clampYYMMDD(ms, cr.start, cr.end);
-      deployState['mech'].months  = '';
-    }
-  }
+  // [2026-07-29] ◀▶ 조정 시의 설비 시작 자동 연동도 제거 — completeDate와 동일 이유.
   triggerAutoSave(); renderDeploySettings(); renderDeployTable();
 }
 // 추가 감리원 행 관리
