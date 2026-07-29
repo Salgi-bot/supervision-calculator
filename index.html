@@ -5146,20 +5146,20 @@ const BYEOLJI1_BACK_PERSON = [
 ];
 
 function byeolji1BackHtml() {
-  // 행 높이: A4 본문 약 1,047px − 「(뒤 쪽)」 20px − 유의사항 블록 약 110px = 917px 을 16행으로 → 57px.
-  // 설명이 2줄 이상인 행은 자동으로 더 커진다(고시 원본도 행 높이가 균일하지 않음).
+  // 행 높이: A4 본문 약 1,047px − 「(뒤 쪽)」 20px − 유의사항 블록 약 110px − 하단 구분선/여백 7px
+  // = 910px 을 16행으로 → 56px. 설명이 2줄 이상인 행은 자동으로 더 커진다(고시 원본도 행 높이 불균일).
   const cellS = 'border:1px solid #000;padding:4px 6px;font-size:8.5pt;line-height:1.45;'
-              + 'vertical-align:middle;height:57px';
+              + 'vertical-align:middle;height:56px';
   const vertS = 'border:1px solid #000;padding:6px 2px;font-size:9pt;font-weight:700;text-align:center;'
               + 'vertical-align:middle;width:24px;letter-spacing:1px;line-height:1.3';
   // 좌측 「사실확인서류」는 고시 원본과 동일하게 가로 2줄, 그룹 라벨만 한 글자씩 세로(⌢⌣ = 세로 괄호)
   const vLabel = s => s.split('').join('<br>');
   const rows = (arr, groupLabel, groupSpan, firstOfDoc) => arr.map(([item, desc], i) => `
       <tr>
-        ${firstOfDoc && i === 0 ? `<td rowspan="16" style="${vertS};width:58px;letter-spacing:0">사실확인<br>서류</td>` : ''}
+        ${firstOfDoc && i === 0 ? `<td rowspan="16" style="${vertS};width:58px;letter-spacing:0;border-left:none !important">사실확인<br>서류</td>` : ''}
         ${i === 0 ? `<td rowspan="${groupSpan}" style="${vertS}">${vLabel(groupLabel)}</td>` : ''}
         <td style="${cellS};width:118px;font-weight:600">${escHtml(item)}</td>
-        <td style="${cellS};text-align:justify;word-break:keep-all">${escHtml(desc)}</td>
+        <td style="${cellS};text-align:justify;word-break:keep-all;border-right:none !important">${escHtml(desc)}</td>
       </tr>`).join('');
 
   return `
@@ -5173,7 +5173,7 @@ function byeolji1BackHtml() {
       </table>
 
       <div style="margin-top:6px;font-size:7.5pt;line-height:1.55">
-        <div style="background:#000;color:#fff !important;font-weight:700;text-align:center;padding:2px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact">유의사항</div>
+        <div style="background:#d9d9d9;font-weight:700;text-align:center;padding:2px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact">유의사항</div>
         <div style="padding:4px 2px 0">
           해당분야 증명 및 확인서는 다음의 기관에서 발행한 것을 원칙으로 하되, 공공기관이 발행하는 것으로서 당해 감리자지정권자가 검토하여 그 인정여부를 결정할 수 있음<br>
           &emsp;1. 당해 면허교부 및 등록권자의 증명서 또는 확인서<br>
@@ -5183,7 +5183,7 @@ function byeolji1BackHtml() {
         </div>
       </div>
       <div style="flex:1 1 auto"></div>
-      <div style="text-align:right;font-size:7pt;color:#666;margin-top:2px;line-height:1.1">210㎜×297㎜[백상지(80g/㎡)]</div>
+      <div style="border-top:1px solid #000;text-align:right;font-size:7pt;color:#666;padding-top:2px;margin-top:4px;line-height:1.1">210㎜×297㎜[백상지(80g/㎡)]</div>
     </div>`;
 }
 
