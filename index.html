@@ -3056,9 +3056,12 @@ function loadPersonnelJSON(input) {
       if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
+      // [2026-08-04] 위 loadV2Data와 같은 이유로 폼 채우기를 렌더보다 앞세운다(실측: 이 경로도 소실됨).
+      if (!personnel[currentPersonId] || !findRole(currentPersonId)) currentPersonId = 'chief';
+      loadPersonToForm(currentPersonId);
       renderPersonCards();
       renderDeploySettings();
-      loadPersonToForm(currentPersonId);
+      loadPersonToForm(currentPersonId);   // 렌더 후 최종 동기화(기존 동작 유지)
       renderCareerTable();
       triggerAutoSave();
       showStatus('감리원 데이터 불러오기 완료 (공사·회사 정보는 유지됨)');
@@ -3191,10 +3194,17 @@ function loadV2Data(data) {
   if (data.b2NumState미만) b2NumState미만 = data.b2NumState미만;
   if (data.b2EgState미만) b2EgState미만 = data.b2EgState미만;
   if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
+  // [2026-08-04] ★ 입력 폼 채우기가 렌더보다 반드시 앞서야 한다 — 순서가 이 수정의 전부다.
+  //   아래 렌더(syncDeployLawMonths→renderDeployTable)가 syncPersonInfo를 호출하는데,
+  //   그 시점에 감리원 입력칸이 아직 비어 있으면 '빈 값'이 현재 선택 감리원(기본 총괄)의
+  //   인적사항 11개 필드를 통째로 덮어썼다(별지1호·배치계획표에서 총괄 성명 공란으로 출력).
+  //   저장 파일에 없는 카드를 선택해 둔 상태(비평가 등)면 findRole이 null이라 던지므로 총괄로 되돌린다.
+  if (!personnel[currentPersonId] || !findRole(currentPersonId)) currentPersonId = 'chief';
+  loadPersonToForm(currentPersonId);
   // 법정 인·월수는 저장값을 신뢰하지 않고 항상 현재 공사비에서 자동 산정 (잔재값·임의변경 방지)
   syncDeployLawMonths();
   renderDeploySettings();
-  loadPersonToForm(currentPersonId);
+  loadPersonToForm(currentPersonId);   // 렌더 후 최종 동기화(기존 동작 유지)
   renderCareerTable();
   calcConstructionDays();
   triggerAutoSave();
