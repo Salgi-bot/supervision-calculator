@@ -2124,6 +2124,30 @@ function _syncSwearUIAfterLoad() {
     syncSwearTemplateEditor();
   }
 }
+
+// 전체 초기화 시 서약서·통합출력 상태도 기본값으로 되돌린다.
+// [2026-08-05 보스 지시] 종전에는 clearAll()이 이 상태를 건드리지 않아, 새 입찰 건을 시작해도
+//   직전 공고문의 서약서 본문·서명란 순서·공고번호·파일명이 그대로 따라왔다.
+//   공고문마다 서약서 문구가 다르므로(양서=계열회사 조항 有, 세종=無) 그대로 출력하면
+//   "공고문과 다른 서약서 제출"이 된다. 위 collect/restore 와 같은 자리에 두어 키 추가 시 함께 보이게 한다.
+function _resetSwearAndBidState() {
+  swearBodyHtml = '';
+  swearHeaderAlign = 'left';
+  swearRecipientAlign = 'left';
+  swearNoticeEnabled = false;
+  swearNoticeNumber = '';
+  swearSignOrder = 'default';
+  swearDateAlign = 'center';
+  swearContactEnabled = false;
+  swearBodyTemplates = [ { id: 'default', name: '기본', body: SYSTEM_DEFAULT_SWEAR_BODY } ];
+  swearBodyActiveId = 'default';
+  bidExportGroup = 'B';
+  bidTitles = { t1: '', t2: '', t3: '' };
+  const _sn = document.getElementById('swearNoticeNumberInput'); if (_sn) _sn.value = '';
+  const _rb = document.querySelector('input[name="bidExportGroup"][value="B"]'); if (_rb) _rb.checked = true;
+  // 파일명 칸은 비워 두면 updateBidExportTitles()가 자동생성 기본값으로 되돌린다.
+  ['bidTitle1','bidTitle2','bidTitle3'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
 // ── 상단 라벨 / 하단 수신처 정렬 (각 서식별 독립 상태) ──
 let byeolji1HeaderAlign    = 'left'; // 별지1호 상단 「[별지 제1호서식]」 정렬
 let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 정렬
@@ -3334,6 +3358,11 @@ function clearAll() {
   document.getElementById('resultBody').innerHTML = '<tr><td colspan="9" style="padding:30px;color:var(--gray4)">경력 데이터를 입력 후 [환산 계산]을 클릭하세요.</td></tr>';
   document.getElementById('resultHeader').style.display = 'none';
   document.getElementById('rateSummaryCard').style.display = 'none';
+  // 서약서·통합출력 상태도 함께 초기화 (2026-08-05 보스 지시) — 화면 동기화까지 해야
+  // tab8 편집기에 남은 이전 본문이 다음 입력 시 되살아나지 않는다.
+  _resetSwearAndBidState();
+  _syncSwearUIAfterLoad();
+  if (typeof updateBidExportTitles === 'function') updateBidExportTitles();
   showStatus('전체 초기화 완료');
 }
 
