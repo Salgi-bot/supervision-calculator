@@ -8125,8 +8125,8 @@ function renderSayongIngam() {
       </table>
       <div style="line-height:2.2;font-size:16px;">
         <p style="margin-bottom:10px;"><u>위의 사용인감은 본사가 사용하는 인감으로서</u></p>
-        <p style="margin-bottom:10px;"><u>${escHtml(pj.noticeNo||'○○시 공고 제0000-0000호')}, ${escHtml(pj.name||'')} 에</u></p>
-        <p style="margin-bottom:10px;"><u>대한 주택건설공사 감리자(건축) 지정신청에 사용하고자 이에 사용인감계를 제출합니다.</u></p>
+        <!-- 공고번호~제출합니다 = 한 문장 한 문단. 강제 개행 없이 폭에 따라 자동 줄바꿈(2026-08-05 보스 지시) -->
+        <p style="margin-bottom:10px;word-break:keep-all;"><u>${escHtml(pj.noticeNo||'○○시 공고 제0000-0000호')}, ${escHtml(pj.name||'')} 에 대한 주택건설공사 감리자(건축) 지정신청에 사용하고자 이에 사용인감계를 제출합니다.</u></p>
       </div>
       <div style="margin:40px 0 20px;text-align:center;font-size:14px;">붙임 : 법인인감증명서 1부.  끝.</div>
       <div style="text-align:center;margin:50px 0 60px;font-size:16px;">${dateStr}</div>
