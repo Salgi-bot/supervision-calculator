@@ -6647,10 +6647,14 @@ function computeDeployConvData(opts) {
 }
 
 // [3-b] 마지막 비평가 감리원 부분배치 자동채움 — 값만 세팅(render()·triggerAutoSave() 호출 금지, 호출자가 렌더).
-//   목적: 마지막 비평가 1인의 배치기간(endYM)을 법정 인·월 미달분만큼만 축소해 투입≥법정을 정확히 만족.
-//   startYM(3a 기본값)은 유지, months는 ''(배치기간 기반). 나머지 비평가·기본 감리원은 손대지 않음.
-//   판정: 후보 endYM마다 full computeDeployConvData()로 floorAt3(totalConvPM)>=law (렌더 배지와 동일식)
-//     → 월중시작(부분월)·FP경계를 한 경로로 처리, undershoot(실격) 원천 차단. 최소 초과 endYM 채택.
+//   목적: 마지막 비평가 1인의 배치기간을 법정 인·월 미달분만큼만 잡아 투입≥법정을 정확히 만족.
+//   ★[2026-08-05 보스 지시] 기간 산정 기준 = 공사 시작일이 아니라 **공사 종료일에서 역산**한다.
+//     원문 「비평가 최종 감리원은 공사시작부터 기간을 산정하지 말고 공사종료기간 부터 기간을 산정해서 배치하자」
+//     → endYM을 공사종료일로 고정하고 startYM을 뒤에서 앞으로 당기며 첫 충족 지점을 채택.
+//     (종전 방식: startYM 고정 + endYM 확장 → 부분배치가 공사 앞단에 붙어 마무리 단계가 비었다)
+//   months는 ''(배치기간 기반). 나머지 비평가·기본 감리원은 손대지 않음.
+//   판정: 후보 startYM마다 full computeDeployConvData()로 floorAt3(totalConvPM)>=law (렌더 배지와 동일식)
+//     → 월중시작(부분월)·FP경계를 한 경로로 처리, undershoot(실격) 원천 차단. 최소 초과 startYM 채택.
 //   호출 지점: renderDeployTable 진입 직후 + _recomputeFieldDeployRanges 말미(3a→3b 순서 보장).
 function _autofillLastNonEval() {
   const pj = getProjectData();
@@ -6669,21 +6673,24 @@ function _autofillLastNonEval() {
   // 게이트②: 마지막 비평가를 뺀 나머지만으로 이미 충족이면 손대지 않음(3a 기본값 유지)
   const base = computeDeployConvData({ excludeExtraId: target.id });
   if (floorAt3(base.totalConvPM) >= law) return;
-  // 미달 → startYM 고정, endYM을 최소 월부터 확장하며 첫 충족 채택(없으면 공사종료로 cap = 미달 잔존)
-  const rs = parseYMShort(target.startYM) || start;
-  const ceY = end.y, ceM = end.m, ceD = end.d || lastDay(end.y, end.m);
+  // 미달 → endYM=공사종료 고정, startYM을 공사종료월부터 앞으로 당기며 첫 충족 채택(없으면 공사시작으로 cap = 미달 잔존)
   const pad2 = (n) => String(n).padStart(2, '0');
-  let cy = rs.y, cm = rs.m, picked = null;
-  while (cy < ceY || (cy === ceY && cm <= ceM)) {
-    const isLast = (cy === ceY && cm === ceM);
-    const cd = isLast ? ceD : lastDay(cy, cm);
-    const cand = String(cy).slice(-2) + pad2(cm) + pad2(cd);
-    target.endYM = cand; target.months = '';
+  const _ymd = (y, m, d) => String(y).slice(-2) + pad2(m) + pad2(d);
+  const ceYM = _ymd(end.y, end.m, end.d || lastDay(end.y, end.m));
+  const csY = start.y, csM = start.m, csD = start.d || 1;
+  const _oS = target.startYM, _oE = target.endYM, _oM = target.months;
+  let cy = end.y, cm = end.m, picked = null;
+  target.endYM = ceYM;
+  while (cy > csY || (cy === csY && cm >= csM)) {
+    const isFirst = (cy === csY && cm === csM);
+    const cand = _ymd(cy, cm, isFirst ? csD : 1); // 공사 시작월이면 공사 시작일, 그 밖의 달은 1일부터
+    target.startYM = cand; target.months = '';
     if (floorAt3(computeDeployConvData().totalConvPM) >= law) { picked = cand; break; }
-    if (isLast) { picked = cand; break; } // 공사종료까지 미달 → cap
-    if (++cm > 12) { cm = 1; cy++; }
+    if (isFirst) { picked = cand; break; } // 공사시작까지 당겨도 미달 → cap
+    if (--cm < 1) { cm = 12; cy--; }
   }
-  if (picked) { target.endYM = picked; target.months = ''; }
+  if (picked) { target.startYM = picked; target.endYM = ceYM; target.months = ''; }
+  else { target.startYM = _oS; target.endYM = _oE; target.months = _oM; } // 루프 미진입(종료<시작) → 원복
 }
 
 function renderDeployTable() {
