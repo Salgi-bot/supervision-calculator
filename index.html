@@ -742,14 +742,14 @@ tbody tr:hover td { background: var(--ci-light); }
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
         <label style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer">
-          <input type="radio" name="bidExportGroup" value="B" checked onchange="updateBidExportTitles()" style="margin-top:3px">
+          <input type="radio" name="bidExportGroup" value="B" checked onchange="onBidExportGroupChange()" style="margin-top:3px">
           <span style="font-size:13px">
             <b>① 별지1호</b> &nbsp;/&nbsp; <b>② 별지2호 + 서약서</b> &nbsp;/&nbsp; <b>③ 배치계획표</b><br>
             <span style="font-size:12px;color:#666">서약서를 별지2호와 함께 출력 (기본)</span>
           </span>
         </label>
         <label style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer">
-          <input type="radio" name="bidExportGroup" value="A" onchange="updateBidExportTitles()" style="margin-top:3px">
+          <input type="radio" name="bidExportGroup" value="A" onchange="onBidExportGroupChange()" style="margin-top:3px">
           <span style="font-size:13px">
             <b>① 별지1호 + 서약서</b> &nbsp;/&nbsp; <b>② 별지2호</b> &nbsp;/&nbsp; <b>③ 배치계획표</b><br>
             <span style="font-size:12px;color:#666">서약서를 별지1호와 함께 출력</span>
@@ -759,17 +759,18 @@ tbody tr:hover td { background: var(--ci-light); }
 
       <div style="display:flex;flex-direction:column;gap:8px;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc">
         <div style="font-size:12px;color:#475569;font-weight:700;margin-bottom:2px">각 PDF 파일 제목</div>
+        <div style="font-size:11px;color:#64748b;margin-bottom:4px;line-height:1.5">※ 직접 입력한 제목은 JSON 저장 파일에 함께 보관되어 다시 불러와도 유지됩니다. 칸을 <b>비우면</b> 자동 파일명으로 되돌아갑니다.</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px">
           <span style="width:48px;color:#0f172a;font-weight:600">파일 ①</span>
-          <input type="text" id="bidTitle1" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+          <input type="text" id="bidTitle1" oninput="onBidTitleInput(1,this.value)" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px">
           <span style="width:48px;color:#0f172a;font-weight:600">파일 ②</span>
-          <input type="text" id="bidTitle2" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+          <input type="text" id="bidTitle2" oninput="onBidTitleInput(2,this.value)" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px">
           <span style="width:48px;color:#0f172a;font-weight:600">파일 ③</span>
-          <input type="text" id="bidTitle3" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+          <input type="text" id="bidTitle3" oninput="onBidTitleInput(3,this.value)" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </label>
       </div>
 
@@ -2049,6 +2050,80 @@ const SYSTEM_DEFAULT_SWEAR_BODY = `본인이 상기 주택건설공사의 감리
 const SWEAR_TEMPLATE_MAX = 10;
 let swearBodyTemplates = [ { id: 'default', name: '기본', body: SYSTEM_DEFAULT_SWEAR_BODY } ];
 let swearBodyActiveId = 'default';
+// ── 입찰서류 통합출력(PDF) 옵션 ──
+// [2026-08-05] 공고문 「응모서류」 조항 문구가 공고마다 달라(양서=12조·세종=10조) 앱 고정 규칙으로
+//   파일명을 만들 수 없다. 사용자가 직접 입력한 경우에만 아래에 담아 저장/복원하고,
+//   빈 문자열(=안 건드림)이면 updateBidExportTitles()의 기존 자동생성 기본값을 그대로 쓴다.
+let bidExportGroup = 'B';                    // 서약서 결합 위치: 'A'(별지1호와) | 'B'(별지2호와, 기본)
+let bidTitles = { t1: '', t2: '', t3: '' };  // 사용자가 직접 입력한 PDF 파일명 3칸
+
+// ── 서약서(별첨1) + 입찰서류 통합출력 상태: 저장/복원 단일 정본 ──
+// [2026-08-05] 기존에는 doAutoSave·loadAutoSave·loadPersonnelJSON·loadV2Data 4곳에 복붙 사본이 흩어져
+//   (1) saveAllJSON(전체 JSON)에는 서약서 키가 하나도 없었고 → 공고문에 맞춘 서약서가 JSON에 저장 안 됨,
+//   (2) loadPersonnelJSON·loadV2Data 사본에는 swearSignOrder·swearDateAlign·swearContactEnabled 누락.
+//   아래 두 함수가 유일한 정본이며, 모든 저장/복원 경로는 반드시 이것만 호출한다.
+function _collectSwearAndBidState() {
+  return {
+    swearBodyHtml: swearBodyHtml,
+    swearHeaderAlign: swearHeaderAlign,
+    swearRecipientAlign: swearRecipientAlign,
+    swearSignOrder: swearSignOrder,
+    swearDateAlign: swearDateAlign,
+    swearContactEnabled: swearContactEnabled,
+    swearNoticeEnabled: swearNoticeEnabled,
+    swearNoticeNumber: swearNoticeNumber,
+    swearBodyTemplates: swearBodyTemplates,
+    swearBodyActiveId: swearBodyActiveId,
+    bidExportGroup: (document.querySelector('input[name="bidExportGroup"]:checked')?.value === 'A') ? 'A' : 'B',
+    bidTitles: { t1: bidTitles.t1 || '', t2: bidTitles.t2 || '', t3: bidTitles.t3 || '' },
+  };
+}
+
+// 하위호환: 아래 키가 하나도 없는 구버전 JSON을 로드해도 현재 기본값이 그대로 유지된다(전부 키 존재 가드).
+function _restoreSwearAndBidState(data) {
+  if (!data) return;
+  if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
+  if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
+  if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
+  if (data.swearSignOrder === 'swap' || data.swearSignOrder === 'default') swearSignOrder = data.swearSignOrder;
+  if (data.swearDateAlign === 'right' || data.swearDateAlign === 'center') swearDateAlign = data.swearDateAlign;
+  if (typeof data.swearContactEnabled === 'boolean') swearContactEnabled = data.swearContactEnabled;
+  if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
+  if (typeof data.swearNoticeNumber === 'string') {
+    swearNoticeNumber = data.swearNoticeNumber;
+    const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
+  }
+  if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
+  if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
+  ensureSwearTemplateDefault();
+  // 서약서 결합 위치(A/B) — .checked 대입은 onchange 미발화라 아래 파일명 오버라이드가 보존된다.
+  if (data.bidExportGroup === 'A' || data.bidExportGroup === 'B') {
+    bidExportGroup = data.bidExportGroup;
+    const _r = document.querySelector(`input[name="bidExportGroup"][value="${bidExportGroup}"]`);
+    if (_r) _r.checked = true;
+  }
+  // 파일명 3칸 — 사용자가 직접 입력한 값만 복원. 빈 값이면 자동생성 폴백(기존 동작 유지).
+  if (data.bidTitles && typeof data.bidTitles === 'object') {
+    bidTitles = {
+      t1: typeof data.bidTitles.t1 === 'string' ? data.bidTitles.t1 : '',
+      t2: typeof data.bidTitles.t2 === 'string' ? data.bidTitles.t2 : '',
+      t3: typeof data.bidTitles.t3 === 'string' ? data.bidTitles.t3 : '',
+    };
+  }
+}
+
+// 서약서 상태 복원 후 tab8 화면 동기화.
+// [2026-08-05] ★ 미동기화 시 데이터 소실: 템플릿 textarea 에 이전 본문이 남은 채로 사용자가 한 글자만 쳐도
+//   oninput → updateSwearTemplateBody 가 stale 텍스트로 방금 복원한 활성 템플릿을 통째로 덮어쓴다.
+function _syncSwearUIAfterLoad() {
+  if (document.getElementById('tab8')?.classList.contains('active')) {
+    renderByeolchum1();
+  } else {
+    updateSwearAlignButtons();
+    renderSwearTemplateTabs();
+    syncSwearTemplateEditor();
+  }
+}
 // ── 상단 라벨 / 하단 수신처 정렬 (각 서식별 독립 상태) ──
 let byeolji1HeaderAlign    = 'left'; // 별지1호 상단 「[별지 제1호서식]」 정렬
 let byeolji1RecipientAlign = 'left'; // 별지1호 하단 「○○ 귀하」 정렬
@@ -2095,16 +2170,7 @@ function doAutoSave() {
     extraDeployRows: extraDeployRows,
     deployAnnexNo: document.getElementById('deployAnnexNo')?.value || '5',
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
-    swearBodyHtml: swearBodyHtml,
-    swearHeaderAlign: swearHeaderAlign,
-    swearRecipientAlign: swearRecipientAlign,
-    swearSignOrder: swearSignOrder,
-    swearDateAlign: swearDateAlign,
-    swearContactEnabled: swearContactEnabled,
-    swearNoticeEnabled: swearNoticeEnabled,
-    swearNoticeNumber: swearNoticeNumber,
-    swearBodyTemplates: swearBodyTemplates,
-    swearBodyActiveId: swearBodyActiveId,
+    ...(_collectSwearAndBidState()),
     byeolji1HeaderAlign: byeolji1HeaderAlign,
     byeolji1RecipientAlign: byeolji1RecipientAlign,
     byeolji2HeaderAlign: byeolji2HeaderAlign,
@@ -2352,20 +2418,7 @@ function loadAutoSave() {
     extraDeployRows = []; // [2026-07-16] 자동복원 시 추가 감리원(비평가) 미복원 — 앱 새로 열면 항상 기본 감리원 배치만. 수동 파일 로드(loadPersonnelJSON/loadV2Data)는 유지
     _recomputeFieldDeployRanges();      // [2026-07-14 A안] 로드 시 분야별·비평가를 공사기간에서 재계산(stale 갱신)
     _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
-    if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
-    if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
-    if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
-    if (data.swearSignOrder === 'swap' || data.swearSignOrder === 'default') swearSignOrder = data.swearSignOrder;
-    if (data.swearDateAlign === 'right' || data.swearDateAlign === 'center') swearDateAlign = data.swearDateAlign;
-    if (typeof data.swearContactEnabled === 'boolean') swearContactEnabled = data.swearContactEnabled;
-    if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
-    if (typeof data.swearNoticeNumber === 'string') {
-      swearNoticeNumber = data.swearNoticeNumber;
-      const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
-    }
-    if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
-    if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
-    ensureSwearTemplateDefault();
+    _restoreSwearAndBidState(data);
     if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
     if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
     if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -2963,6 +3016,10 @@ function saveAllJSON() {
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
     civil2Enabled: civil2Enabled,
     civil2ManualOn: civil2ManualOn,
+    // [2026-08-05] 서약서(별첨1) 본문 템플릿·정렬·서명란 순서·공고번호 노출 + 통합출력 파일명/결합위치.
+    //   기존에는 전체 JSON에 서약서 키가 하나도 없어, 공고문에 맞춰 고친 서약서가 JSON 재로드 시
+    //   시스템 기본 본문으로 되돌아갔다(공고문 요구 문구 누락본 제출 위험).
+    ...(_collectSwearAndBidState()),
   };
   const pjName = data.project.name || '감리자지정';
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -3032,17 +3089,7 @@ function loadPersonnelJSON(input) {
       if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
       _recomputeFieldDeployRanges();      // [2026-07-14 A안] 감리원 로드 시에도 분야별·비평가 재계산(현 공사기간 기준)
       _clampDeployRangesToConstruction(); // [불변조건] 배치기간 공사기간 범위 정규화
-      if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
-      if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
-      if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
-      if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
-      if (typeof data.swearNoticeNumber === 'string') {
-        swearNoticeNumber = data.swearNoticeNumber;
-        const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
-      }
-      if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
-      if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
-      ensureSwearTemplateDefault();
+      _restoreSwearAndBidState(data);
       if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
       if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
       if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -3063,6 +3110,7 @@ function loadPersonnelJSON(input) {
       renderDeploySettings();
       loadPersonToForm(currentPersonId);   // 렌더 후 최종 동기화(기존 동작 유지)
       renderCareerTable();
+      _syncSwearUIAfterLoad();   // [2026-08-05] 서약서 편집기 stale 방지 (폼 채우기 뒤에 배치)
       triggerAutoSave();
       showStatus('감리원 데이터 불러오기 완료 (공사·회사 정보는 유지됨)');
     } catch { alert('파일 파싱 오류'); }
@@ -3167,17 +3215,7 @@ function loadV2Data(data) {
   if (data.extraDeployRows) extraDeployRows = data.extraDeployRows;
   _recomputeFieldDeployRanges();      // [2026-07-14 A안] 파일 로드 시 분야별·비평가를 공사기간에서 재계산(stale 갱신)
   _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
-  if (data.swearBodyHtml) swearBodyHtml = data.swearBodyHtml;
-  if (data.swearHeaderAlign) swearHeaderAlign = data.swearHeaderAlign;
-  if (data.swearRecipientAlign) swearRecipientAlign = data.swearRecipientAlign;
-  if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
-  if (typeof data.swearNoticeNumber === 'string') {
-    swearNoticeNumber = data.swearNoticeNumber;
-    const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
-  }
-  if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
-  if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
-  ensureSwearTemplateDefault();
+  _restoreSwearAndBidState(data);
   if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
   if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
   if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
@@ -3207,6 +3245,7 @@ function loadV2Data(data) {
   loadPersonToForm(currentPersonId);   // 렌더 후 최종 동기화(기존 동작 유지)
   renderCareerTable();
   calcConstructionDays();
+  _syncSwearUIAfterLoad();   // [2026-08-05] 서약서 편집기 stale 방지 (폼 채우기 뒤에 배치)
   triggerAutoSave();
   showStatus('데이터 불러오기 완료');
 }
@@ -7503,14 +7542,28 @@ function updateBidExportTitles() {
   const t1 = document.getElementById('bidTitle1');
   const t2 = document.getElementById('bidTitle2');
   const t3 = document.getElementById('bidTitle3');
-  if (grp === 'A') {
-    if (t1) t1.value = `${dp}_${site}_별지1호+서약서`;
-    if (t2) t2.value = `${dp}_${site}_별지2호`;
-  } else {
-    if (t1) t1.value = `${dp}_${site}_별지1호`;
-    if (t2) t2.value = `${dp}_${site}_별지2호+서약서`;
-  }
-  if (t3) t3.value = `${dp}_${site}_감리원 배치계획표`;
+  // [2026-08-05] 사용자가 직접 입력한 파일명이 있으면 그 값이 이긴다.
+  //   공고문 「응모서류」 조항 문구가 공고마다 달라(양서=12조·세종=10조) 앱 고정 규칙으로 만들 수 없고,
+  //   한 번 입력하면 그 건에서 계속 따라와야 하기 때문. 칸을 비우면 아래 자동생성으로 되돌아간다.
+  const autoT1 = (grp === 'A') ? `${dp}_${site}_별지1호+서약서` : `${dp}_${site}_별지1호`;
+  const autoT2 = (grp === 'A') ? `${dp}_${site}_별지2호`        : `${dp}_${site}_별지2호+서약서`;
+  const autoT3 = `${dp}_${site}_감리원 배치계획표`;
+  if (t1) t1.value = bidTitles.t1 || autoT1;
+  if (t2) t2.value = bidTitles.t2 || autoT2;
+  if (t3) t3.value = bidTitles.t3 || autoT3;
+}
+
+// 파일명 3칸 사용자 입력 기록 — 빈 문자열이면 "안 건드림"으로 되돌아가 자동생성 폴백.
+function onBidTitleInput(n, val) {
+  bidTitles['t' + n] = (val == null ? '' : String(val));
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+}
+
+// 서약서 결합 위치(A/B) 라디오 변경 — 상태 기록 후 파일명 갱신.
+function onBidExportGroupChange() {
+  bidExportGroup = (document.querySelector('input[name="bidExportGroup"]:checked')?.value === 'A') ? 'A' : 'B';
+  updateBidExportTitles();
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
 }
 
 function startBidExport() {
