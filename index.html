@@ -7713,6 +7713,201 @@ async function printByeolji(num) {
   setTimeout(() => tab.classList.remove('print-target'), 500);
 }
 
+// ══════════════════════════════════════════════════════
+//  DOCX EXPORT — OOXML 직접 생성 (외부 라이브러리 0)
+// ══════════════════════════════════════════════════════
+// [2026-08-05 보스 지시] 종전 Word 저장은 HTML 에 .doc 확장자만 붙인 것이었다. 문제 2가지:
+//   (a) Word 가 "파일 형식이 확장명과 다르다" 경고를 띄우고 서식이 깨진다.
+//   (b) ★미리보기의 <input> 값이 innerHTML 에 안 담겨 입력값이 통째로 빠진다
+//       (value 프로퍼티는 attribute 로 반영되지 않음).
+//   ※ 확장자만 .docx 로 바꾸면 ZIP 이 아니라서 Word 가 아예 못 연다 → 진짜 OOXML 을 만든다.
+//   ※ altChunk(HTML 을 docx 껍데기에 넣고 Word 가 변환) 방식은 MS Word 밖에서 빈 문서로
+//     보인다(macOS textutil 실측 확인) → 채택하지 않고 표·문단을 네이티브 요소로 변환한다.
+const _CRC_T = (() => { const t = new Int32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c; } return t; })();
+function _crc32(u8) { let c = -1; for (let i = 0; i < u8.length; i++) c = (c >>> 8) ^ _CRC_T[(c ^ u8[i]) & 0xFF]; return (c ^ -1) >>> 0; }
+function _u8(s) { return new TextEncoder().encode(s); }
+
+// STORE(무압축) ZIP writer — Word 는 무압축 docx 도 정상 인식한다(file 판정 "Microsoft Word 2007+" 실측).
+function _zipStore(files) {
+  const parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = _u8(f.name), data = f.data, c = _crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint32(14, c, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+    cd.setUint16(8, 0x0800, true);
+    cd.setUint32(16, c, true); cd.setUint32(20, data.length, true); cd.setUint32(24, data.length, true);
+    cd.setUint16(28, name.length, true); cd.setUint32(42, off, true);
+    central.push(new Uint8Array(cd.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  let cs = 0; for (const c of central) cs += c.length;
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true); eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cs, true); eo.setUint32(16, off, true);
+  const all = [...parts, ...central, new Uint8Array(eo.buffer)];
+  let n = 0; for (const a of all) n += a.length;
+  const out = new Uint8Array(n); let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
+  return out;
+}
+
+function _xesc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function _rgbHex(v) {
+  const m = String(v || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
+  if (!m) return null;
+  if (m[4] !== undefined && parseFloat(m[4]) === 0) return null; // 완전 투명
+  return [m[1], m[2], m[3]].map(x => (+x).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+function _px2halfPt(px) { return Math.max(8, Math.round((parseFloat(px) || 13) * 0.75 * 2)); }
+const _DOCX_CONTENT_TWIP = 9865; // A4(210mm) − 좌우 18mm = 174mm
+
+function _cs(el) { try { return getComputedStyle(el); } catch (e) { return {}; } }
+function _isBlockTag(t) { return /^(p|div|h1|h2|h3|h4|h5|h6|li|ul|ol|section|header|footer|blockquote|pre)$/.test(t); }
+
+// ── 인라인 노드 목록 → w:r 문자열 ──
+function _docxRuns(nodes, base) {
+  const out = [];
+  const push = (t, st) => {
+    if (!t) return;
+    const rPr = '<w:rPr><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕"/>'
+      + (st.b ? '<w:b/>' : '') + (st.u ? '<w:u w:val="single"/>' : '')
+      + '<w:sz w:val="' + st.sz + '"/><w:szCs w:val="' + st.sz + '"/>'
+      + (st.color && st.color !== '000000' ? '<w:color w:val="' + st.color + '"/>' : '') + '</w:rPr>';
+    out.push('<w:r>' + rPr + '<w:t xml:space="preserve">' + _xesc(t) + '</w:t></w:r>');
+  };
+  const walk = (n, st) => {
+    if (n.nodeType === 3) { const t = (n.nodeValue || '').replace(/\s+/g, ' '); if (t.trim() || (t === ' ' && out.length)) push(t, st); return; }
+    if (n.nodeType !== 1) return;
+    const tag = (n.tagName || '').toLowerCase();
+    if (tag === 'br') { out.push('<w:r><w:br/></w:r>'); return; }
+    if (tag === 'input' || tag === 'textarea') { const v = (n.value || '').trim(); if (v) push(v, st); return; }
+    if (tag === 'select') { const o = n.selectedOptions && n.selectedOptions[0]; const v = o ? (o.textContent || '').trim() : ''; if (v) push(v, st); return; }
+    if (tag === 'img' || tag === 'script' || tag === 'style') return;
+    const c = _cs(n);
+    const st2 = {
+      b: st.b || tag === 'b' || tag === 'strong' || tag === 'th' || (parseInt(c.fontWeight, 10) || 400) >= 600,
+      u: st.u || tag === 'u' || String(c.textDecorationLine || c.textDecoration || '').indexOf('underline') >= 0,
+      sz: c.fontSize ? _px2halfPt(c.fontSize) : st.sz,
+      color: _rgbHex(c.color) || st.color,
+    };
+    for (const ch of (n.childNodes || [])) walk(ch, st2);
+  };
+  for (const n of nodes) walk(n, base);
+  return out.join('');
+}
+
+function _docxParaFromNodes(nodes, owner) {
+  const runs = _docxRuns(nodes, { b: false, u: false, sz: 20, color: '000000' });
+  if (!runs) return '';
+  const c = _cs(owner);
+  const jc = ({ left: 'left', center: 'center', right: 'right', justify: 'both', start: 'left', end: 'right' })[c.textAlign] || 'left';
+  return '<w:p><w:pPr><w:jc w:val="' + jc + '"/><w:spacing w:after="40" w:line="276" w:lineRule="auto"/></w:pPr>' + runs + '</w:p>';
+}
+
+// ── 블록 컨테이너 → w:p / w:tbl 나열 ──
+function _docxBlocks(root) {
+  const out = []; let buf = [];
+  const flush = () => { if (buf.length) { const p = _docxParaFromNodes(buf, root); if (p) out.push(p); buf = []; } };
+  for (const n of (root.childNodes || [])) {
+    const tag = n.nodeType === 1 ? n.tagName.toLowerCase() : '';
+    if (tag === 'table') { flush(); out.push(_docxTable(n)); }
+    else if (tag && _isBlockTag(tag)) { flush(); const inner = _docxBlocks(n); if (inner) out.push(inner); }
+    else buf.push(n);
+  }
+  flush();
+  return out.join('');
+}
+
+function _bd(name, cs, side) {
+  const w = parseFloat(cs['border' + side + 'Width']) || 0;
+  const st = cs['border' + side + 'Style'];
+  if (!w || st === 'none' || st === 'hidden') return '<w:' + name + ' w:val="nil"/>';
+  return '<w:' + name + ' w:val="single" w:sz="' + Math.min(48, Math.max(2, Math.round(w * 8))) + '" w:space="0" w:color="' + (_rgbHex(cs['border' + side + 'Color']) || '000000') + '"/>';
+}
+
+function _docxTable(tbl) {
+  const rows = Array.from(tbl.rows || []);
+  if (!rows.length) return '';
+  let ncol = 0;
+  for (const r of rows) { let c = 0; for (const cell of r.cells) c += (cell.colSpan || 1); ncol = Math.max(ncol, c); }
+  if (!ncol) return '';
+
+  // 점유 격자 — rowspan 을 vMerge 로 바꾸려면 각 행이 같은 열 수를 가져야 한다
+  const occ = rows.map(() => new Array(ncol).fill(null));
+  const startAt = rows.map(() => new Array(ncol).fill(null));
+  for (let r = 0; r < rows.length; r++) {
+    let c = 0;
+    for (const cell of rows[r].cells) {
+      while (c < ncol && occ[r][c]) c++;
+      if (c >= ncol) break;
+      const csp = Math.min(cell.colSpan || 1, ncol - c), rsp = cell.rowSpan || 1;
+      startAt[r][c] = { cell: cell, csp: csp, rsp: rsp };
+      for (let rr = 0; rr < rsp && r + rr < rows.length; rr++)
+        for (let cc = 0; cc < csp; cc++) occ[r + rr][c + cc] = (rr === 0 ? 'self' : 'cont');
+      c += csp;
+    }
+  }
+
+  // 열 너비 — colSpan=1 셀의 실제 렌더 폭 비율을 A4 본문폭에 배분
+  const wpx = new Array(ncol).fill(0);
+  for (let r = 0; r < rows.length; r++) for (let c = 0; c < ncol; c++) {
+    const s = startAt[r][c];
+    if (s && s.csp === 1 && !wpx[c]) wpx[c] = s.cell.offsetWidth || 0;
+  }
+  let sum = wpx.reduce((a, b) => a + b, 0);
+  if (!sum) { wpx.fill(1); sum = ncol; }
+  else { const avg = sum / ncol; for (let c = 0; c < ncol; c++) if (!wpx[c]) { wpx[c] = avg; sum += avg; } }
+  const wtw = wpx.map(w => Math.max(120, Math.round(w / sum * _DOCX_CONTENT_TWIP)));
+
+  const grid = '<w:tblGrid>' + wtw.map(w => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>';
+  const body = rows.map(function (row, r) {
+    let cells = '';
+    for (let c = 0; c < ncol; c++) {
+      const s = startAt[r][c];
+      if (s) {
+        const cc = _cs(s.cell);
+        const wsum = wtw.slice(c, c + s.csp).reduce((a, b) => a + b, 0);
+        const shd = _rgbHex(cc.backgroundColor);
+        const tcPr = '<w:tcPr><w:tcW w:w="' + wsum + '" w:type="dxa"/>'
+          + (s.csp > 1 ? '<w:gridSpan w:val="' + s.csp + '"/>' : '')
+          + (s.rsp > 1 ? '<w:vMerge w:val="restart"/>' : '')
+          + '<w:tcBorders>' + _bd('top', cc, 'Top') + _bd('left', cc, 'Left') + _bd('bottom', cc, 'Bottom') + _bd('right', cc, 'Right') + '</w:tcBorders>'
+          + (shd && shd !== 'FFFFFF' ? '<w:shd w:val="clear" w:color="auto" w:fill="' + shd + '"/>' : '')
+          + '<w:vAlign w:val="' + (({ top: 'top', middle: 'center', bottom: 'bottom' })[cc.verticalAlign] || 'center') + '"/></w:tcPr>';
+        const inner = _docxBlocks(s.cell) || '<w:p/>';
+        cells += '<w:tc>' + tcPr + inner + '</w:tc>';
+        c += s.csp - 1;
+      } else if (occ[r][c] === 'cont') {
+        cells += '<w:tc><w:tcPr><w:tcW w:w="' + wtw[c] + '" w:type="dxa"/><w:vMerge/></w:tcPr><w:p/></w:tc>';
+      } else {
+        cells += '<w:tc><w:tcPr><w:tcW w:w="' + wtw[c] + '" w:type="dxa"/></w:tcPr><w:p/></w:tc>';
+      }
+    }
+    return '<w:tr>' + cells + '</w:tr>';
+  }).join('');
+
+  return '<w:tbl><w:tblPr><w:tblW w:w="' + _DOCX_CONTENT_TWIP + '" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr>' + grid + body + '</w:tbl>';
+}
+
+function _buildDocx(rootEl, title) {
+  const body = _docxBlocks(rootEl) || '<w:p/>';
+  const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+    + '<w:pgMar w:top="850" w:right="1020" w:bottom="850" w:left="1020" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>';
+  const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+    + '<w:body>' + body + sect + '</w:body></w:document>';
+  return _zipStore([
+    { name: '[Content_Types].xml', data: _u8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>') },
+    { name: '_rels/.rels', data: _u8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>') },
+    { name: 'docProps/core.xml', data: _u8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>' + _xesc(title) + '</dc:title></cp:coreProperties>') },
+    { name: 'word/document.xml', data: _u8(doc) },
+  ]);
+}
+
 function saveTabAsWord(previewId, renderFn, title, filenamePrefix) {
   if (renderFn) renderFn();
   const preview = document.getElementById(previewId);
@@ -7721,36 +7916,12 @@ function saveTabAsWord(previewId, renderFn, title, filenamePrefix) {
     return;
   }
   const pj = getProjectData();
-  const siteName = (pj.name || '주택건설공사').replace(/[\\\/:*?"<>|]/g, '_');
-  const dateStr = new Date().toISOString().slice(0,10);
-  const filename = `${filenamePrefix}_${siteName}_${dateStr}.doc`;
+  const siteName = (pj.name || '주택건설공사').replace(/[\\\/:*?"<>|\r\n]/g, '_').trim();
+  const dateStr = (typeof getPrintDatePrefix === 'function') ? getPrintDatePrefix() : new Date().toISOString().slice(0, 10);
+  const filename = filenamePrefix + '_' + siteName + '_' + dateStr + '.docx';
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<title>${title}</title>
-<!--[if gte mso 9]><xml>
-<w:WordDocument>
-<w:View>Print</w:View>
-<w:Zoom>100</w:Zoom>
-<w:DoNotOptimizeForBrowser/>
-</w:WordDocument>
-</xml><![endif]-->
-<style>
-@page { size: A4 portrait; margin: 15mm 18mm 15mm 18mm; }
-body { font-family: '맑은 고딕', Malgun Gothic, sans-serif; font-size: 10pt; }
-table { border-collapse: collapse; width: 100%; }
-td, th { border: 1px solid #888; padding: 4px 6px; }
-h2 { text-align: center; letter-spacing: 4px; }
-input { border: none; background: transparent; }
-</style>
-</head>
-<body>
-${preview.innerHTML}
-</body>
-</html>`;
-
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const bytes = _buildDocx(preview, title);
+  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -7759,7 +7930,7 @@ ${preview.innerHTML}
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showStatus(`📄 ${filename} 저장 완료`);
+  showStatus('📄 ' + filename + ' 저장 완료');
 }
 function saveByeolji1AsWord() { saveTabAsWord('byeolji1Preview', renderByeolji1, '별지 제1호 — 감리자 지정 신청서', '별지제1호_감리자지정신청서'); }
 async function printTab(tabId) {
