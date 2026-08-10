@@ -6816,7 +6816,23 @@ function renderDeployTable() {
     const defRate  = CONV_RATE_DEFAULTS[grade] ?? 1.00;
     const convRate = (ds.convRate !== undefined && ds.convRate !== '') ? parseFloat(ds.convRate) : defRate;
 
-    const gantt = allMonths.map(({ y, m }) => ganttHalfCells(rs, re, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
+    // [2026-08-10 사용자 승인] 배치 구간이 둘 이상인 감리원 지원.
+    //   예: 토목 공정이 전·중·후 3구간인데 role 슬롯은 civil/civil2 2개뿐 → 중간 구간을
+    //   토목(후)에 합치되 간트·비고는 실제 공정대로 나눠 표기해야 한다(예정공정표 불일치=실격).
+    //   ds.segments = [{startYM,endYM}, ...] 가 있으면 구간별로 칠하고 사이 공백월은 비운다.
+    //   ★segments 가 없으면 종전과 완전히 동일 — 기존 현장 출력 무변화.
+    const _segParsed = (Array.isArray(ds.segments) && ds.segments.length)
+      ? ds.segments.map(s => ({ rs: parseYMShort(s.startYM), re: parseYMShort(s.endYM) }))
+                   .filter(s => s.rs && s.re)
+      : [];
+    const _segs = _segParsed.length ? _segParsed : [{ rs, re }];
+    const gantt = allMonths.map(({ y, m }) => {
+      const hit = _segs.find(sg =>
+        (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
+        (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
+      const sg = hit || _segs[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+    }).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
 
@@ -8141,8 +8157,9 @@ function markupToBodyHtml(text) {
     if (!inner) return '';
     // 양끝맞춤(justify) — CSS 기본 동작상 마지막 줄("~니다.")은 자동 좌측정렬
     // word-break: keep-all 로 한글 단어가 줄 끝에서 깨지지 않게 유지하면서 자간 조정으로 정렬
-    // 단락 간 margin 0 — 모든 줄 높이를 line-height(2.0)만으로 균일하게
-    return `<p style="margin:0 0 0.8em 0;text-align:justify;text-justify:inter-character;word-break:keep-all;">${inner}</p>`;
+    // 단락 간 여백 = line-height(2.2em)와 동일 → 문단 사이가 정확히 「빈 줄 한 줄」이 된다.
+    //   [2026-08-10 사용자 승인] 종전 0.8em 은 0.37줄이라 공고문(문단 사이 한 줄)과 어긋났다.
+    return `<p style="margin:0 0 2.2em 0;text-align:justify;text-justify:inter-character;word-break:keep-all;">${inner}</p>`;
   }).filter(Boolean).join('');
 }
 
