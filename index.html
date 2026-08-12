@@ -6864,9 +6864,26 @@ function renderDeployTable() {
     const re_c = parseYMShort(row.endYM)   || end;
     const dsM_c = (row.months !== '' && row.months !== undefined && !isNaN(parseFloat(row.months))) ? parseFloat(row.months) : null;
     const actM_c = dsM_c !== null ? dsM_c : calcDeployMonths(rs_c, re_c);
-    const gantt_c = allMonths.map(({ y, m }) => ganttHalfCells(rs_c, re_c, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
+    // [2026-08-11 사용자 승인] 비평가·추가 행도 다구간 배치 지원 — 위 평가대상 행과 동일 규칙.
+    //   공고문 ②는 후반기 토목을 '순번 카운트'에서만 제외하므로 비평가 토목(후) 배치가 가능한데,
+    //   그 공정이 2구간이면 평가대상 토목(후)와 같은 모양으로 칠해야 예정공정표와 일치한다
+    //   (통으로 칠하면 개월 표기와 칠해진 칸 수가 어긋나 표 자체가 모순된다).
+    //   ★row.segments 가 없으면 종전과 완전히 동일 — 기존 현장 출력 무변화.
+    const _segParsed_c = (Array.isArray(row.segments) && row.segments.length)
+      ? row.segments.map(s => ({ rs: parseYMShort(s.startYM), re: parseYMShort(s.endYM) }))
+                    .filter(s => s.rs && s.re)
+      : [];
+    const _segs_c = _segParsed_c.length ? _segParsed_c : [{ rs: rs_c, re: re_c }];
+    const gantt_c = allMonths.map(({ y, m }) => {
+      const hit = _segs_c.find(sg =>
+        (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
+        (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
+      const sg = hit || _segs_c[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+    }).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
-    const note_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
+    const _autoNote_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
+    const note_c = (row.note !== undefined && row.note !== '') ? row.note : _autoNote_c;
     const mDisp_c = fmtMonths(actM_c);
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목' && row.placement === '비평가') { civExtraIdxT++; fieldLabel_c = _civilExtraLabel(civExtraIdxT, civExtraCountT); }
