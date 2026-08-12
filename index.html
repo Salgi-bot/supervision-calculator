@@ -7575,6 +7575,92 @@ function getPrintDatePrefix() {
 // ─────────────────────────────────────────────────────────────
 let _bidExportState = null;
 
+/* ★ 제출 전 실격 검증 (2026-08-12 보스 지시로 신설)
+   계기 = 비평가 토목감리원을 전반기만 배치하고 후반기를 빠뜨린 채 출력 직전까지 간 사례가 반복됨.
+   근거 조항(공고문 공통):
+    · "분야별 감리원(비평가대상감리원 포함)을 해당분야별 전체 공사기간 동안 배치하여야 하며
+       해당분야 공사기간 이외에 배치하였을 경우에는 평가 인·월수에서 제외한다"
+    · "비평가대상감리원의 배치는 3인 이하일 경우 건축, 토목, 기타설비 순으로 배치하되
+       4번째부터는 직무분야 구분없이 배치 가능하며 비평가대상 감리원 전체 중 1명은 부분배치 가능"
+    · "비상주감리원의 인·월수는 총배치 인·월수의 15% 범위 이내"
+   ★배치 원칙(보스 2026-08-12): 총괄감리원만 전체 공사기간, 그 외는 해당 공종 공사기간에 맞춘다. */
+function validateSubmitPack() {
+  const issues = [];
+  try {
+    const ds   = (typeof deployState === 'object' && deployState) ? deployState : {};
+    const rows = (typeof extraDeployRows !== 'undefined' && Array.isArray(extraDeployRows)) ? extraDeployRows : [];
+    const pj   = (typeof getProjectData === 'function') ? getProjectData() : {};
+    const num  = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+    const segsOf = o => (o && Array.isArray(o.segments) && o.segments.length)
+      ? o.segments.filter(s => s && s.startYM && s.endYM).map(s => [String(s.startYM), String(s.endYM)])
+      : (o && o.startYM && o.endYM ? [[String(o.startYM), String(o.endYM)]] : []);
+    // inner 각 구간이 outer 구간 중 하나에 통째로 담기는가 (YYMMDD 문자열은 사전순 = 시간순)
+    const covered = (outer, inner) => inner.every(([s, e]) => outer.some(([S, E]) => S <= s && E >= e));
+    const fieldOf = r => String((r && r.field) || '');
+    const pmOf = o => num(o && o.months) * (num(o && o.convRate) || 1);
+    // 개월수 칸이 비어 있는 행(비상주 등)을 위해 YYMMDD 두 값에서 개월수를 낸다
+    const monthsBetween = o => {
+      if (!o || !o.startYM || !o.endYM) return 0;
+      const p = v => ({ y: parseInt(String(v).slice(0, 2), 10), m: parseInt(String(v).slice(2, 4), 10) });
+      const a = p(o.startYM), b = p(o.endYM);
+      if (isNaN(a.y) || isNaN(b.y)) return 0;
+      return (b.y * 12 + b.m) - (a.y * 12 + a.m) + 1;
+    };
+
+    // ① 비평가 토목이 평가대상 토목(전반+후반) 전 구간을 덮는가  ← 반복 실수 지점
+    const civilSegs = [...segsOf(ds.civil), ...segsOf(ds.civil2)];
+    const nonEvalCivil = rows.filter(r => fieldOf(r).includes('토목')).flatMap(segsOf);
+    if (civilSegs.length && !covered(nonEvalCivil, civilSegs)) {
+      issues.push('［실격위험］비평가 토목감리원이 토목공사 전 구간을 덮지 않습니다. 후반기 토목 구간이 빠졌는지 확인하십시오.');
+    }
+    // ② 비평가 배치가 해당 분야 공사기간을 벗어나지 않는가
+    const scope = { '건축': segsOf(ds.arch), '기타설비': segsOf(ds.mech), '설비': segsOf(ds.mech) };
+    rows.forEach((r, i) => {
+      const sc = scope[fieldOf(r)];
+      if (!sc || !sc.length) return;
+      const my = segsOf(r);
+      if (my.length && !covered(sc, my)) {
+        issues.push('［실격위험］비평가 ' + (i + 1) + '행(' + fieldOf(r) + ')의 배치기간이 해당 공종 공사기간을 벗어납니다. 벗어난 기간은 인·월수에서 제외됩니다.');
+      }
+    });
+    // ③ 부분배치는 전체 중 1명까지
+    const partial = rows.filter(r => {
+      const sc = scope[fieldOf(r)];
+      if (!sc || !sc.length) return false;
+      const my = segsOf(r);
+      return my.length === 1 && sc.length === 1 && !(my[0][0] <= sc[0][0] && my[0][1] >= sc[0][1]);
+    });
+    if (partial.length > 1) {
+      issues.push('［실격위험］부분배치가 ' + partial.length + '명입니다. 비평가대상 감리원 전체 중 1명만 부분배치할 수 있습니다.');
+    }
+    // ④ 비상주 15% 이내 · 총배치 ≥ 법정 인·월수
+    //   ★반드시 앱 정본 계산기(computeDeployConvData)를 쓴다. 여기서 따로 합산하면
+    //     앱 산식(부분배치·환산비·비상주 상한 절삭)과 어긋나 오탐이 난다 — 세종으로 실측 확인.
+    if (typeof computeDeployConvData === 'function') {
+      const cd = computeDeployConvData() || {};
+      const totalPm = num(cd.totalConvPM), nonresPm = num(cd.nonresPM);
+      const nonresMax = num(cd.nonresMax), law = num(cd.law);
+      if (nonresMax > 0 && nonresPm > nonresMax + 0.0005) {
+        issues.push('［실격위험］비상주 인·월수 ' + nonresPm.toFixed(3) + '이 상한 ' + nonresMax.toFixed(3) + '(총배치의 15%)을 넘습니다.');
+      }
+      if (law > 0 && totalPm > 0 && totalPm < law) {
+        issues.push('［실격위험］총배치 ' + totalPm.toFixed(3) + ' 인·월이 법정 ' + law.toFixed(3) + ' 인·월에 미달합니다.');
+      }
+    }
+    // ⑤ 공고번호가 신청서·서약서 양쪽에 같게 들어갔는가
+    const swEl = document.getElementById('swearNoticeNumber');
+    const swearNo = swEl ? swEl.value : '';
+    const norm = s => String(s || '').replace(/\s/g, '');
+    if (pj.noticeNo && swearNo && norm(pj.noticeNo) !== norm(swearNo)) {
+      issues.push('［확인］신청서 공고번호(' + pj.noticeNo + ')와 서약서 공고번호(' + swearNo + ')가 다릅니다.');
+    }
+  } catch (e) {
+    console.error('validateSubmitPack', e);
+    issues.push('［확인］검증 중 오류가 발생했습니다. 콘솔을 확인하고 수기로 대조하십시오.');
+  }
+  return issues;
+}
+
 function printAllForSubmit() {
   // 미리보기 강제 렌더 (탭 미진입 상태에서도 보장)
   renderByeolji1();
@@ -7583,6 +7669,9 @@ function printAllForSubmit() {
   renderByeolchum1();
   renderDeploySettings();
   renderDeployTable();
+  // ★ 출력 직전 실격 검증 — 걸리면 사유를 보이고, 그래도 진행할지 묻는다
+  const issues = validateSubmitPack();
+  if (issues.length && !confirm('제출 전 점검에서 아래가 걸렸습니다.\n\n' + issues.map(function (s, i) { return (i + 1) + '. ' + s; }).join('\n\n') + '\n\n그래도 출력하시겠습니까?')) return;
   openBidExportModal();
 }
 
