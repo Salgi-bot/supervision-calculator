@@ -8225,7 +8225,10 @@ function renderByeolchum1() {
         <div style="text-align:right;margin-right:40px;line-height:2.0;">
           ${signLines}
         </div>
-        <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
+        <!-- [2026-08-13 보스 지시] 수신처에 밑줄을 넣지 않는다 — 공고문 서약서 원본에 밑줄이 없다.
+             (양평 양서 공고 34쪽 실측: 「양평군수 귀하」= 굵게·우측, 밑줄 없음)
+             굵기·우측 정렬은 공고문 그대로이므로 유지. -->
+        <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}">${escHtml(authority)} 귀하</div>
       </div>
     </div>`;
   updateSwearAlignButtons();
