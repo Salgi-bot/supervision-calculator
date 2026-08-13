@@ -7047,7 +7047,7 @@ function renderDeployTable() {
       <div>※ 감리대상공사비 : ${escHtml(pj.supervisionCost||'')} 천원</div>
       <div style="padding-left:16px">- 법&nbsp;정&nbsp;인·월&nbsp;수 : ${escHtml(lawMonths)}&ensp;인·월</div>
       <div style="padding-left:16px">- 투&nbsp;입&nbsp;인·월&nbsp;수 : ${convTotal}&ensp;인·월${(() => { const lp = parseFloat(lawMonths); if (isNaN(lp)||lp<=0) return ''; return convTotal>=lp ? '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#f0fdf4;color:#166534;font-size:8pt;font-weight:700;border:1px solid #bbf7d0">✓ 충족</span>' : '<span style="margin-left:8px;padding:1px 8px;border-radius:3px;background:#fef2f2;color:#991b1b;font-size:8pt;font-weight:700;border:1px solid #fecaca">✗ 미달 ('+(convTotal-lp).toFixed(1)+'인·월)</span>'; })()}</div>
-      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${_dc.nonresPM}&ensp;인·월&ensp;(배치율 ${(() => {
+      <div style="padding-left:16px">- 비상주감리원 인·월수(배치율) : ${_dc.nonresPM}&ensp;인·월&ensp;(${(() => {
         // [2026-08-13 사용자 승인] 공고문 「머.1)·2)」 = 「비상주감리원의 인·월수 및 배치율도 구분 표시」.
         //   종전에는 인·월수만 적고 배치율을 「(15% 이내)」로만 써 배치율 수치가 없었다(작성기준 미충족 소지).
         //   ★분모는 공고문 판정식대로 총배치 인·월수 — 「비상주 인·월수는 총배치 인·월수의 15% 범위 이내」.
@@ -7055,7 +7055,7 @@ function renderDeployTable() {
         //   ★올림(ceilAt3) — 배치율은 낮을수록 유리하므로 내림은 유리한 쪽 반올림이 된다.
         const t = parseFloat(convTotal);
         return (!t || isNaN(t)) ? '-' : ceilAt3(_dc.nonresPM / t * 100).toFixed(3);
-      })()}% / 15% 이내)</div>
+      })()}%&ensp;/&ensp;15% 이내)</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
       ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
