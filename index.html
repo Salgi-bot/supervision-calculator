@@ -1555,6 +1555,22 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearContactOn"  onclick="setSwearAlign('contact','on')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
           <button type="button" id="swearContactOff" onclick="setSwearAlign('contact','off')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
         </div>
+        <!-- [2026-08-13 보스 지시] 공고마다 서식이 달라 아래 3개는 공고문 원본을 보고 맞춘다. -->
+        <span style="color:#64748b;margin-left:4px;" title="공고문 서약서 하단 「○○ 귀하」에 밑줄이 있는지 보고 맞추세요.">귀하 밑줄:</span>
+        <div role="group" aria-label="별첨1 수신처 밑줄" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearUnderlineOn"  onclick="setSwearAlign('underline','on')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">있음</button>
+          <button type="button" id="swearUnderlineOff" onclick="setSwearAlign('underline','off')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">없음</button>
+        </div>
+        <span style="color:#64748b;margin-left:4px;" title="공고문 서명란 라벨이 「서약자 주소」인지 「주 소」인지 보고 맞추세요.">주소 라벨:</span>
+        <div role="group" aria-label="별첨1 주소 라벨" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearAddrLabelLong"  onclick="setSwearAlign('addrLabel','long')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">서약자 주소</button>
+          <button type="button" id="swearAddrLabelShort" onclick="setSwearAlign('addrLabel','short')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">주 소</button>
+        </div>
+        <span style="color:#64748b;margin-left:4px;" title="공고문 상단 □공고번호·사업명·사업주체 라벨이 굵은지 보고 맞추세요.">상단 라벨:</span>
+        <div role="group" aria-label="별첨1 상단 라벨 굵기" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="swearLabelBoldOn"  onclick="setSwearAlign('labelBold','on')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">굵게</button>
+          <button type="button" id="swearLabelBoldOff" onclick="setSwearAlign('labelBold','off')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">보통</button>
+        </div>
         <input type="text" id="swearNoticeNumberInput" readonly
           title="「데이터입력 → 공고 정보 → 공고번호」 값을 자동으로 사용합니다."
           style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
@@ -2043,6 +2059,15 @@ let swearNoticeNumber = '';       // 별첨1 서약서 상단 공고번호 입�
 let swearSignOrder = 'default';   // 서약자 주소·업체명 순서: 'default'(주소→업체명) | 'swap'(업체명→주소)
 let swearDateAlign = 'center';    // 날짜 정렬: 'center' | 'right'
 let swearContactEnabled = false;  // 별첨1 서약서 하단 전화번호·FAX 라인 표시 여부
+// ── [2026-08-13 보스 지시] 「무조건 ○○이 아니라 공고문 기준을 적용한다」 ──
+//   서약서 서식은 공고마다 다르다. 아래 3개는 공고문 7건 실측으로 갈린 것이 확인돼 토글로 뺐다.
+//   (밑줄) 있음=거모B6·세종L8·오산고현 / 없음=행신2-1·양서 / 미확인=반포MV·홍은동
+//   (주소 라벨) 「서약자 주소」=거모B6·세종L8·반포MV·홍은동·오산고현 / 「주 소」=행신2-1·양서
+//   (상단 라벨 굵기) 굵게=양서 / 보통=나머지 6건
+//   기본값은 다수 쪽으로 두되, 공고마다 원본을 보고 맞추는 것이 원칙이다.
+let swearRecipientUnderline = true; // 수신처(귀하) 밑줄
+let swearAddrLabel = 'long';        // 서명란 주소 라벨: 'long'(서약자 주소) | 'short'(주 소)
+let swearLabelBold = false;         // 상단 □공고번호·사업명·사업주체 라벨 굵기
 let showStamp = true;             // 법인 도장 이미지 표시 여부
 let stampSize = 62;               // 법인 도장 직경(px)
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
@@ -2070,6 +2095,9 @@ function _collectSwearAndBidState() {
     swearSignOrder: swearSignOrder,
     swearDateAlign: swearDateAlign,
     swearContactEnabled: swearContactEnabled,
+    swearRecipientUnderline: swearRecipientUnderline,
+    swearAddrLabel: swearAddrLabel,
+    swearLabelBold: swearLabelBold,
     swearNoticeEnabled: swearNoticeEnabled,
     swearNoticeNumber: swearNoticeNumber,
     swearBodyTemplates: swearBodyTemplates,
@@ -2088,6 +2116,9 @@ function _restoreSwearAndBidState(data) {
   if (data.swearSignOrder === 'swap' || data.swearSignOrder === 'default') swearSignOrder = data.swearSignOrder;
   if (data.swearDateAlign === 'right' || data.swearDateAlign === 'center') swearDateAlign = data.swearDateAlign;
   if (typeof data.swearContactEnabled === 'boolean') swearContactEnabled = data.swearContactEnabled;
+  if (typeof data.swearRecipientUnderline === 'boolean') swearRecipientUnderline = data.swearRecipientUnderline;
+  if (data.swearAddrLabel === 'long' || data.swearAddrLabel === 'short') swearAddrLabel = data.swearAddrLabel;
+  if (typeof data.swearLabelBold === 'boolean') swearLabelBold = data.swearLabelBold;
   if (typeof data.swearNoticeEnabled === 'boolean') swearNoticeEnabled = data.swearNoticeEnabled;
   if (typeof data.swearNoticeNumber === 'string') {
     swearNoticeNumber = data.swearNoticeNumber;
@@ -8185,8 +8216,10 @@ function renderByeolchum1() {
   const dateAlign = (swearDateAlign === 'right') ? 'right' : 'center';
   const dateMargin = (swearDateAlign === 'right') ? 'margin-right:40px;' : '';
   const _pjNotice = (pj.noticeNo || '').trim();
+  // 상단 라벨 굵기 — 공고마다 다르다(양서=굵게, 나머지 6건=보통). [2026-08-13]
+  const _lblW = swearLabelBold ? 'font-weight:bold;' : '';
   const noticeLine = swearNoticeEnabled
-    ? `<div style="margin-bottom:0;">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
+    ? `<div style="margin-bottom:0;${_lblW}">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
     : '';
   const activeTpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
   const rawBody = (activeTpl && typeof activeTpl.body === 'string') ? activeTpl.body : '';
@@ -8194,7 +8227,9 @@ function renderByeolchum1() {
     ? markupToBodyHtml(rawBody)
     : `<span style="color:#9ca3af;">(본문 없음 — 템플릿을 입력하세요)</span>`;
   // 서약자/업체명 순서 토글
-  const addrLine = `<div>서약자 주소 : ${escHtml(co.address||'')}</div>`;
+  // 주소 라벨 — 공고마다 다르다(「서약자 주소」 5건 / 「주 소」 행신2-1·양서). [2026-08-13]
+  const _addrLbl = (swearAddrLabel === 'short') ? '주&emsp;&emsp;소' : '서약자 주소';
+  const addrLine = `<div>${_addrLbl} : ${escHtml(co.address||'')}</div>`;
   const compLine = `<div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>`;
   const phoneLine = `<div>전&emsp;화&emsp;번&emsp;호 : ${escHtml(co.phone||'')}</div>`;
   const faxLine = `<div>FAX&emsp;번&emsp;호 : ${escHtml(co.fax||'')}</div>`;
@@ -8205,14 +8240,21 @@ function renderByeolchum1() {
   const signLines = (swearSignOrder === 'swap')
     ? (compLine + addrLine + contactLines + ceoLine)
     : (addrLine + compLine + contactLines + ceoLine);
+  // 별첨 표기 — 종전 「【별첨 1】」은 공고문 7건 어느 것과도 달랐다(전부 대괄호 계열).
+  //   홍은동만 「〔별첨 1〕」이라 예외가 있으나 다수인 「[별첨 1]」로 맞춘다. [2026-08-13]
+  const _byeolchumTag = '[별첨 1]';
+  // 수신처 밑줄 — 공고마다 다르다(swearRecipientUnderline). 굵기·정렬은 공고문 공통이라 고정.
+  const _recipientHtml = swearRecipientUnderline
+    ? `<u>${escHtml(authority)} 귀하</u>`
+    : `${escHtml(authority)} 귀하`;
   document.getElementById('byeolchum1Preview').innerHTML = `
     <div class="a4-page byeolchum1-page" id="byeolchum1Doc" style="padding:38px 50px 12px 50px;font-family:'Batang','바탕',serif;font-size:15px;line-height:2.0;color:#000;display:flex;flex-direction:column;">
       <div class="swear-top" style="flex:0 0 auto;">
-        <div style="font-size:14px;font-weight:bold;margin-bottom:10px;text-align:${headerAlign};">【별첨 1】</div>
+        <div style="font-size:14px;font-weight:bold;margin-bottom:10px;text-align:${headerAlign};">${_byeolchumTag}</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:10px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
         ${noticeLine}
-        <div style="margin-bottom:0;">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-        <div style="margin-bottom:0;">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
+        <div style="margin-bottom:0;${_lblW}">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
+        <div style="margin-bottom:0;${_lblW}">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
       </div>
       <div class="swear-spacer-top" style="flex:1 1 0;min-height:12px;"></div>
       <div class="swear-body" style="flex:0 0 auto;">
@@ -8225,7 +8267,7 @@ function renderByeolchum1() {
         <div style="text-align:right;margin-right:40px;line-height:2.0;">
           ${signLines}
         </div>
-        <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}"><u>${escHtml(authority)} 귀하</u></div>
+        <div style="margin-top:22px;font-size:18px;font-weight:bold;text-align:${recipientAlign};${recipientAlign==='right'?'margin-right:40px;':''}">${_recipientHtml}</div>
       </div>
     </div>`;
   updateSwearAlignButtons();
@@ -8240,6 +8282,9 @@ function setSwearAlign(target, align) {
   else if (target === 'signOrder') swearSignOrder = (align === 'swap') ? 'swap' : 'default';
   else if (target === 'date') swearDateAlign = (align === 'right') ? 'right' : 'center';
   else if (target === 'contact') swearContactEnabled = (align === 'on');
+  else if (target === 'underline') swearRecipientUnderline = (align === 'on');
+  else if (target === 'addrLabel') swearAddrLabel = (align === 'short') ? 'short' : 'long';
+  else if (target === 'labelBold') swearLabelBold = (align === 'on');
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolchum1();
 }
@@ -8263,6 +8308,12 @@ function updateSwearAlignButtons() {
   setActive('swearDateAlignRight',      swearDateAlign === 'right');
   setActive('swearContactOn',           swearContactEnabled === true);
   setActive('swearContactOff',          swearContactEnabled !== true);
+  setActive('swearUnderlineOn',         swearRecipientUnderline === true);
+  setActive('swearUnderlineOff',        swearRecipientUnderline !== true);
+  setActive('swearAddrLabelLong',       swearAddrLabel !== 'short');
+  setActive('swearAddrLabelShort',      swearAddrLabel === 'short');
+  setActive('swearLabelBoldOn',         swearLabelBold === true);
+  setActive('swearLabelBoldOff',        swearLabelBold !== true);
   const inp = document.getElementById('swearNoticeNumberInput');
   if (inp) {
     const pjNo = (document.getElementById('pj_noticeNo')?.value || '').trim();
