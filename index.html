@@ -7424,7 +7424,7 @@ async function _waitForPrintReady(targetEls) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 별첨5(배치계획표) 가로 인쇄 fit — 긴 사업(배치월 12 초과) 자동 발동
+// 별첨5(배치계획표) 인쇄 fit — 세로 고정(2026-08-13~), 폭 초과 사업만 가로
 // 4단계: (1) orientation 결정 (2) <col> 폭 동적 재계산 (3) 폰트 다운
 //        (4) scrollWidth/Height 측정 → transform: scale 안전망
 // 모든 변경은 _deployFitState에 백업 → _undoDeployFit()에서 복원.
@@ -7442,8 +7442,23 @@ function _applyDeployFitForPrint() {
   totalM = Math.round(totalM);
   if (totalM <= 0) return;
 
-  // (1) Orientation: 12개월 이하 portrait 유지, 초과 시 landscape
-  const orientation = totalM > 12 ? 'landscape' : 'portrait';
+  // 폭 상수 — orientation 판정과 <col> 재계산이 함께 쓴다.
+  //   doc padding 38(좌)+30(우) = 60, 안전여유 −10 → padReserve
+  //   좌측 4컬럼(38+28+38+26=130), 우측 4컬럼(48+42+62+52=204) 고정 폭
+  const padReserve = 60 + 10;
+  const LEFT_FIXED = 130, RIGHT_FIXED = 204;
+  const MIN_COL = 6;   // 간트 셀 최소 폭(가독 하한)
+
+  // (1) Orientation: 세로 고정 [2026-08-13 보스 지시]
+  //   제출서류(신청서·자기평가서·서약서)가 전부 세로인데 배치계획표만 가로면 묶음 방향이 섞인다.
+  //   → 전 서식 세로 통일. 종전 기준(12개월 초과 = 가로)은 폐기.
+  //   실측(양서 30개월·13행): 세로 1페이지, 하단 공백 14.1% — 종이가 남지 않는다.
+  //   ※ 단 하나의 예외: 셀을 최소폭까지 줄여도 세로 A4 폭에 안 들어가는 장기 사업.
+  //     그대로 세로로 찍으면 간트 오른쪽이 잘려 나가고, 잘린 배치계획표는 「예정공정표와
+  //     불일치 = 실격」에 직결된다. 물리적으로 불가능한 경우만 가로로 넘긴다(33개월~).
+  const portraitInnerW = Math.round(210 * 96 / 25.4) - padReserve;
+  const minTableW = LEFT_FIXED + RIGHT_FIXED + totalM * 2 * MIN_COL;
+  const orientation = minTableW > portraitInnerW ? 'landscape' : 'portrait';
 
   // 백업
   _deployFitState = {
@@ -7463,17 +7478,12 @@ function _applyDeployFitForPrint() {
 
   // 페이지 인쇄 가능 폭(px @96dpi) — A4 portrait=210mm(793px), landscape=297mm(1122.5px), margin=0
   const pageWpx = orientation === 'landscape' ? Math.round(297*96/25.4) : Math.round(210*96/25.4);
-  // doc padding 38(좌)+30(우 실제 30) → 좌우 합 60. 안전여유 −10 → 가용폭.
-  const padReserve = 60 + 10;
   const innerWpx = pageWpx - padReserve;
-
-  // 좌측 4컬럼(38+28+38+26=130), 우측 4컬럼(48+42+62+52=204) 고정 폭
-  const LEFT_FIXED = 130, RIGHT_FIXED = 204;
   const monthAvailable = Math.max(0, innerWpx - LEFT_FIXED - RIGHT_FIXED);
   // 월당 2 cells. 셀당 폭 = floor(monthAvailable / (totalM*2)), 최소 6, 최대 9
   const cells = totalM * 2;
   let newColW = cells > 0 ? Math.floor(monthAvailable / cells) : 6;
-  newColW = Math.max(6, Math.min(9, newColW));
+  newColW = Math.max(MIN_COL, Math.min(9, newColW));
 
   // colgroup 구조: [4 fixed left] + [totalM*2 month cols] + [4 fixed right]
   if (cols.length >= 8 + cells) {
