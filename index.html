@@ -6851,7 +6851,14 @@ function renderDeployTable() {
                         r.placement === '비평가' ? '비평가' :
                         r.isNew ? '신규' : '분야별';
     const fieldLabel = getRoleFieldLabel(r);
-    const monthsDisp = fmtMonths(actualMonths);
+    // [2026-08-13 사용자 승인] 개월 칸 표기 오버라이드 (monthsLabel).
+    //   공고문 예정공정표는 개월을 정수로 적는데(설비 24) 월중 시작(03.02)이면 실제는 소수(23.968)다.
+    //   ★배치계획표(별첨5)는 공고문 표기를 그대로 따르고, 인·월수는 실일수로 보수적으로 계산한다.
+    //   → months는 비워 두어 계산이 실일수를 쓰게 하고, 이 칸에만 공고문 값을 덧씌운다.
+    //   산출근거 표(renderCalcResult)는 실일수 23.968을 그대로 보여 근거가 남는다.
+    //   ★monthsLabel 이 없으면 종전과 완전히 동일 — 기존 현장 출력 무변화.
+    const monthsDisp = (ds.monthsLabel !== undefined && String(ds.monthsLabel).trim() !== '')
+      ? String(ds.monthsLabel).trim() : fmtMonths(actualMonths);
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
@@ -6884,7 +6891,9 @@ function renderDeployTable() {
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const _autoNote_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
     const note_c = (row.note !== undefined && row.note !== '') ? row.note : _autoNote_c;
-    const mDisp_c = fmtMonths(actM_c);
+    // [2026-08-13] 개월 칸 표기 오버라이드 — 상단 monthsDisp 주석 참조 (없으면 종전 동일)
+    const mDisp_c = (row.monthsLabel !== undefined && String(row.monthsLabel).trim() !== '')
+      ? String(row.monthsLabel).trim() : fmtMonths(actM_c);
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목' && row.placement === '비평가') { civExtraIdxT++; fieldLabel_c = _civilExtraLabel(civExtraIdxT, civExtraCountT); }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
@@ -6904,10 +6913,27 @@ function renderDeployTable() {
     const re_e   = parseYMShort(ds_e.endYM)   || end;
     const dsM_e  = (ds_e.months !== undefined && ds_e.months !== '' && !isNaN(parseFloat(ds_e.months))) ? parseFloat(ds_e.months) : null;
     const actM_e = dsM_e !== null ? dsM_e : calcDeployMonths(rs_e, re_e);
-    const gantt_e = allMonths.map(({ y, m }) => ganttHalfCells(rs_e, re_e, y, m, '#e0e0e0', 'border:1px solid #ddd')).join('');
+    // [2026-08-13 사용자 승인] 추가배치 행에도 segments 지원 (평가·비평가 행과 동일 방식).
+    //   공고문 예정공정표는 월중 시작(03.02)이어도 그 달 칸을 통째로 칠한다 → 간트만 맞추고
+    //   비고의 실제 배치일(27.03.02~)·개월수·인·월수는 건드리지 않는다.
+    //   ★ds_e.segments 가 없으면 종전과 완전히 동일 — 기존 현장 출력 무변화.
+    const _segParsed_e = (Array.isArray(ds_e.segments) && ds_e.segments.length)
+      ? ds_e.segments.map(s => ({ rs: parseYMShort(s.startYM), re: parseYMShort(s.endYM) }))
+                     .filter(s => s.rs && s.re)
+      : [];
+    const _segs_e = _segParsed_e.length ? _segParsed_e : [{ rs: rs_e, re: re_e }];
+    const gantt_e = allMonths.map(({ y, m }) => {
+      const hit = _segs_e.find(sg =>
+        (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
+        (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
+      const sg = hit || _segs_e[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+    }).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
     const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
-    const mDisp_e = fmtMonths(actM_e);
+    // [2026-08-13] 개월 칸 표기 오버라이드 — 상단 monthsDisp 주석 참조 (없으면 종전 동일)
+    const mDisp_e = (ds_e.monthsLabel !== undefined && String(ds_e.monthsLabel).trim() !== '')
+      ? String(ds_e.monthsLabel).trim() : fmtMonths(actM_e);
     rowDataArr.push({ structLabel:'추가<br>배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
     totalActualPM += actM_e;
