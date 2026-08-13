@@ -5841,6 +5841,15 @@ function lastDay(y, m) { return new Date(y, m, 0).getDate(); }
 function fmtYMD(y, m, d) { return String(y).slice(-2)+'.'+String(m).padStart(2,'0')+'.'+String(d).padStart(2,'0'); }
 // 개월 표시: toFixed(3) 후 불필요한 trailing zero 제거 (31.000→31, 24.900→24.9, 24.903→24.903)
 function fmtMonths(v) { return parseFloat(v.toFixed(3)).toString(); }
+// [2026-08-13 사용자 지적] 개월 수 「표시」는 버림한다 — fmtMonths의 toFixed(3)은 반올림이다.
+//   월중 시작(03.02)이면 개월 수가 무한소수가 된다: 30/31 = 0.967741… → 반올림 0.968 로 실제보다 커진다.
+//   「반올림 유리하게 금지(실격 사유)」에 어긋나고, 환산 인·월수는 이미 floorAt3 기준으로 산출하므로
+//   (computeDeployConvData) 표시만 계산과 어긋나 있었다.
+//   실측: 원값 23.9677 → 표시 23.968 / 계산 23.967 → 인·월 27.298.
+//        표에 적힌 23.968 × 1.139 = 27.299 라 산출근거 표 안에서 곱셈이 맞지 않았다.
+//   ※ 총배치 인·월수 합계는 fmtMonths 그대로 둔다 — 이미 절사된 값들의 합이라 부동소수점 오차를
+//     되돌리는 반올림이 맞고, 버림을 걸면 오히려 0.001 깎일 수 있다.
+function fmtMonthsFloor(v) { return fmtMonths(floorAt3(v)); }
 // 실제 일수 기반 인·월수 계산 (부분월 포함)
 function calcDeployMonths(rs, re) {
   const sd = rs.d || 1;
@@ -6858,7 +6867,7 @@ function renderDeployTable() {
     //   산출근거 표(renderCalcResult)는 실일수 23.968을 그대로 보여 근거가 남는다.
     //   ★monthsLabel 이 없으면 종전과 완전히 동일 — 기존 현장 출력 무변화.
     const monthsDisp = (ds.monthsLabel !== undefined && String(ds.monthsLabel).trim() !== '')
-      ? String(ds.monthsLabel).trim() : fmtMonths(actualMonths);
+      ? String(ds.monthsLabel).trim() : fmtMonthsFloor(actualMonths);
     rowDataArr.push({ structLabel, fieldLabel, name: p.info.name,
       grade: p.info.appliedGrade||p.info.grade, gantt, monthsDisp, convRate, convPM, note });
   });
@@ -6893,7 +6902,7 @@ function renderDeployTable() {
     const note_c = (row.note !== undefined && row.note !== '') ? row.note : _autoNote_c;
     // [2026-08-13] 개월 칸 표기 오버라이드 — 상단 monthsDisp 주석 참조 (없으면 종전 동일)
     const mDisp_c = (row.monthsLabel !== undefined && String(row.monthsLabel).trim() !== '')
-      ? String(row.monthsLabel).trim() : fmtMonths(actM_c);
+      ? String(row.monthsLabel).trim() : fmtMonthsFloor(actM_c);
     let fieldLabel_c = row.field || '건축';
     if (row.field === '토목' && row.placement === '비평가') { civExtraIdxT++; fieldLabel_c = _civilExtraLabel(civExtraIdxT, civExtraCountT); }
     const cr_c = (row.convRate !== undefined && row.convRate !== '') ? parseFloat(row.convRate) : 1.139;
@@ -6933,7 +6942,7 @@ function renderDeployTable() {
     const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
     // [2026-08-13] 개월 칸 표기 오버라이드 — 상단 monthsDisp 주석 참조 (없으면 종전 동일)
     const mDisp_e = (ds_e.monthsLabel !== undefined && String(ds_e.monthsLabel).trim() !== '')
-      ? String(ds_e.monthsLabel).trim() : fmtMonths(actM_e);
+      ? String(ds_e.monthsLabel).trim() : fmtMonthsFloor(actM_e);
     rowDataArr.push({ structLabel:'추가<br>배치', fieldLabel:'건축', name:'-', grade:'중급',
       gantt:gantt_e, monthsDisp:mDisp_e, convRate:'-', convPM:'-', note:note_e, noConv:true });
     totalActualPM += actM_e;
@@ -7260,7 +7269,7 @@ function renderCalcResult(unitCostHtml = '') {
     const sd2 = rs ? (rs.d || 1) : 1;
     const ed2 = re ? (re.d || lastDay(re.y, re.m)) : 0;
     const autoNote = rs&&re ? `${fmtYMD(rs.y,rs.m,sd2)}~\n${fmtYMD(re.y,re.m,ed2)}` : '—';
-    const monthsDisp2 = fmtMonths(actualMonths2);
+    const monthsDisp2 = fmtMonthsFloor(actualMonths2);
     const TD2='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111';
     supervisorRows+=`<tr>
       <td style="${TD2}">${structLabel}</td>
@@ -7300,7 +7309,7 @@ function renderCalcResult(unitCostHtml = '') {
     const sd_c = rs_c ? (rs_c.d || 1) : 1;
     const ed_c = re_c ? (re_c.d || lastDay(re_c.y, re_c.m)) : 0;
     const autoNote_c = rs_c && re_c ? `${fmtYMD(rs_c.y,rs_c.m,sd_c)}~\n${fmtYMD(re_c.y,re_c.m,ed_c)}` : '—';
-    const monthsDisp_c = fmtMonths(actM_c);
+    const monthsDisp_c = fmtMonthsFloor(actM_c);
     const TD2C='border:1px solid #ccc;padding:4px 8px;text-align:center;font-size:8.5pt;color:#111;background:#fffbeb';
     supervisorRows+=`<tr>
       <td style="${TD2C}">${escHtml(row.placement || '분야별')}</td>
