@@ -7692,9 +7692,14 @@ function validateSubmitPack() {
     };
 
     // ① 비평가 토목이 평가대상 토목(전반+후반) 전 구간을 덮는가  ← 반복 실수 지점
+    //   ★단 공고문 「비평가대상 감리원 중 마지막 1명은 부분배치 가능」에 따라 마지막 행은 검사에서 뺀다.
+    //     (2026-08-19 반포MV — 마지막 1명을 토목 11개월 부분배치로 둔 정상 배치를 실격위험으로 오탐하던 것을 보스 지시로 수정.
+    //      이 검사가 잡아야 할 것은 세종 L8처럼 「토목을 마지막이 아닌 자리에 넣고 후반기를 빠뜨린」 경우다.)
     const civilSegs = [...segsOf(ds.civil), ...segsOf(ds.civil2)];
-    const nonEvalCivil = rows.filter(r => fieldOf(r).includes('토목')).flatMap(segsOf);
-    if (civilSegs.length && !covered(nonEvalCivil, civilSegs)) {
+    const _lastRowIdx = rows.length - 1;
+    const _civilRowsChecked = rows.filter((r, i) => fieldOf(r).includes('토목') && i !== _lastRowIdx);
+    const nonEvalCivil = _civilRowsChecked.flatMap(segsOf);
+    if (civilSegs.length && _civilRowsChecked.length && !covered(nonEvalCivil, civilSegs)) {
       issues.push('［실격위험］비평가 토목감리원이 토목공사 전 구간을 덮지 않습니다. 후반기 토목 구간이 빠졌는지 확인하십시오.');
     }
     // ② 비평가 배치가 해당 분야 공사기간을 벗어나지 않는가
