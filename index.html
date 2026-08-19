@@ -1208,10 +1208,20 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="byeolji1HeaderAlignRight" onclick="setByeolji1Align('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;" title="공고문 별지1호 상단에 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 줄이 있는지 보고 맞추세요.">기준줄:</span>
+        <div role="group" aria-label="별지1호 기준줄 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji1StdOn"  onclick="setByeolji1Std(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
+          <button type="button" id="byeolji1StdOff" onclick="setByeolji1Std(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
         <span style="color:#64748b;margin-left:6px;">하단:</span>
         <div role="group" aria-label="별지1호 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji1RecipientAlignLeft"  onclick="setByeolji1Align('recipient','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="byeolji1RecipientAlignRight" onclick="setByeolji1Align('recipient','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
+        </div>
+        <span style="color:#64748b;margin-left:6px;" title="「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 줄의 정렬. 공고문에서 이 줄이 우측이면 우측으로.">기준줄:</span>
+        <div role="group" aria-label="별지2호 기준줄 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji2StdAlignLeft"  onclick="setByeolji2Align('std','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
+          <button type="button" id="byeolji2StdAlignRight" onclick="setByeolji2Align('std','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
         <span style="color:#64748b;margin-left:6px;">별지번호:</span>
         <div role="group" aria-label="별지1호 상단 라벨 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
@@ -2187,6 +2197,10 @@ let showByeolji1Header = true;       // 별지1호 상단 서식 라벨 표시 �
 let showByeolji1Back   = false;      // 별지1호 뒤쪽(사실확인서류 ①~⑯) 페이지 표시 여부 — 기본 숨김(접수 시엔 앞쪽만), 사실확인 단계(1~3순위)에서만 표시로 전환
 let showByeolji2Header = true;       // 별지2호 상단 서식 라벨 표시 여부
 let showByeolji2Title  = true;       // 별지2호 「Ⅰ. 총괄표」 표시 여부
+// [2026-08-19 보스 지시] 공고문마다 상단 「■ 주택건설공사 감리자지정기준[별지 제N호서식]」 줄의
+//   유무·정렬이 다르다. 반포MV 실측 = 별지1호엔 그 줄이 없고, 별지2호는 그 줄이 우측이다.
+let showByeolji1Std   = true;        // 별지1호 상단 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 표시 여부
+let byeolji2StdAlign  = 'left';      // 별지2호 상단 「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 정렬(라벨줄과 독립)
 let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별첨 N]」 정렬
 let byeolchum2HeaderAlign  = 'left'; // 별첨2 감리업무 수행실적 상단 「[별첨 2]」 정렬
 let byeolchum3HeaderAlign  = 'left'; // 별첨3 감리원 업무수행실적 상단 「[별첨 3]·[별첨 4]」 정렬
@@ -2232,6 +2246,8 @@ function doAutoSave() {
     showByeolji1Header: showByeolji1Header,
     showByeolji1Back:   showByeolji1Back,
     showByeolji2Header: showByeolji2Header,
+    showByeolji1Std: showByeolji1Std,
+    byeolji2StdAlign: byeolji2StdAlign,
     showByeolji2Title:  showByeolji2Title,
     deployHeaderAlign: deployHeaderAlign,
     byeolchum2HeaderAlign: byeolchum2HeaderAlign,
@@ -2484,6 +2500,8 @@ function loadAutoSave() {
     if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
     if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
     if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+    if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+    if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
     if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
     if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
@@ -3155,6 +3173,8 @@ function loadPersonnelJSON(input) {
       if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
       if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
       if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+      if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+      if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
       if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
       if (data.deployLawMonths) { const el = document.getElementById('deployLawMonths'); if (el) el.value = data.deployLawMonths; }
@@ -3281,6 +3301,8 @@ function loadV2Data(data) {
   if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
   if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
   if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
+  if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+  if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
   if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
   if (data.b2NumState) b2NumState = data.b2NumState;
   if (data.b2EgState) b2EgState = data.b2EgState;
@@ -5117,7 +5139,7 @@ function renderByeolji1() {
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:297mm;display:flex;flex-direction:column">
       ${showByeolji1Header ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>` : ''}
-      <div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>
+      ${showByeolji1Std ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>` : ''}
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:2px;line-height:1.1">(앞 쪽)</div>
 
@@ -5316,6 +5338,8 @@ function updateByeolji1AlignButtons() {
     el.style.color = on ? '#fff' : '#0f172a';
     el.style.fontWeight = on ? '700' : '400';
   };
+  setActive('byeolji1StdOn',  showByeolji1Std === true);
+  setActive('byeolji1StdOff', showByeolji1Std !== true);
   setActive('byeolji1HeaderAlignLeft',     byeolji1HeaderAlign !== 'right');
   setActive('byeolji1HeaderAlignRight',    byeolji1HeaderAlign === 'right');
   setActive('byeolji1RecipientAlignLeft',  byeolji1RecipientAlign !== 'right');
@@ -5340,6 +5364,11 @@ function setByeoljiHeader(num, on) {
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   if (num === 1) renderByeolji1();
   else           renderByeolji2Cover();
+}
+function setByeolji1Std(on) {
+  showByeolji1Std = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolji1();
 }
 function setByeolji2Title(on) {
   showByeolji2Title = !!on;
@@ -5618,11 +5647,12 @@ function renderByeolji2Cover() {
   const fmExp     = is300미만 ? fmExpB   + 3.5 : fmExpB;
 
   const b2hAlign = (byeolji2HeaderAlign === 'right') ? 'right' : 'left';
+  const b2sAlign = (byeolji2StdAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
     ${showByeolji2Header ? `<div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>` : ''}
     ${showByeolji2Title  ? `<div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>` : ''}
-    <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
+    <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2sAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
     <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:13px;table-layout:fixed">
       <colgroup>
@@ -5756,6 +5786,7 @@ function renderByeolji2Cover() {
 // 별지2호 정렬 토글 (총괄표·세부평가서 공통 적용)
 function setByeolji2Align(target, align) {
   if (target === 'header') byeolji2HeaderAlign = (align === 'right') ? 'right' : 'left';
+  else if (target === 'std') byeolji2StdAlign = (align === 'right') ? 'right' : 'left';
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   // 현재 미리보기가 총괄표인지 세부평가서인지에 따라 재렌더
   const prev = document.getElementById('byeolji2Preview');
@@ -5776,6 +5807,8 @@ function updateByeolji2AlignButtons() {
   setActive('byeolji2HeaderOff', showByeolji2Header !== true);
   setActive('byeolji2TitleOn',   showByeolji2Title  === true);
   setActive('byeolji2TitleOff',  showByeolji2Title  !== true);
+  setActive('byeolji2StdAlignLeft',  byeolji2StdAlign !== 'right');
+  setActive('byeolji2StdAlignRight', byeolji2StdAlign === 'right');
 }
 
 function renderByeolji2() {
