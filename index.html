@@ -1266,6 +1266,11 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji2HeaderOn"  onclick="setByeoljiHeader(2,true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji2HeaderOff" onclick="setByeoljiHeader(2,false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;">■줄:</span>
+        <div role="group" aria-label="별지2호 ■ 감리자지정기준 줄 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji2StdOn"  onclick="setByeolji2Std(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
+          <button type="button" id="byeolji2StdOff" onclick="setByeolji2Std(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
         <span style="color:#64748b;margin-left:6px;">Ⅰ.총괄표:</span>
         <div role="group" aria-label="별지2호 Ⅰ.총괄표 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji2TitleOn"  onclick="setByeolji2Title(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
@@ -2200,6 +2205,7 @@ let showByeolji2Title  = true;       // 별지2호 「Ⅰ. 총괄표」 표시 �
 // [2026-08-19 보스 지시] 공고문마다 상단 「■ 주택건설공사 감리자지정기준[별지 제N호서식]」 줄의
 //   유무·정렬이 다르다. 반포MV 실측 = 별지1호엔 그 줄이 없고, 별지2호는 그 줄이 우측이다.
 let showByeolji1Std   = true;        // 별지1호 상단 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 표시 여부
+let showByeolji2Std   = true;        // 별지2호 상단 「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 표시 여부
 let byeolji2StdAlign  = 'left';      // 별지2호 상단 「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 정렬(라벨줄과 독립)
 let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별첨 N]」 정렬
 let byeolchum2HeaderAlign  = 'left'; // 별첨2 감리업무 수행실적 상단 「[별첨 2]」 정렬
@@ -2247,6 +2253,7 @@ function doAutoSave() {
     showByeolji1Back:   showByeolji1Back,
     showByeolji2Header: showByeolji2Header,
     showByeolji1Std: showByeolji1Std,
+    showByeolji2Std: showByeolji2Std,
     byeolji2StdAlign: byeolji2StdAlign,
     showByeolji2Title:  showByeolji2Title,
     deployHeaderAlign: deployHeaderAlign,
@@ -2501,6 +2508,7 @@ function loadAutoSave() {
     if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
     if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
     if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+    if (typeof data.showByeolji2Std === 'boolean') showByeolji2Std = data.showByeolji2Std;
     if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
     if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
     if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
@@ -3174,6 +3182,7 @@ function loadPersonnelJSON(input) {
       if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
       if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
       if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+      if (typeof data.showByeolji2Std === 'boolean') showByeolji2Std = data.showByeolji2Std;
       if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
       if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
       if (data.deployAnnexNo) { const el = document.getElementById('deployAnnexNo'); if (el) el.value = data.deployAnnexNo; }
@@ -3302,6 +3311,7 @@ function loadV2Data(data) {
   if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
   if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
   if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
+  if (typeof data.showByeolji2Std === 'boolean') showByeolji2Std = data.showByeolji2Std;
   if (data.byeolji2StdAlign) byeolji2StdAlign = data.byeolji2StdAlign;
   if (typeof data.showByeolji2Title  === 'boolean') showByeolji2Title  = data.showByeolji2Title;
   if (data.b2NumState) b2NumState = data.b2NumState;
@@ -5340,6 +5350,8 @@ function updateByeolji1AlignButtons() {
   };
   setActive('byeolji1StdOn',  showByeolji1Std === true);
   setActive('byeolji1StdOff', showByeolji1Std !== true);
+  setActive('byeolji2StdOn',  showByeolji2Std === true);
+  setActive('byeolji2StdOff', showByeolji2Std !== true);
   setActive('byeolji1HeaderAlignLeft',     byeolji1HeaderAlign !== 'right');
   setActive('byeolji1HeaderAlignRight',    byeolji1HeaderAlign === 'right');
   setActive('byeolji1RecipientAlignLeft',  byeolji1RecipientAlign !== 'right');
@@ -5369,6 +5381,11 @@ function setByeolji1Std(on) {
   showByeolji1Std = !!on;
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolji1();
+}
+function setByeolji2Std(on) {
+  showByeolji2Std = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolji2Cover();
 }
 function setByeolji2Title(on) {
   showByeolji2Title = !!on;
@@ -5652,7 +5669,7 @@ function renderByeolji2Cover() {
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
     ${showByeolji2Header ? `<div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>` : ''}
     ${showByeolji2Title  ? `<div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>` : ''}
-    <div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2sAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>
+    ${showByeolji2Std ? `<div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2sAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>` : ''}
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
     <table style="border-collapse:collapse;width:100%;font-size:7pt;line-height:13px;table-layout:fixed">
       <colgroup>
