@@ -3279,6 +3279,20 @@ function loadV2Data(data) {
   if (typeof data.civil2ManualOn === 'boolean') civil2ManualOn = data.civil2ManualOn;
   else civil2ManualOn = !!civil2Enabled;
   localStorage.setItem('civil2ManualOn', JSON.stringify(civil2ManualOn));
+  // arch(분야별 건축) 활성 토글 복원 — civil2 와 동일 규칙(2026-08-26 신설).
+  // 종전에는 loadAutoSave 에만 있어 파일 「JSON 불러오기」로는 archEnabled 가 복원되지 않았다.
+  // 그 탓에 300세대 이상 건에서 켜진 archManualOn 이 브라우저에 남아 300세대 미만 파일에서도
+  // 분야별 건축 행이 되살아났다(고시 [부표] = 300세대 미만은 토목1·설비1 뿐이라 건축이 있으면 안 된다).
+  if (typeof data.archEnabled === 'boolean') {
+    archEnabled = data.archEnabled;
+  } else {
+    const _aName = personnel['arch']?.info?.name;
+    if (_aName && _aName !== '-') archEnabled = true;
+  }
+  localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
+  if (typeof data.archManualOn === 'boolean') archManualOn = data.archManualOn;
+  else archManualOn = !!archEnabled;
+  localStorage.setItem('archManualOn', JSON.stringify(archManualOn));
   // 비평가·추가평가 감리원 목록 복원 (없으면 유지)
   if (data.nonEvalList) {
     nonEvalList = data.nonEvalList;
@@ -6921,7 +6935,7 @@ function renderDeployTable() {
         (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
         (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
       const sg = hit || _segs[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
-      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#9e9e9e', 'border:1px solid #999;-webkit-print-color-adjust:exact;print-color-adjust:exact');
     }).join('');
     const dsMonths = (ds.months !== undefined && ds.months !== '' && !isNaN(parseFloat(ds.months))) ? parseFloat(ds.months) : null;
     const actualMonths = dsMonths !== null ? dsMonths : calcDeployMonths(rs, re);
@@ -6976,7 +6990,7 @@ function renderDeployTable() {
         (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
         (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
       const sg = hit || _segs_c[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
-      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#9e9e9e', 'border:1px solid #999;-webkit-print-color-adjust:exact;print-color-adjust:exact');
     }).join('');
     const sD_c = rs_c.d || 1, eD_c = re_c.d || lastDay(re_c.y, re_c.m);
     const _autoNote_c = `${fmtYMD(rs_c.y, rs_c.m, sD_c)}~\n${fmtYMD(re_c.y, re_c.m, eD_c)}`;
@@ -7017,7 +7031,7 @@ function renderDeployTable() {
         (y > sg.rs.y || (y === sg.rs.y && m >= sg.rs.m)) &&
         (y < sg.re.y || (y === sg.re.y && m <= sg.re.m)));
       const sg = hit || _segs_e[0];   // 어느 구간에도 안 들면 inside=false → 빈 칸
-      return ganttHalfCells(sg.rs, sg.re, y, m, '#e0e0e0', 'border:1px solid #ddd');
+      return ganttHalfCells(sg.rs, sg.re, y, m, '#9e9e9e', 'border:1px solid #999;-webkit-print-color-adjust:exact;print-color-adjust:exact');
     }).join('');
     const sD_e = rs_e.d || 1, eD_e = re_e.d || lastDay(re_e.y, re_e.m);
     const note_e = `구조체\n공사배치\n${fmtYMD(rs_e.y, rs_e.m, sD_e)}~\n${fmtYMD(re_e.y, re_e.m, eD_e)}`;
