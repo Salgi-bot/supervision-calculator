@@ -3286,8 +3286,11 @@ function loadV2Data(data) {
   if (typeof data.archEnabled === 'boolean') {
     archEnabled = data.archEnabled;
   } else {
+    // 구버전 파일(토글키 없음). ★300세대 미만은 고시 [부표] 상 분야별이 토목1·설비1 뿐이라
+    //   건축이 있으면 인·월수가 틀어진다 → 승계본에 arch 실명이 남아 있어도 절대 ON 하지 않는다.
+    const _sz = data.project?.sizeClass || '';
     const _aName = personnel['arch']?.info?.name;
-    if (_aName && _aName !== '-') archEnabled = true;
+    archEnabled = (_sz !== '300미만') && !!(_aName && _aName !== '-');
   }
   localStorage.setItem('archEnabled', JSON.stringify(archEnabled));
   if (typeof data.archManualOn === 'boolean') archManualOn = data.archManualOn;
