@@ -9466,11 +9466,25 @@ const ALERT_LS_PATENT   = 'hb_alert_patent';
 // 관리알림 초기값 — localStorage 가 비어 있을 때만 심는다(사용자가 지운 항목을 되살리지 않도록 키 부재일 때 한정)
 const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서"}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간"}, {"name": "김상오", "type": "70시간", "completionDate": "2023-11-07", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-01 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 142시간 · [설비] 교육기간 2023-11-07~2023-12-07 / 건설사업관리기술인계속교육특급전문과정(한국건설엔지니어링협회) 142시간"}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기"}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간"}];
 const ALERT_SEED_PATENT = [{"patentNo": "제10-2522485호", "content": "피난기능을 구비한 건축용 안전난간", "regDate": "2023-04-12", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2548872호", "content": "공동주택용 현관 입구의 논슬립과 이물질 유입방지장치", "regDate": "2023-06-23", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2569239호", "content": "내구성이 향상된 아파트 및 오피스텔 건식 내벽", "regDate": "2023-08-17", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2571802호", "content": "잔디보호를 이룰 수 있는 건축단지용 보도블록", "regDate": "2023-08-23", "expiryDate": "", "alertMonths": 6}, {"patentNo": "", "content": "층간 소음 저감을 위한 복합 구조체를 적용한 공동주택 바닥 시스템 (등록번호 미확인)", "regDate": "2026-04-06", "expiryDate": "", "alertMonths": 6}];
+const ALERT_LS_SEEDED = 'hb_alert_seeded_20260831';
+function _alertSeedOnce(lsKey, seed) {
+  // 최초 1회만: 키가 없거나 빈 배열이면 초기값을 심는다. 이후엔 사용자가 지운 상태를 존중한다.
+  try {
+    if (localStorage.getItem(ALERT_LS_SEEDED)) return null;
+    const raw = localStorage.getItem(lsKey);
+    let cur = []; try { cur = JSON.parse(raw || '[]'); } catch(e) { cur = []; }
+    if (!Array.isArray(cur) || cur.length === 0) {
+      localStorage.setItem(lsKey, JSON.stringify(seed));
+      return JSON.parse(JSON.stringify(seed));
+    }
+  } catch(e) {}
+  return null;
+}
 function getTrainingData() {
   try {
-    const raw = localStorage.getItem(ALERT_LS_TRAINING);
-    if (raw === null) { localStorage.setItem(ALERT_LS_TRAINING, JSON.stringify(ALERT_SEED_TRAINING)); return JSON.parse(JSON.stringify(ALERT_SEED_TRAINING)); }
-    return JSON.parse(raw || '[]');
+    const s = _alertSeedOnce(ALERT_LS_TRAINING, ALERT_SEED_TRAINING);
+    if (s) return s;
+    return JSON.parse(localStorage.getItem(ALERT_LS_TRAINING) || '[]');
   } catch(e) { return []; }
 }
 function saveTrainingData(arr) {
@@ -9478,9 +9492,11 @@ function saveTrainingData(arr) {
 }
 function getPatentData() {
   try {
-    const raw = localStorage.getItem(ALERT_LS_PATENT);
-    if (raw === null) { localStorage.setItem(ALERT_LS_PATENT, JSON.stringify(ALERT_SEED_PATENT)); return JSON.parse(JSON.stringify(ALERT_SEED_PATENT)); }
-    return JSON.parse(raw || '[]');
+    const s = _alertSeedOnce(ALERT_LS_PATENT, ALERT_SEED_PATENT);
+    // 두 목록을 모두 심은 뒤에 플래그를 세운다(교육만 심고 특허를 건너뛰는 일이 없도록)
+    if (s) { try { localStorage.setItem(ALERT_LS_SEEDED, '1'); } catch(e) {} return s; }
+    try { if (!localStorage.getItem(ALERT_LS_SEEDED)) localStorage.setItem(ALERT_LS_SEEDED, '1'); } catch(e) {}
+    return JSON.parse(localStorage.getItem(ALERT_LS_PATENT) || '[]');
   } catch(e) { return []; }
 }
 function savePatentData(arr) {
