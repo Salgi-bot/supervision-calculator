@@ -1353,10 +1353,10 @@ tbody tr:hover td { background: var(--ci-light); }
   <!-- ── 교육훈련 관리 ── -->
   <div class="card no-print alert-print">
     <div class="card-title"><span class="icon">🎓</span>감리원 교육훈련 관리
-      <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">건설기술진흥법 제21조 — 3년마다 계속교육 (70시간 또는 35시간)</span>
+      <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">건설기술진흥법 시행령 별표3 — 건설사업관리 계속교육 (일반: 특급·고급 49h·초급·중급 14h / 3년) + 필수 7h(1년)</span>
     </div>
     <div class="info-note" style="margin-bottom:12px;">
-      ※ 만료일 = 최근 수료일 + 3년 &nbsp;|&nbsp; 만료 <strong>6개월 이내</strong>는 주의, 만료 시 경고
+      ※ 만료일 = <strong>교육 시작일</strong> + 3년(보수적 기준 — 일부 발주청이 시작일을 기산점으로 봄) &nbsp;|&nbsp; 만료 <strong>6개월 이내</strong>는 주의, 만료 시 경고<br>※ 배점(감리자지정기준)은 별개 — 70시간 이상 0.5점 / 35시간 이상 70시간 미만 0.3점 × (이수인원 ÷ 평가대상인원)
     </div>
     <div id="trainingTable">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -1364,7 +1364,7 @@ tbody tr:hover td { background: var(--ci-light); }
           <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
             <th style="padding:8px 10px;text-align:left;width:15%">감리원</th>
             <th style="padding:8px 10px;text-align:center;width:15%">교육종류</th>
-            <th style="padding:8px 10px;text-align:center;width:16%">최근 수료일</th>
+            <th style="padding:8px 10px;text-align:center;width:16%">교육 시작일</th>
             <th style="padding:8px 10px;text-align:center;width:16%">만료일</th>
             <th style="padding:8px 10px;text-align:center;width:10%">상태</th>
             <th style="padding:8px 10px;text-align:center;width:28%">비고</th>
@@ -1385,8 +1385,8 @@ tbody tr:hover td { background: var(--ci-light); }
       <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">기술개발실적 배점 2점 (별표2) — 특허 보유 시 가점</span>
     </div>
     <div class="info-note" style="margin-bottom:12px;">
-      ※ 건당 0.5점, 상한 2.0점 (4건 만점) &nbsp;|&nbsp; 경과기간 가중치: 3년미만 100% → 3~6년 80% → 6~10년 60% → 10년↑ 0점<br>
-      ※ 알림기간(월) 이내에 점수 하락 또는 만료 예정이면 주의 표시
+      ※ 건당 0.5점 × 경과 가중치, 상한 2.0점 &nbsp;|&nbsp; 경과기간 가중치: 3년미만 100% → 3~6년 80% → 6~10년 60% → 10년↑ 0점<br>※ 만점에 필요한 건수는 가중치에 따라 달라진다(전부 100%면 4건 · 80%면 5건 · 60%면 7건) — 아래 「오늘 현재 총점」으로 판단<br>
+      ※ 알림기간(월) 이내에 점수 하락 또는 만료 예정이면 주의 표시 (기본 24개월 = 2년)
     </div>
     <div id="patentSummary"></div>
     <div id="patentTable">
@@ -9465,7 +9465,7 @@ const ALERT_LS_PATENT   = 'hb_alert_patent';
 
 // 관리알림 초기값 — localStorage 가 비어 있을 때만 심는다(사용자가 지운 항목을 되살리지 않도록 키 부재일 때 한정)
 const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서"}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간"}, {"name": "김상오", "type": "70시간", "completionDate": "2023-11-07", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-01 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 142시간 · [설비] 교육기간 2023-11-07~2023-12-07 / 건설사업관리기술인계속교육특급전문과정(한국건설엔지니어링협회) 142시간"}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기"}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간"}];
-const ALERT_SEED_PATENT = [{"patentNo": "제10-2522485호", "content": "피난기능을 구비한 건축용 안전난간", "regDate": "2023-04-12", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2548872호", "content": "공동주택용 현관 입구의 논슬립과 이물질 유입방지장치", "regDate": "2023-06-23", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2569239호", "content": "내구성이 향상된 아파트 및 오피스텔 건식 내벽", "regDate": "2023-08-17", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2571802호", "content": "잔디보호를 이룰 수 있는 건축단지용 보도블록", "regDate": "2023-08-23", "expiryDate": "", "alertMonths": 6}, {"patentNo": "제10-2950762호", "content": "층간 소음 저감을 위한 복합 구조체를 적용한 공동주택 바닥 시스템 (등록번호 미확인)", "regDate": "2026-04-06", "expiryDate": "", "alertMonths": 6}];
+const ALERT_SEED_PATENT = [{"patentNo": "제10-2522485호", "content": "피난기능을 구비한 건축용 안전난간", "regDate": "2023-04-12", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2548872호", "content": "공동주택용 현관 입구의 논슬립과 이물질 유입방지장치", "regDate": "2023-06-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2569239호", "content": "내구성이 향상된 아파트 및 오피스텔 건식 내벽", "regDate": "2023-08-17", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2571802호", "content": "잔디보호를 이룰 수 있는 건축단지용 보도블록", "regDate": "2023-08-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2950762호", "content": "층간 소음 저감을 위한 복합 구조체를 적용한 공동주택 바닥 시스템 (등록번호 미확인)", "regDate": "2026-04-06", "expiryDate": "", "alertMonths": 24}];
 const ALERT_LS_SEEDED = 'hb_alert_seeded_20260831';
 function _alertSeedOnce(lsKey, seed) {
   // 최초 1회만: 키가 없거나 빈 배열이면 초기값을 심는다. 이후엔 사용자가 지운 상태를 존중한다.
@@ -9506,6 +9506,8 @@ function _alertFixPatentNoOnce() {
           const seed = ALERT_SEED_PATENT.find(x => x.regDate === r.regDate && (x.patentNo || '').trim());
           if (seed) { r.patentNo = seed.patentNo; touched = true; }
         });
+        // 알림기간 2년으로 상향(보스 2026-09-01 지시) — 종전 기본값 6개월이 남아 있는 항목만
+        cur.forEach(r => { if (r && (r.alertMonths === 6 || r.alertMonths == null)) { r.alertMonths = 24; touched = true; } });
       }
       if (touched) localStorage.setItem(ALERT_LS_PATENT, JSON.stringify(cur));
     }
@@ -9703,6 +9705,7 @@ function renderPatentSummary() {
       <span style="font-size:13px;font-weight:600;color:#475569;">오늘 현재 총점</span>
       <span style="font-size:22px;font-weight:800;color:${scoreColor(cappedTotal)};">${cappedTotal.toFixed(2)}점</span>
       <span style="font-size:12px;color:#94a3b8;">/ 2.00점 &nbsp;(${validCount}건)</span>
+      <span style="font-size:12px;color:${cappedTotal >= 2.0 ? '#16a34a' : '#dc2626'};margin-left:8px;font-weight:600;">${cappedTotal >= 2.0 ? '만점 유지' : `만점까지 ${(2.0 - cappedTotal).toFixed(2)}점 부족`}</span>
       ${rawTotal > 2.0 ? `<span style="font-size:11px;color:#94a3b8;">(원점수 ${rawTotal.toFixed(2)}점 → 상한 2.0 적용)</span>` : ''}
     </div>`;
 
@@ -9825,7 +9828,7 @@ function renderPatentRows() {
 
 function addPatentRow() {
   const arr = getPatentData();
-  arr.push({ patentNo:'', content:'', regDate:'', expiryDate:'', alertMonths:6 });
+  arr.push({ patentNo:'', content:'', regDate:'', expiryDate:'', alertMonths:24 });
   savePatentData(arr);
   renderPatentRows();
 }
