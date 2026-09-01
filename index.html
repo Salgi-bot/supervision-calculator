@@ -9490,8 +9490,31 @@ function getTrainingData() {
 function saveTrainingData(arr) {
   localStorage.setItem(ALERT_LS_TRAINING, JSON.stringify(arr));
 }
+// 1회성 보정 — 시드를 이미 심은 브라우저는 초기값을 다시 읽지 않으므로,
+// 등록번호가 비어 있던 최초 배포본(2026-08-31)에서 심어진 항목만 등록일로 찾아 번호를 채운다.
+const ALERT_LS_PATENTNO_FIX = 'hb_alert_patentno_fix_20260901';
+function _alertFixPatentNoOnce() {
+  try {
+    if (localStorage.getItem(ALERT_LS_PATENTNO_FIX)) return;
+    const raw = localStorage.getItem(ALERT_LS_PATENT);
+    if (raw !== null) {
+      let cur = []; try { cur = JSON.parse(raw || '[]'); } catch(e) { cur = []; }
+      let touched = false;
+      if (Array.isArray(cur)) {
+        cur.forEach(r => {
+          if (!r || (r.patentNo || '').trim()) return;
+          const seed = ALERT_SEED_PATENT.find(x => x.regDate === r.regDate && (x.patentNo || '').trim());
+          if (seed) { r.patentNo = seed.patentNo; touched = true; }
+        });
+      }
+      if (touched) localStorage.setItem(ALERT_LS_PATENT, JSON.stringify(cur));
+    }
+    localStorage.setItem(ALERT_LS_PATENTNO_FIX, '1');
+  } catch(e) {}
+}
 function getPatentData() {
   try {
+    _alertFixPatentNoOnce();
     const s = _alertSeedOnce(ALERT_LS_PATENT, ALERT_SEED_PATENT);
     // 두 목록을 모두 심은 뒤에 플래그를 세운다(교육만 심고 특허를 건너뛰는 일이 없도록)
     if (s) { try { localStorage.setItem(ALERT_LS_SEEDED, '1'); } catch(e) {} return s; }
