@@ -1356,7 +1356,7 @@ tbody tr:hover td { background: var(--ci-light); }
       <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px;">건설기술진흥법 시행령 별표3 — 건설사업관리 계속교육 (일반: 특급·고급 49h·초급·중급 14h / 3년) + 필수 7h(1년)</span>
     </div>
     <div class="info-note" style="margin-bottom:12px;">
-      ※ <strong>일반 계속교육(49h)</strong> 만료일 = <strong>교육 시작일</strong> + 3년(보수적 기준 — 일부 발주청이 시작일을 기산점으로 봄) &nbsp;|&nbsp; 만료 <strong>6개월 이내</strong>는 주의, 만료 시 경고<br>※ <strong>필수 계속교육(7h)</strong>은 <strong>현장에 배치되어 업무를 수행한 기간</strong>이 매 1년을 경과하기 전 — 달력 1년이 아니라 <strong>배치 기간</strong>으로 센다. 배치 기산일을 비우면 <strong>미배치=시계 정지</strong>로 처리 &nbsp;|&nbsp; 만료 <strong>2개월 이내</strong>는 주의, 만료 시 경고<br>※ 배점(감리자지정기준)은 별개 — 70시간 이상 0.5점 / 35시간 이상 70시간 미만 0.3점 × (이수인원 ÷ 평가대상인원)
+      ※ <strong>일반 계속교육(49h)</strong> 만료일 = <strong>교육 시작일</strong> + 3년(보수적 기준 — 일부 발주청이 시작일을 기산점으로 봄) &nbsp;|&nbsp; 만료 <strong>3개월 이내</strong>는 주의, 만료 시 경고<br>※ <strong>필수 계속교육(7h)</strong>은 <strong>현장에 배치되어 업무를 수행한 기간</strong>이 매 1년을 경과하기 전 — 달력 1년이 아니라 <strong>배치 기간</strong>으로 센다. 배치 기산일을 비우면 <strong>미배치=시계 정지</strong>로 처리 &nbsp;|&nbsp; 만료 <strong>3개월 이내</strong>는 주의, 만료 시 경고<br>※ 배점(감리자지정기준)은 별개 — 70시간 이상 0.5점 / 35시간 이상 70시간 미만 0.3점 × (이수인원 ÷ 평가대상인원)
     </div>
     <div id="trainingTable">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -9469,9 +9469,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 const ALERT_LS_TRAINING = 'hb_alert_training';
 const ALERT_LS_PATENT   = 'hb_alert_patent';
-// 필수 계속교육(7h) 사전 안내 폭 — 보스 2026-09-02 지시로 6개월 → 2개월.
-// 7시간짜리라 반년 전부터 노랗게 띄우면 소음이 된다. 일반 49h(3년)는 6개월 그대로.
-const MANDATORY_ALERT_MONTHS = 2;
+// 교육 사전 안내 폭 — 보스 2026-09-03 지시로 일반·필수 공통 3개월.
+// 종전엔 일반 계속교육 6개월 / 필수 계속교육 2개월로 갈려 있었다.
+const TRAINING_ALERT_MONTHS = 3;   // 일반 계속교육(49h·70h) 3년 주기
+const MANDATORY_ALERT_MONTHS = 3;  // 필수 계속교육(7h) 배치 1년 주기
 
 // 관리알림 초기값 — localStorage 가 비어 있을 때만 심는다(사용자가 지운 항목을 되살리지 않도록 키 부재일 때 한정)
 const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서", "mandatoryDate": "2026-05-07", "deployStartDate": ""}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간", "mandatoryDate": "2026-01-20", "deployStartDate": ""}, {"name": "김상오", "type": "70시간", "completionDate": "2023-11-07", "note": "★필수 7h 대상 — 배치 기산 2024-12-09(평내체육문화시설 건립사업 감독권한대행 등 건설사업관리, 남양주도시공사, ~2026-02-23, 인정일 442일)로 매 1년 경과 · ★수료 후에는 배치 기산일을 비우거나(평내 종료로 현재 미배치) 다음 배치 시작일로 바꿔야 만료 표시가 풀린다. 이수일만 고치면 만료가 유지된다 · ★교육 진행 예정(보스 2026-09-02 지시) · ※경력증명서 2026-04-01 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 142시간 · [설비] 교육기간 2023-11-07~2023-12-07 / 건설사업관리기술인계속교육특급전문과정(한국건설엔지니어링협회) 142시간", "mandatoryDate": "2023-11-07", "deployStartDate": "2024-12-09"}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기", "mandatoryDate": "2026-03-11", "deployStartDate": ""}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간", "mandatoryDate": "2024-02-22", "deployStartDate": ""}];
@@ -9623,7 +9624,7 @@ function updateAlertBadge() {
       const exp = new Date(r.completionDate);
       exp.setFullYear(exp.getFullYear() + 3);
       const diff = Math.ceil((exp - today) / 86400000);
-      if (diff <= 180) count++;
+      if (diff <= TRAINING_ALERT_MONTHS * 30) count++;
     }
     // 필수 7h — 배치 중인 사람만 카운트(미배치는 시계가 멈춰 있어 알릴 것이 없다)
     const m = calcMandatoryStatus(r);
@@ -9678,7 +9679,7 @@ function renderTrainingRows() {
       d.setFullYear(d.getFullYear() + 3);
       expiry = d.toISOString().slice(0, 10);
     }
-    const st = calcAlertStatus(expiry, 6);
+    const st = calcAlertStatus(expiry, TRAINING_ALERT_MONTHS);
     // 필수 계속교육(7h) — 별표3은 「업무를 수행한 기간이 매 1년」이므로 달력이 아니라 배치 기간으로 센다.
     // 배치 기산일이 비어 있으면 현장에 없다는 뜻이라 시계를 돌리지 않는다(보스 2026-09-01 지시).
     const mCalc = calcMandatoryStatus(r);
