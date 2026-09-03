@@ -9492,7 +9492,33 @@ const MANDATORY_ALERT_MONTHS = 3;  // 필수 계속교육(7h) 배치 1년 주기
 // 관리알림 초기값 — localStorage 가 비어 있을 때만 심는다(사용자가 지운 항목을 되살리지 않도록 키 부재일 때 한정)
 const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서", "mandatoryDate": "2026-05-07", "deployStartDate": ""}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간", "mandatoryDate": "2026-01-20", "deployStartDate": ""}, {"name": "김상오", "type": "70시간", "completionDate": "2023-11-07", "note": "★필수 7h 대상 — 배치 기산 2024-12-09(평내체육문화시설 건립사업 감독권한대행 등 건설사업관리, 남양주도시공사, ~2026-02-23, 인정일 442일)로 매 1년 경과 · ★수료 후에는 배치 기산일을 비우거나(평내 종료로 현재 미배치) 다음 배치 시작일로 바꿔야 만료 표시가 풀린다. 이수일만 고치면 만료가 유지된다 · ★교육 진행 예정(보스 2026-09-02 지시) · ※경력증명서 2026-04-01 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 142시간 · [설비] 교육기간 2023-11-07~2023-12-07 / 건설사업관리기술인계속교육특급전문과정(한국건설엔지니어링협회) 142시간", "mandatoryDate": "2023-11-07", "deployStartDate": "2024-12-09"}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기", "mandatoryDate": "2026-03-11", "deployStartDate": ""}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간", "mandatoryDate": "2024-02-22", "deployStartDate": ""}];
 const ALERT_SEED_PATENT = [{"patentNo": "제10-2522485호", "content": "피난기능을 구비한 건축용 안전난간", "regDate": "2023-04-12", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2548872호", "content": "공동주택용 현관 입구의 논슬립과 이물질 유입방지장치", "regDate": "2023-06-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2569239호", "content": "내구성이 향상된 아파트 및 오피스텔 건식 내벽", "regDate": "2023-08-17", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2571802호", "content": "잔디보호를 이룰 수 있는 건축단지용 보도블록", "regDate": "2023-08-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2950762호", "content": "층간 소음 저감을 위한 복합 구조체를 적용한 공동주택 바닥 시스템 (등록번호 미확인)", "regDate": "2026-04-06", "expiryDate": "", "alertMonths": 24}];
+// 특허 알림 기본값 — 보스 2026-09-01 지시로 2년. 값이 빠지면 6개월로 되돌아가던 것을 막는다(2026-09-03).
+const PATENT_DEFAULT_ALERT_MONTHS = 24;
 const ALERT_LS_SEEDED = 'hb_alert_seeded_20260831';
+// ══ 시드 판 번호 — 화면과 정본이 갈리는 것을 막는다 (2026-09-03 보스 지시) ══
+// 문제였던 것: 브라우저에 값이 한 번 들어가면 시드는 다시는 안 읽힌다. 그래서 앱 화면은
+// 낡은 값을, 내(코코) 스크립트는 시드를 봐서 **같은 항목에 다른 답**을 냈다.
+// 실제 사고 = 특허 알림기간. 시드는 24개월인데 보스 화면은 6개월이었다(2026-09-03 스크린샷).
+// ★ 등록은 코코 경유가 원칙이므로(보스 2026-09-03) 시드가 정본이다. 판이 바뀌면 시드로 맞춘다.
+// ⚠ 「임시 편집 허용」으로 넣은 값은 다음 판 배포 때 사라진다 — 의도된 동작이다.
+// ★★ 시드(ALERT_SEED_*)를 고칠 때는 이 판 번호도 함께 올린다. 안 올리면 배포해도 화면이 안 바뀐다.
+const ALERT_SEED_VERSION = '2026-09-03.1';
+const ALERT_LS_SEED_VER  = 'hb_alert_seed_version';
+
+function _alertSyncSeedVersion() {
+  try {
+    if (localStorage.getItem(ALERT_LS_SEED_VER) === ALERT_SEED_VERSION) return;
+    localStorage.setItem(ALERT_LS_TRAINING, JSON.stringify(ALERT_SEED_TRAINING));
+    localStorage.setItem(ALERT_LS_PATENT,   JSON.stringify(ALERT_SEED_PATENT));
+    localStorage.setItem(ALERT_LS_SEEDED, '1');
+    localStorage.setItem(ALERT_LS_SEED_VER, ALERT_SEED_VERSION);
+  } catch(e) {}
+}
+
+// ★ 1회성 보정을 새로 넣을 때는 **반드시 새 플래그 키**를 만든다. 기존 플래그 아래 끼워 넣지 말 것.
+//   2026-09-01 사고 = 10:27 배포에서 세워진 patentNo 플래그 아래 12분 뒤 alertMonths 상향을 끼워 넣었다.
+//   그 사이 앱을 연 브라우저는 플래그가 이미 서서 상향이 영영 실행되지 않았다.
+//   위 판 번호 방식이 들어온 뒤로는 시드 동기화가 그 역할을 대신하므로 새 보정 자체가 대개 불필요하다.
 function _alertSeedOnce(lsKey, seed) {
   // 최초 1회만: 키가 없거나 빈 배열이면 초기값을 심는다. 이후엔 사용자가 지운 상태를 존중한다.
   try {
@@ -9556,6 +9582,7 @@ function _alertFixDeployStartOnce() {
   } catch(e) {}
 }
 function getTrainingData() {
+  _alertSyncSeedVersion();
   try {
     const s = _alertSeedOnce(ALERT_LS_TRAINING, ALERT_SEED_TRAINING);
     if (s) { try { localStorage.setItem(ALERT_LS_MANDATORY_FIX, '1'); localStorage.setItem(ALERT_LS_DEPLOY_FIX, '1'); } catch(e) {} return s; }
@@ -9592,6 +9619,7 @@ function _alertFixPatentNoOnce() {
   } catch(e) {}
 }
 function getPatentData() {
+  _alertSyncSeedVersion();
   try {
     _alertFixPatentNoOnce();
     const s = _alertSeedOnce(ALERT_LS_PATENT, ALERT_SEED_PATENT);
@@ -9605,11 +9633,25 @@ function savePatentData(arr) {
   localStorage.setItem(ALERT_LS_PATENT, JSON.stringify(arr));
 }
 
+// 날짜 헬퍼 — 2026-09-03 보스 지시로 신설.
+// 'YYYY-MM-DD' 를 new Date() 에 그대로 넣으면 UTC 자정으로 읽혀 KST 기준 9시간 밀린다.
+// 그 탓에 만료 표시가 이틀 늦게 떴다(만료 당일 D-1, 다음날 D-0, 이틀 뒤에야 「만료」 — 실측).
+// 짝이 되는 _ymd 도 함께 쓴다. toISOString 은 UTC 로 되돌리므로 로컬 Date 에 쓰면 하루가 빠진다.
+function _localDate(str) {
+  const p = String(str || '').split('-').map(Number);
+  return new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+}
+function _ymd(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 // 상태 계산: 오늘 기준 만료일까지 남은 일수
 function calcAlertStatus(expiryDateStr, alertMonths) {
   if (!expiryDateStr) return { label: '미입력', color: '#94a3b8', bg: '#f8fafc', days: null };
   const today = new Date(); today.setHours(0,0,0,0);
-  const exp   = new Date(expiryDateStr);
+  const exp   = _localDate(expiryDateStr);
   const diffMs = exp - today;
   const diffDays = Math.ceil(diffMs / 86400000);
   const alertDays = (alertMonths || 6) * 30;
@@ -9622,9 +9664,9 @@ function calcAlertStatus(expiryDateStr, alertMonths) {
 function calcMandatoryStatus(r) {
   if (!r.mandatoryDate) return { expiry: '', status: { label: '미입력', color: '#94a3b8', bg: '#f8fafc', days: null } };
   if (!r.deployStartDate) return { expiry: '', status: { label: '미배치', color: '#475569', bg: '#e2e8f0', days: null } };
-  const base = new Date(r.deployStartDate);
+  const base = _localDate(r.deployStartDate);
   base.setFullYear(base.getFullYear() + 1);
-  const expiry = base.toISOString().slice(0, 10);
+  const expiry = _ymd(base);
   return { expiry, status: calcAlertStatus(expiry, MANDATORY_ALERT_MONTHS) };
 }
 
@@ -9636,7 +9678,7 @@ function updateAlertBadge() {
   const today = new Date(); today.setHours(0,0,0,0);
   getTrainingData().forEach(r => {
     if (r.completionDate) {
-      const exp = new Date(r.completionDate);
+      const exp = _localDate(r.completionDate);
       exp.setFullYear(exp.getFullYear() + 3);
       const diff = Math.ceil((exp - today) / 86400000);
       if (diff <= TRAINING_ALERT_MONTHS * 30) count++;
@@ -9644,17 +9686,17 @@ function updateAlertBadge() {
     // 필수 7h — 배치 중인 사람만 카운트(미배치는 시계가 멈춰 있어 알릴 것이 없다)
     const m = calcMandatoryStatus(r);
     if (m.expiry) {
-      const d = Math.ceil((new Date(m.expiry) - today) / 86400000);
+      const d = Math.ceil((_localDate(m.expiry) - today) / 86400000);
       if (d <= MANDATORY_ALERT_MONTHS * 30) count++;
     }
   });
   getPatentData().forEach(r => {
-    const alertDays = (r.alertMonths || 6) * 30;
+    const alertDays = (r.alertMonths || PATENT_DEFAULT_ALERT_MONTHS) * 30;
     const ps = calcPatentScore(r.regDate);
     if (ps.weight === 0) { count++; return; }
     if (ps.nextDropDays !== null && ps.nextDropDays <= alertDays) { count++; return; }
     if (r.expiryDate) {
-      const diff = Math.ceil((new Date(r.expiryDate) - today) / 86400000);
+      const diff = Math.ceil((_localDate(r.expiryDate) - today) / 86400000);
       if (diff <= alertDays) count++;
     }
   });
@@ -9722,9 +9764,9 @@ function renderTrainingRows() {
   tbody.innerHTML = rows.map((r, i) => {
     let expiry = '';
     if (r.completionDate) {
-      const d = new Date(r.completionDate);
+      const d = _localDate(r.completionDate);
       d.setFullYear(d.getFullYear() + 3);
-      expiry = d.toISOString().slice(0, 10);
+      expiry = _ymd(d);
     }
     const st = calcAlertStatus(expiry, TRAINING_ALERT_MONTHS);
     // 필수 계속교육(7h) — 별표3은 「업무를 수행한 기간이 매 1년」이므로 달력이 아니라 배치 기간으로 센다.
@@ -9814,7 +9856,7 @@ function renderPatentSummary() {
   const events = [];
   rows.forEach((r, i) => {
     if (!r.regDate) return;
-    const reg = new Date(r.regDate);
+    const reg = _localDate(r.regDate);
     const years = (today - reg) / (365.25 * 86400000);
     const label = r.patentNo ? r.patentNo : (r.content ? r.content.slice(0,12) : `특허 ${i+1}`);
     const drops = [];
@@ -9825,7 +9867,7 @@ function renderPatentSummary() {
       const dropDate = new Date(reg);
       dropDate.setFullYear(dropDate.getFullYear() + d.atYear);
       const days = Math.ceil((dropDate - today) / 86400000);
-      events.push({ date: dropDate.toISOString().slice(0,10), days, label,
+      events.push({ date: _ymd(dropDate), days, label,
         scoreBefore: Math.round(0.5 * d.fromW * 100) / 100,
         scoreAfter:  Math.round(0.5 * d.toW  * 100) / 100 });
     });
@@ -9889,7 +9931,7 @@ function renderPatentSummary() {
 function calcPatentScore(regDateStr) {
   if (!regDateStr) return { score: null, weight: null, nextDropDate: null, nextDropDays: null };
   const today = new Date(); today.setHours(0,0,0,0);
-  const reg = new Date(regDateStr);
+  const reg = _localDate(regDateStr);
   const years = (today - reg) / (365.25 * 86400000);
   let weight, nextDropDate;
   if (years < 3) {
@@ -9906,7 +9948,7 @@ function calcPatentScore(regDateStr) {
   }
   const score = Math.round(0.5 * weight * 100) / 100;
   const nextDropDays = nextDropDate ? Math.ceil((nextDropDate - today) / 86400000) : null;
-  const nextDropStr  = nextDropDate ? nextDropDate.toISOString().slice(0, 10) : null;
+  const nextDropStr  = nextDropDate ? _ymd(nextDropDate) : null;
   return { score, weight, nextDropStr, nextDropDays };
 }
 
@@ -9921,7 +9963,7 @@ function renderPatentRows() {
   }
   tbody.innerHTML = rows.map((r, i) => {
     const ps = calcPatentScore(r.regDate);
-    const alertDays = (r.alertMonths || 6) * 30;
+    const alertDays = (r.alertMonths || PATENT_DEFAULT_ALERT_MONTHS) * 30;
     // 상태: 0점(10년↑), 점수하락 임박, 만료일 임박, 정상
     let stBg, stColor, stLabel;
     if (ps.weight === 0) {
@@ -9929,7 +9971,7 @@ function renderPatentRows() {
     } else if (ps.nextDropDays !== null && ps.nextDropDays <= alertDays) {
       stBg = '#fef3c7'; stColor = '#7c2d12'; stLabel = `하락 D-${ps.nextDropDays}`;
     } else if (r.expiryDate) {
-      const expSt = calcAlertStatus(r.expiryDate, r.alertMonths || 6);
+      const expSt = calcAlertStatus(r.expiryDate, r.alertMonths || PATENT_DEFAULT_ALERT_MONTHS);
       stBg = expSt.bg; stColor = expSt.color; stLabel = expSt.label;
     } else {
       stBg = '#dcfce7'; stColor = '#166534'; stLabel = '정상';
@@ -9956,7 +9998,7 @@ function renderPatentRows() {
       <td style="padding:7px 6px;text-align:center;">${scoreDisplay}</td>
       <td style="padding:7px 6px;text-align:center;">${nextDropDisplay}</td>
       <td style="padding:7px 10px;text-align:center;">
-        <input type="number" value="${r.alertMonths||6}" min="1" max="24" style="width:46px;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;text-align:center;"
+        <input type="number" value="${r.alertMonths||PATENT_DEFAULT_ALERT_MONTHS}" min="1" max="24" style="width:46px;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;text-align:center;"
           onchange="updatePatentRow(${i},'alertMonths',+this.value)">
       </td>
       <td style="padding:7px 6px;text-align:center;">
