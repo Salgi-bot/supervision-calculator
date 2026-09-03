@@ -662,6 +662,9 @@ tbody tr:hover td { background: var(--ci-light); }
   /* 관리알림 탭 인쇄 시: no-print 카드도 보이도록 (alert-print 마커가 있는 경우만) */
   body.print-alert .no-print.alert-print { display: block !important; }
   body.print-alert #tab_alert .no-print.alert-print .btn { display: none !important; }
+  /* 편집 잠금(2026-09-03)으로 입력칸에 회색 인라인 스타일이 걸린다. 인쇄물에는 원래 색으로 */
+  body.print-alert #tab_alert input,
+  body.print-alert #tab_alert select { background: #fff !important; color: #111 !important; }
   .modal-overlay { display: none !important; }
   @page { margin: 0; size: A4; }
   /* ── 별첨5(배치계획표) 가로 인쇄 fit (긴 사업 자동 발동) ──
@@ -1350,6 +1353,18 @@ tbody tr:hover td { background: var(--ci-light); }
     <button class="btn" onclick="printAlertTab()">🖨 A4 인쇄 / PDF 저장</button>
   </div>
 
+  <!-- ── 등록 경로 안내 + 편집 잠금 (2026-09-03 보스 지시) ──
+       화면에서 고친 값은 이 브라우저에만 남고 정본(앱 시드)에 반영되지 않는다.
+       「고쳤다」고 착각하게 만드는 자리라 기본을 잠금으로 둔다. -->
+  <div class="no-print" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:9px 12px;border:1px solid #fcd34d;background:#fffbeb;border-radius:6px;font-size:12px;color:#78350f;">
+    <span style="font-weight:700;">🔒 등록·수정은 코코(Claude)를 통해서 합니다</span>
+    <span style="color:#92400e;">이 화면에서 고친 값은 <strong>이 브라우저에만</strong> 남고 정본에 반영되지 않습니다. 수료·등록 사실을 코코에게 알려 주시면 정본을 고쳐 배포합니다.</span>
+    <label style="margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">
+      <input type="checkbox" id="alertEditToggle" onchange="toggleAlertEdit(this.checked)">
+      <span>임시 편집 허용</span>
+    </label>
+  </div>
+
   <!-- ── 교육훈련 관리 ── -->
   <div class="card no-print alert-print">
     <div class="card-title"><span class="icon">🎓</span>감리원 교육훈련 관리
@@ -1381,7 +1396,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </table>
     </div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-primary btn-sm" onclick="addTrainingRow()">+ 감리원 추가</button>
+      <button class="btn btn-primary btn-sm alert-edit-btn" onclick="addTrainingRow()">+ 감리원 추가</button>
       <button class="btn btn-sm" onclick="renderAlertTab()">새로고침</button>
     </div>
   </div>
@@ -1415,7 +1430,7 @@ tbody tr:hover td { background: var(--ci-light); }
       </table>
     </div>
     <div style="margin-top:10px;">
-      <button class="btn btn-primary btn-sm" onclick="addPatentRow()">+ 특허 추가</button>
+      <button class="btn btn-primary btn-sm alert-edit-btn" onclick="addPatentRow()">+ 특허 추가</button>
     </div>
   </div>
 </div>
@@ -9657,10 +9672,42 @@ function updateAlertBadge() {
   }
 }
 
+// 편집 잠금 — 2026-09-03 보스 지시 「등록은 반드시 너를 통해서 할꺼야」.
+// 화면 입력은 localStorage 에만 남아 정본(앱 시드)에 반영되지 않는다. 그래서 기본 잠금이다.
+// 완전히 없애지 않고 토글을 남긴 이유 = 현장에서 값을 임시로 넣어 보는 용도까지 막을 필요는 없다.
+// 토글은 저장하지 않는다(새로고침하면 다시 잠긴다).
+let alertEditUnlocked = false;
+
+function applyAlertLock() {
+  const lock = !alertEditUnlocked;
+  document.querySelectorAll('#trainingRows input, #trainingRows select, #trainingRows button, #patentRows input, #patentRows select, #patentRows button')
+    .forEach(el => {
+      el.disabled = lock;
+      if (el.tagName !== 'BUTTON') {
+        el.style.background = lock ? '#f1f5f9' : '';
+        el.style.color      = lock ? '#64748b' : '';
+      } else {
+        el.style.opacity = lock ? '0.4' : '';
+        el.style.cursor  = lock ? 'not-allowed' : 'pointer';
+      }
+    });
+  document.querySelectorAll('.alert-edit-btn').forEach(b => {
+    b.disabled = lock;
+    b.style.opacity = lock ? '0.4' : '';
+    b.style.cursor  = lock ? 'not-allowed' : 'pointer';
+  });
+}
+
+function toggleAlertEdit(on) {
+  alertEditUnlocked = !!on;
+  applyAlertLock();
+}
+
 function renderAlertTab() {
   renderTrainingRows();
   renderPatentRows();
   updateAlertBadge();
+  applyAlertLock();
 }
 
 // ── 교육훈련 ──────────────────────────────────────────
@@ -9725,6 +9772,7 @@ function renderTrainingRows() {
       </td>
     </tr>`;
   }).join('');
+  applyAlertLock();
 }
 
 function addTrainingRow() {
@@ -9919,6 +9967,7 @@ function renderPatentRows() {
       </td>
     </tr>`;
   }).join('');
+  applyAlertLock();
 }
 
 function addPatentRow() {
