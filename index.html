@@ -690,6 +690,9 @@ tbody tr:hover td { background: var(--ci-light); }
     <h1>주택건설공사</h1>
     <div class="sub">주택건설공사 감리자지정기준 (국토교통부 고시 제2024-529호)</div>
     <div id="last-generated" style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px"></div>
+    <!-- [2026-09-04 보스 승인] 화면이 어느 건인지 표시. 화면은 자동복원(직전 작업), 제출 PDF는
+         JSON 파일에서 굽는다 = 출처가 둘이라 서로 달라 보일 수 있다. 그 혼선을 여기서 끊는다. -->
+    <div id="loaded-project" style="font-size:11px;color:rgba(255,255,255,0.9);margin-top:2px"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <button onclick="printAllForSubmit()" title="별지1호·별지2호·서약서·배치계획표를 3개 PDF 파일로 분리 출력 (서약서 결합 위치 및 파일명 선택 가능)" style="padding:4px 10px;background:#065f46;color:#fff;border:1px solid #047857;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:700">🖨 입찰서류 통합출력(PDF)</button>
@@ -858,7 +861,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <div class="form-grid">
       <div class="form-group" style="grid-column: 1 / -1">
         <label>사업명 *</label>
-        <input type="text" id="pj_name" placeholder="예) 전주 송천동 아르티엠 더 숲 공동주택 신축공사">
+        <input type="text" id="pj_name" placeholder="예) 전주 송천동 아르티엠 더 숲 공동주택 신축공사" oninput="if(typeof updateLoadedBadge==='function')updateLoadedBadge();">
       </div>
       <div class="form-group" style="grid-column: span 2">
         <label>사업주체</label>
@@ -1215,6 +1218,11 @@ tbody tr:hover td { background: var(--ci-light); }
         <div role="group" aria-label="별지1호 기준줄 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji1StdOn"  onclick="setByeolji1Std(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji1StdOff" onclick="setByeolji1Std(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
+        </div>
+        <div role="group" aria-label="별지1호 기준줄 정렬" title="공고문에서 ■기준줄이 위 라벨줄과 다른 쪽에 있으면 여기서 따로 지정하십시오. 「자동」은 라벨줄을 따라갑니다." style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+          <button type="button" id="byeolji1StdAlignAuto"  onclick="setByeolji1Align('std','')"      style="padding:3px 8px;border:none;background:#fff;cursor:pointer;font-size:12px;">자동</button>
+          <button type="button" id="byeolji1StdAlignLeft"  onclick="setByeolji1Align('std','left')"  style="padding:3px 8px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">좌</button>
+          <button type="button" id="byeolji1StdAlignRight" onclick="setByeolji1Align('std','right')" style="padding:3px 8px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우</button>
         </div>
         <span style="color:#64748b;margin-left:6px;">하단:</span>
         <div role="group" aria-label="별지1호 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
@@ -2119,6 +2127,60 @@ let swearBodyActiveId = 'default';
 let bidExportGroup = 'B';                    // 서약서 결합 위치: 'A'(별지1호와) | 'B'(별지2호와, 기본)
 let bidTitles = { t1: '', t2: '', t3: '' };  // 사용자가 직접 입력한 PDF 파일명 3칸
 
+// ── [2026-09-04 보스 승인] 응모서류 JSON 로드 시 서식 토글 초기화 ──────────────
+//   종전엔 복원이 전부 「키가 있으면 적용, 없으면 유지」라서 JSON에 빠진 항목은 직전 건 값이
+//   그대로 남았다. 실제로 우리 응모서류 JSON에는 showStamp 가 없다. 굽기는 빈 브라우저에서
+//   돌아 제출물은 무사했지만 보스 화면은 직전 공고 설정을 물고 있어 출력물과 달라 보였다.
+//   ⇒ loadV2Data 진입 시 표시·정렬 토글만 기본값으로 되돌린 뒤 파일 값을 얹는다.
+//   ⛔서약서 본문(swearBodyTemplates·swearBodyActiveId)과 제출묶음(bidExportGroup)은 건드리지 않는다.
+//     본문은 초기화하면 제출 문구가 조용히 바뀌고, 묶음은 라디오 DOM과 어긋난다. 둘 다 우리 JSON에 항상 들어 있다.
+//   ⛔감리원 JSON(loadPersonnelJSON)은 부분 파일이라 호출하지 않는다 — 현 공고 서식을 지우면 안 된다.
+let _loadedFrom = '';   // '파일' | '자동복원' | ''
+let _loadedAt   = '';
+// [2026-09-04 보스 승인] 지금 화면에 올라와 있는 건이 무엇인지 헤더에 항상 보이게 한다.
+function updateLoadedBadge() {
+  const el = document.getElementById('loaded-project');
+  if (!el) return;
+  const nm = (document.getElementById('pj_name')?.value || '').trim();
+  if (!nm && !_loadedFrom) { el.textContent = '현재 화면: 불러온 자료 없음'; return; }
+  const src = _loadedFrom ? ` · ${_loadedFrom}${_loadedAt ? ' ' + _loadedAt : ''}` : '';
+  el.textContent = `현재 화면: ${nm || '(사업명 미입력)'}${src}`;
+}
+function _markLoaded(from) {
+  _loadedFrom = from;
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  _loadedAt = `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  updateLoadedBadge();
+}
+
+function _resetFormToggles() {
+  byeolji1HeaderAlign    = 'left';
+  byeolji1RecipientAlign = 'left';
+  byeolji1StdAlign       = '';
+  byeolji2HeaderAlign    = 'left';
+  byeolji2StdAlign       = 'left';
+  showByeolji1Header = true;
+  showByeolji1Std    = true;
+  showByeolji1Back   = false;
+  showByeolji2Header = true;
+  showByeolji2Std    = true;
+  showByeolji2Title  = true;
+  showStamp = true;
+  stampSize = 62;
+  deployHeaderAlign     = 'left';
+  byeolchum2HeaderAlign = 'left';
+  byeolchum3HeaderAlign = 'left';
+  swearHeaderAlign        = 'left';
+  swearRecipientAlign     = 'left';
+  swearRecipientUnderline = true;
+  swearAddrLabel          = 'long';
+  swearLabelBold          = false;
+  swearNoticeEnabled      = false;
+  swearSignOrder          = 'default';
+  swearDateAlign          = 'center';
+  swearContactEnabled     = false;
+}
+
 // ── 서약서(별첨1) + 입찰서류 통합출력 상태: 저장/복원 단일 정본 ──
 // [2026-08-05] 기존에는 doAutoSave·loadAutoSave·loadPersonnelJSON·loadV2Data 4곳에 복붙 사본이 흩어져
 //   (1) saveAllJSON(전체 JSON)에는 서약서 키가 하나도 없었고 → 공고문에 맞춘 서약서가 JSON에 저장 안 됨,
@@ -2241,6 +2303,10 @@ let showByeolji2Title  = true;       // 별지2호 「Ⅰ. 총괄표」 표시 �
 // [2026-08-19 보스 지시] 공고문마다 상단 「■ 주택건설공사 감리자지정기준[별지 제N호서식]」 줄의
 //   유무·정렬이 다르다. 반포MV 실측 = 별지1호엔 그 줄이 없고, 별지2호는 그 줄이 우측이다.
 let showByeolji1Std   = true;        // 별지1호 상단 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 표시 여부
+// [2026-09-04 보스 승인] 별지1호 ■기준줄 정렬을 라벨줄과 분리. 종전엔 byeolji1HeaderAlign 하나를
+//   두 줄이 같이 써서 공고문에서 둘이 갈리면 표현할 수 없었다(별지2호는 byeolji2StdAlign 로 이미 분리돼 있었다).
+//   빈 문자열 = 「라벨줄을 따라감」 → 기존 JSON·저장값은 동작이 그대로다(하위호환).
+let byeolji1StdAlign  = '';          // '' | 'left' | 'right'
 let showByeolji2Std   = true;        // 별지2호 상단 「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 표시 여부
 let byeolji2StdAlign  = 'left';      // 별지2호 상단 「■ 주택건설공사 감리자지정기준 [별지 제2호서식]」 정렬(라벨줄과 독립)
 let deployHeaderAlign      = 'left'; // 감리원 배치계획표 상단 「[별첨 N]」 정렬
@@ -2283,6 +2349,7 @@ function doAutoSave() {
     deployLawMonths: document.getElementById('deployLawMonths')?.value || '',
     ...(_collectSwearAndBidState()),
     byeolji1HeaderAlign: byeolji1HeaderAlign,
+    byeolji1StdAlign: byeolji1StdAlign,
     byeolji1RecipientAlign: byeolji1RecipientAlign,
     byeolji2HeaderAlign: byeolji2HeaderAlign,
     showByeolji1Header: showByeolji1Header,
@@ -2534,6 +2601,7 @@ function loadAutoSave() {
     _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
     _restoreSwearAndBidState(data);
     if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+    if (typeof data.byeolji1StdAlign === 'string') byeolji1StdAlign = data.byeolji1StdAlign;
     if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
     if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
     if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
@@ -2553,6 +2621,7 @@ function loadAutoSave() {
     loadPersonToForm(currentPersonId);
     const names = getAllRoles().filter(r => personnel[r.id] && personnel[r.id].info && personnel[r.id].info.name).map(r => personnel[r.id].info.name);
     if (names.length) setTimeout(() => showStatus(`자동 복원: ${names.join(', ')} (이전 저장 데이터)`), 100);
+    _markLoaded('자동복원(직전 작업)');
     return true;
   } catch(e) { console.warn('loadAutoSave error:', e); return false; }
 }
@@ -3208,6 +3277,7 @@ function loadPersonnelJSON(input) {
       _clampDeployRangesToConstruction(); // [불변조건] 배치기간 공사기간 범위 정규화
       _restoreSwearAndBidState(data);
       if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+      if (typeof data.byeolji1StdAlign === 'string') byeolji1StdAlign = data.byeolji1StdAlign;
       if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
       if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
       if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
@@ -3260,6 +3330,7 @@ function loadJSONFile(input) {
 }
 
 function loadV2Data(data) {
+  _resetFormToggles();   // [2026-09-04] 직전 건 서식 잔류 차단 — 아래에서 파일 값으로 덮는다
   // Project
   if (data.project) {
     const p = data.project;
@@ -3354,6 +3425,7 @@ function loadV2Data(data) {
   _clampDeployRangesToConstruction(); // [불변조건] 복원된 배치기간을 공사기간 범위로 정규화
   _restoreSwearAndBidState(data);
   if (data.byeolji1HeaderAlign)    byeolji1HeaderAlign    = data.byeolji1HeaderAlign;
+  if (typeof data.byeolji1StdAlign === 'string') byeolji1StdAlign = data.byeolji1StdAlign;
   if (data.byeolji1RecipientAlign) byeolji1RecipientAlign = data.byeolji1RecipientAlign;
   if (data.byeolji2HeaderAlign)    byeolji2HeaderAlign    = data.byeolji2HeaderAlign;
   if (data.deployHeaderAlign)      deployHeaderAlign      = data.deployHeaderAlign;
@@ -3387,6 +3459,7 @@ function loadV2Data(data) {
   calcConstructionDays();
   _syncSwearUIAfterLoad();   // [2026-08-05] 서약서 편집기 stale 방지 (폼 채우기 뒤에 배치)
   triggerAutoSave();
+  _markLoaded('파일 불러오기');
   showStatus('데이터 불러오기 완료');
 }
 
@@ -5199,10 +5272,12 @@ function renderByeolji1() {
 
   const b1hAlign = (byeolji1HeaderAlign === 'right') ? 'right' : 'left';
   const b1rAlign = (byeolji1RecipientAlign === 'right') ? 'right' : 'left';
+  // [2026-09-04] ■기준줄 정렬 — 값이 없으면 라벨줄(b1hAlign)을 따라간다(종전 동작 유지)
+  const b1sAlign = (byeolji1StdAlign === 'left' || byeolji1StdAlign === 'right') ? byeolji1StdAlign : b1hAlign;
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:297mm;display:flex;flex-direction:column">
       ${showByeolji1Header ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>` : ''}
-      ${showByeolji1Std ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>` : ''}
+      ${showByeolji1Std ? `<div style="text-align:${b1sAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>` : ''}
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:2px;line-height:1.1">(앞 쪽)</div>
 
@@ -5390,6 +5465,8 @@ function byeolji1BackHtml() {
 function setByeolji1Align(target, align) {
   if (target === 'header')    byeolji1HeaderAlign    = (align === 'right') ? 'right' : 'left';
   else if (target === 'recipient') byeolji1RecipientAlign = (align === 'right') ? 'right' : 'left';
+  // [2026-09-04] ■기준줄 — '' 은 「라벨줄 따라감」
+  else if (target === 'std') byeolji1StdAlign = (align === 'left' || align === 'right') ? align : '';
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolji1();
 }
@@ -5409,6 +5486,9 @@ function updateByeolji1AlignButtons() {
   setActive('byeolji1HeaderAlignRight',    byeolji1HeaderAlign === 'right');
   setActive('byeolji1RecipientAlignLeft',  byeolji1RecipientAlign !== 'right');
   setActive('byeolji1RecipientAlignRight', byeolji1RecipientAlign === 'right');
+  setActive('byeolji1StdAlignAuto',  !byeolji1StdAlign);
+  setActive('byeolji1StdAlignLeft',  byeolji1StdAlign === 'left');
+  setActive('byeolji1StdAlignRight', byeolji1StdAlign === 'right');
   setActive('byeolji1HeaderOn',  showByeolji1Header === true);
   setActive('byeolji1HeaderOff', showByeolji1Header !== true);
   setActive('stampOn',  showStamp === true);
@@ -7839,12 +7919,22 @@ function validateSubmitPack() {
         issues.push('［실격위험］총배치 ' + totalPm.toFixed(3) + ' 인·월이 법정 ' + law.toFixed(3) + ' 인·월에 미달합니다.');
       }
     }
-    // ⑤ 공고번호가 신청서·서약서 양쪽에 같게 들어갔는가
-    const swEl = document.getElementById('swearNoticeNumber');
-    const swearNo = swEl ? swEl.value : '';
-    const norm = s => String(s || '').replace(/\s/g, '');
-    if (pj.noticeNo && swearNo && norm(pj.noticeNo) !== norm(swearNo)) {
-      issues.push('［확인］신청서 공고번호(' + pj.noticeNo + ')와 서약서 공고번호(' + swearNo + ')가 다릅니다.');
+    // ⑤ 공고번호 — [2026-09-04 보스 승인] 재설계.
+    //   종전 검사 = 「신청서 공고번호 vs 서약서 공고번호」 대조. 두 가지가 잘못돼 있었다.
+    //   1. 찾는 요소 id 가 실제와 달라(swearNoticeNumber ↔ swearNoticeNumberInput) 항상 빈 값 →
+    //      if 가드에서 단락 → 아무것도 대조하지 않으면서 「통과」로 보였다(2026-08-27 상신).
+    //   2. id 를 고쳐도 무의미하다. 서약서는 pj.noticeNo 를 그대로 찍으므로(renderByeolchum1)
+    //      두 값은 구조적으로 항상 같다 = 자기 자신 대조.
+    //   ⇒ 실제로 사고가 났던 두 가지를 대신 본다.
+    const _no = String(pj.noticeNo || '').trim();
+    if (swearNoticeEnabled && !_no) {
+      issues.push('［확인］서약서에 「□ 공고번호」 줄을 켜 두었는데 공고번호가 비어 있습니다.');
+    }
+    //   공고일자는 앱이 자동으로 넣지 않는다. 양식이 「제2026-0000호 (2026. 8. 25.)」 형태면
+    //   공고번호 칸에 괄호까지 직접 써야 한다(2026-08-27 홍은동 보스 지적). 괄호가 없는 양식도
+    //   있으므로(논산 내동3) 실격위험이 아니라 안내로 둔다.
+    if (swearNoticeEnabled && _no && _no.indexOf('(') < 0) {
+      issues.push('［확인］서약서 공고번호에 괄호 안 공고일자가 없습니다. 공고문 양식에 날짜가 있으면 공고번호 칸에 함께 적으십시오.');
     }
   } catch (e) {
     console.error('validateSubmitPack', e);
@@ -9469,6 +9559,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   })();
   loadRuntimeConstants();
   try { loadAutoSave(); } catch(e) { console.warn('자동복원 오류:', e); }
+  try { updateLoadedBadge(); } catch(e) {}   // 복원 자료가 없어도 「불러온 자료 없음」을 띄운다
   switchTab(0);
   checkLawUpdate();
   document.querySelectorAll('[id^="co_"]').forEach(el => {
