@@ -665,6 +665,8 @@ tbody tr:hover td { background: var(--ci-light); }
   /* 편집 잠금(2026-09-03)으로 입력칸에 회색 인라인 스타일이 걸린다. 인쇄물에는 원래 색으로 */
   body.print-alert #tab_alert input,
   body.print-alert #tab_alert select { background: #fff !important; color: #111 !important; }
+  /* 커서가 얹힌 행의 강조색(--ci-light)이 인쇄물에 찍히는 것 차단 (2026-09-07) */
+  tr:hover td, tbody tr:hover td { background: inherit !important; }
   .modal-overlay { display: none !important; }
   @page { margin: 0; size: A4; }
   /* ── 별첨5(배치계획표) 가로 인쇄 fit (긴 사업 자동 발동) ──
@@ -10480,7 +10482,7 @@ async function openLawSearch(query) {
 (function () {
   let _saved = [];
 
-  window.addEventListener('beforeprint', function () {
+  function _applyPrintFit() {
     _saved = [];
     document.querySelectorAll('.a4-page, .a4-preview').forEach(function (page) {
       // 배치계획표: A4 초과 시 행 높이 축소 (기본 72px, 초과분 균등 감소)
@@ -10502,22 +10504,40 @@ async function openLawSearch(query) {
         return;
       }
 
-      // 별지1호: 감리원 tbody 행만 스트레치 — A4 절대값 기준 (min-height:0 우회)
+      // 별지1호: 공사개요·감리자·감리원 세 표를 함께 스트레치 — A4 절대값 기준 (min-height:0 우회)
+      //   [2026-09-07 사용자 승인] 종전에는 감리원 tbody 행만 늘려 인원이 적으면 아래 표만
+      //   두꺼워지고 위 두 표는 얇은 채로 남아 균형이 깨졌다. 이제 남는 높이를 세 표의 전체
+      //   행 수로 나눠 고르게 넣고, 행 높이가 상한(14mm)에 닿은 표는 대상에서 빠져 나머지가
+      //   남은 몫을 받는다. 빈 곳이 없는 건(감리원이 많은 300세대 이상)은 첫 패스에서 빠져나가
+      //   출력이 종전과 완전히 동일하다.
       if (page.id === 'byeolji1Doc') {
-        var tbody = page.querySelector('#b1PersonnelTbody');
-        if (!tbody) return;
-        var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r.offsetHeight > 0; });
-        if (!rows.length) return;
         var A4_PX = Math.round(297 * 96 / 25.4); // 1122px
         var padPx = 38 + 12; // byeolji1Doc 상하 패딩
-        var realGap = (A4_PX - padPx) - page.scrollHeight;
-        if (realGap < 4) return;
-        var add = Math.floor(realGap / rows.length);
-        if (add < 1) return;
-        rows.forEach(function (r) {
-          _saved.push({ el: r, h: r.style.height });
-          r.style.height = (r.offsetHeight + add) + 'px';
-        });
+        var MAXROW = Math.round(14 * 96 / 25.4); // 행 높이 상한 14mm
+        // 남은 여백 = 하단 고정 블록을 밀어내는 spacer(<div style="flex:1 1 auto">)의 높이.
+        // A4 절대값에서 scrollHeight 를 빼는 방식은 목표 높이(267mm)와 어긋나 과도하게 늘어난다.
+        var gapOf = function () {
+          return Array.prototype.filter.call(page.children, function (el) {
+            return el.tagName === 'DIV' && (el.getAttribute('style') || '').replace(/\s/g, '').indexOf('flex:11auto') >= 0;
+          }).reduce(function (a, el) { return a + el.getBoundingClientRect().height; }, 0);
+        };
+        var seen = new Set();
+        for (var pass = 0; pass < 10; pass++) {
+          var realGap = gapOf();
+          if (realGap < 2) break;
+          var rows = Array.from(page.querySelectorAll('table tr')).filter(function (r) {
+            return r.offsetHeight > 0 && r.offsetHeight < MAXROW - 0.5;
+          });
+          if (!rows.length) break;
+          var add = Math.floor(realGap / rows.length);
+          if (add < 1) break;
+          rows.forEach(function (r) {
+            var h = Math.min(r.offsetHeight + add, MAXROW);
+            if (h <= r.offsetHeight) return;
+            if (!seen.has(r)) { seen.add(r); _saved.push({ el: r, h: r.style.height }); }
+            r.style.height = h + 'px';
+          });
+        }
         return;
       }
 
@@ -10533,12 +10553,19 @@ async function openLawSearch(query) {
         r.style.height = (r.offsetHeight + add) + 'px';
       });
     });
-  });
+  }
 
-  window.addEventListener('afterprint', function () {
-    _saved.forEach(function (s) { s.el.style.height = s.h; });
+  function _restorePrintFit() {
+    _saved.slice().reverse().forEach(function (s) { s.el.style.height = s.h; });
     _saved = [];
-  });
+  }
+
+  // 창 없는 PDF 생성기는 window.print 를 가로채므로 beforeprint 가 발생하지 않는다.
+  // 그 경로에서도 같은 채움이 걸리도록 명시 호출구를 연다 (2026-09-07).
+  window.__printFit = { apply: _applyPrintFit, restore: _restorePrintFit };
+
+  window.addEventListener('beforeprint', _applyPrintFit);
+  window.addEventListener('afterprint', _restorePrintFit);
 })();
 </script>
 </body>
