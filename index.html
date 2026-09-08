@@ -840,15 +840,17 @@ tbody tr:hover td { background: var(--ci-light); }
   </div>
 
   <div class="card">
-    <div class="card-title"><span class="icon">📢</span>공고 정보</div>
+    <!-- [2026-09-08 보스 지시] 입찰공고번호 - 차수는 제출 서식에 나가지 않는 번외 항목이라
+         공고번호·모집공고일·지정권자 한 줄을 건드리지 않도록 카드 제목 우측에 둔다.
+         어느 공고 차수를 보고 작성했는지 남기는 값이다. 광양 덕례C2에서 변경공고 001이
+         최신인데 공지 감시가 000만 보고 있어 놓칠 뻔한 것이 계기다. -->
+    <div class="card-title" style="flex-wrap:wrap"><span class="icon">📢</span>공고 정보
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--gray4)">
+        입찰공고번호 - 차수
+        <input type="text" id="pj_g2bNo" placeholder="R26BK01705238-001" title="나라장터 공고번호와 차수. 어느 차수를 보고 작성했는지 기록용이며 제출 서식에는 나가지 않습니다." style="width:200px;max-width:100%;padding:5px 9px;font-size:12px;font-weight:500;color:var(--gray5,#334155);border:1px solid var(--gray2,#cbd5e1);border-radius:6px;background:#fff" oninput="triggerAutoSave();if(typeof updateLoadedBadge==='function')updateLoadedBadge();">
+      </span>
+    </div>
     <div class="form-grid">
-      <!-- [2026-09-08 보스 지시] 이 서류를 어느 공고 차수를 보고 작성했는지 남긴다.
-           광양 덕례C2에서 변경공고 001이 최신인데 공지 감시가 000만 보고 있어 놓칠 뻔한 것이 계기다.
-           지자체 공고번호(아래 pj_noticeNo)와는 다른 값이며, 제출 서식에는 출력하지 않는다. -->
-      <div class="form-group" style="grid-column: span 2">
-        <label>입찰공고번호 - 차수</label>
-        <input type="text" id="pj_g2bNo" placeholder="예) R26BK01705238-001" title="나라장터 공고번호와 차수. 어느 차수를 보고 작성했는지 기록용이며 제출 서식에는 나가지 않습니다." oninput="triggerAutoSave();if(typeof updateLoadedBadge==='function')updateLoadedBadge();">
-      </div>
       <div class="form-group" style="grid-column: span 2">
         <label>공고번호</label>
         <input type="text" id="pj_noticeNo" placeholder="예) 전주시 공고 제2025-1948호" oninput="triggerAutoSave();if(typeof updateSwearAlignButtons==='function')updateSwearAlignButtons();if(document.getElementById('tab8')?.classList.contains('active'))renderByeolchum1();">
