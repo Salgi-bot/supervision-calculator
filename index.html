@@ -1632,6 +1632,22 @@ tbody tr:hover td { background: var(--ci-light); }
           style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:160px;background:#f1f5f9;color:#475569;cursor:not-allowed;font-weight:400;">
       </div>
     </div>
+    <!-- [2026-09-29 보스 승인] 서약서 상단 줄 — 공고문 서약서에 공고명 줄이 있거나 사업명·사업주체 표기가 별지1호와 다를 때만 쓴다 -->
+    <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;flex-wrap:wrap;margin:6px 0 4px;">
+      <span style="color:#64748b;padding-top:4px;" title="공고문 서약서 상단에 「□ 공 고 명」 줄이 있는지 보고 맞추세요.">공고명 줄:</span>
+      <div role="group" aria-label="별첨1 공고명 줄" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
+        <button type="button" id="swearTitleOn"  onclick="setSwearTitle(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">켜기</button>
+        <button type="button" id="swearTitleOff" onclick="setSwearTitle(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">끄기</button>
+      </div>
+      <textarea id="swearTitleTextInput" rows="2" placeholder="공고명 (공고문 서약서 문구 그대로, 줄바꿈 가능)" oninput="setSwearHeaderText('title', this.value)"
+        style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:300px;resize:vertical;font-family:inherit;"></textarea>
+      <span style="color:#64748b;padding-top:4px;margin-left:4px;" title="비우면 공고 정보의 사업명을 그대로 씁니다.">서약서 사업명:</span>
+      <input type="text" id="swearProjectNameInput" placeholder="비우면 공고 정보 사업명" oninput="setSwearHeaderText('project', this.value)"
+        style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:230px;">
+      <span style="color:#64748b;padding-top:4px;margin-left:4px;" title="비우면 공고 정보의 사업주체를 그대로 씁니다.">서약서 사업주체:</span>
+      <input type="text" id="swearClientNameInput" placeholder="비우면 공고 정보 사업주체" oninput="setSwearHeaderText('client', this.value)"
+        style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;width:230px;">
+    </div>
     <div class="info-note">프로젝트·회사 정보 기반으로 서약서가 자동 생성됩니다.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolchum1()">미리보기 갱신</button>
@@ -2124,6 +2140,14 @@ let swearContactEnabled = false;  // 별첨1 서약서 하단 전화번호·FAX 
 let swearRecipientUnderline = true; // 수신처(귀하) 밑줄
 let swearAddrLabel = 'long';        // 서명란 주소 라벨: 'long'(서약자 주소) | 'short'(주 소)
 let swearLabelBold = false;         // 상단 □공고번호·사업명·사업주체 라벨 굵기
+// ── [2026-09-29 보스 승인 「b안으로 수정해」] 서약서 상단 줄을 공고문 문안 그대로 ──
+//   합정동 447(마포구) 서약서 상단 = 「□ 공 고 명」(2줄)·「□ 사 업 명 : …신축공사」·「□ 사업주체 : … 조합」.
+//   공고명 줄은 앱에 없었고, 사업명·사업주체는 별지1호(공고문 사업내역)와 표기가 달라 한 값으로 둘을 못 맞췄다.
+//   ⇒ 공고명 줄 토글+문구, 서약서 전용 사업명·사업주체(빈 값이면 공고 정보 값 그대로 = 기존 동작)를 둔다.
+let swearTitleEnabled = false;      // 상단 「□ 공 고 명」 줄 표시 여부
+let swearTitleText    = '';         // 공고명 문구(줄바꿈 가능 — 둘째 줄은 값 시작 위치에 맞춰 들여씀)
+let swearProjectName  = '';         // 서약서 전용 사업명 — 빈 값이면 pj.name
+let swearClientName   = '';         // 서약서 전용 사업주체 — 빈 값이면 pj.client
 let showStamp = true;             // 법인 도장 이미지 표시 여부
 let stampSize = 62;               // 법인 도장 직경(px)
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
@@ -2193,6 +2217,10 @@ function _resetFormToggles() {
   swearSignOrder          = 'default';
   swearDateAlign          = 'center';
   swearContactEnabled     = false;
+  swearTitleEnabled       = false;
+  swearTitleText          = '';
+  swearProjectName        = '';
+  swearClientName         = '';
 }
 
 // ── 서약서(별첨1) + 입찰서류 통합출력 상태: 저장/복원 단일 정본 ──
@@ -2213,6 +2241,10 @@ function _collectSwearAndBidState() {
     swearLabelBold: swearLabelBold,
     swearNoticeEnabled: swearNoticeEnabled,
     swearNoticeNumber: swearNoticeNumber,
+    swearTitleEnabled: swearTitleEnabled,
+    swearTitleText: swearTitleText,
+    swearProjectName: swearProjectName,
+    swearClientName: swearClientName,
     swearBodyTemplates: swearBodyTemplates,
     swearBodyActiveId: swearBodyActiveId,
     bidExportGroup: (document.querySelector('input[name="bidExportGroup"]:checked')?.value === 'A') ? 'A' : 'B',
@@ -2240,6 +2272,10 @@ function _restoreSwearAndBidState(data) {
     swearNoticeNumber = data.swearNoticeNumber;
     const _snEl = document.getElementById('swearNoticeNumberInput'); if (_snEl) _snEl.value = swearNoticeNumber;
   }
+  if (typeof data.swearTitleEnabled === 'boolean') swearTitleEnabled = data.swearTitleEnabled;
+  if (typeof data.swearTitleText === 'string') swearTitleText = data.swearTitleText;
+  if (typeof data.swearProjectName === 'string') swearProjectName = data.swearProjectName;
+  if (typeof data.swearClientName === 'string') swearClientName = data.swearClientName;
   if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
   if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
   // 관리알림 복원 — 키가 없는 구버전 JSON은 현재 localStorage 값을 그대로 둔다
@@ -2297,6 +2333,10 @@ function _resetSwearAndBidState() {
   swearSignOrder = 'default';
   swearDateAlign = 'center';
   swearContactEnabled = false;
+  swearTitleEnabled = false;
+  swearTitleText = '';
+  swearProjectName = '';
+  swearClientName = '';
   swearBodyTemplates = [ { id: 'default', name: '기본', body: SYSTEM_DEFAULT_SWEAR_BODY } ];
   swearBodyActiveId = 'default';
   bidExportGroup = 'B';
@@ -8444,6 +8484,12 @@ function renderByeolchum1() {
   const noticeLine = swearNoticeEnabled
     ? `<div style="margin-bottom:0;${_lblW}">□ 공 고 번 호 : ${escHtml(_pjNotice)}</div>`
     : '';
+  // [2026-09-29] 공고명 줄 — 둘째 줄부터는 값 시작 위치에 맞춰 들여쓴다(합정동 공고문 모양).
+  const titleLine = swearTitleEnabled
+    ? `<div style="margin-bottom:0;display:flex;${_lblW}"><span style="white-space:pre;flex:0 0 auto;">□ 공 고 명 : </span><span style="white-space:pre-line;">${escHtml((swearTitleText || '').trim())}</span></div>`
+    : '';
+  const _swearPjName = (swearProjectName || '').trim() || (pj.name || '');
+  const _swearClient = (swearClientName || '').trim() || (pj.client || '');
   const activeTpl = swearBodyTemplates.find(t => t.id === swearBodyActiveId) || swearBodyTemplates[0];
   const rawBody = (activeTpl && typeof activeTpl.body === 'string') ? activeTpl.body : '';
   const bodyInner = rawBody.trim()
@@ -8475,9 +8521,10 @@ function renderByeolchum1() {
       <div class="swear-top" style="flex:0 0 auto;">
         <div style="font-size:14px;font-weight:bold;margin-bottom:10px;text-align:${headerAlign};">${_byeolchumTag}</div>
         <h2 style="text-align:center;font-size:22px;letter-spacing:4px;margin:10px 0 20px;white-space:nowrap;">감리자 지정 신청자료 제출에 따른 서약서</h2>
+        ${titleLine}
         ${noticeLine}
-        <div style="margin-bottom:0;${_lblW}">□ 사 업 명 : ${escHtml(pj.name||'')}</div>
-        <div style="margin-bottom:0;${_lblW}">□ 사 업 주 체 : ${escHtml(pj.client||'')}</div>
+        <div style="margin-bottom:0;${_lblW}">□ 사 업 명 : ${escHtml(_swearPjName)}</div>
+        <div style="margin-bottom:0;${_lblW}">□ 사 업 주 체 : ${escHtml(_swearClient)}</div>
       </div>
       <div class="swear-spacer-top" style="flex:1 1 0;min-height:12px;"></div>
       <div class="swear-body" style="flex:0 0 auto;">
@@ -8537,6 +8584,13 @@ function updateSwearAlignButtons() {
   setActive('swearAddrLabelShort',      swearAddrLabel === 'short');
   setActive('swearLabelBoldOn',         swearLabelBold === true);
   setActive('swearLabelBoldOff',        swearLabelBold !== true);
+  setActive('swearTitleOn',             swearTitleEnabled === true);
+  setActive('swearTitleOff',            swearTitleEnabled !== true);
+  // 입력 중인 칸은 건드리지 않는다(커서 튐 방지). 로드·초기화 뒤에만 값이 들어간다.
+  [['swearTitleTextInput', swearTitleText], ['swearProjectNameInput', swearProjectName], ['swearClientNameInput', swearClientName]]
+    .forEach(([id, v]) => { const el = document.getElementById(id); if (el && document.activeElement !== el && el.value !== (v || '')) el.value = v || ''; });
+  const _tt = document.getElementById('swearTitleTextInput');
+  if (_tt) _tt.style.opacity = swearTitleEnabled ? '1' : '0.5';
   const inp = document.getElementById('swearNoticeNumberInput');
   if (inp) {
     const pjNo = (document.getElementById('pj_noticeNo')?.value || '').trim();
@@ -8549,6 +8603,20 @@ function updateSwearAlignButtons() {
 // 별첨1 서약서 공고번호 노출 토글
 function setSwearNotice(on) {
   swearNoticeEnabled = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+// [2026-09-29] 별첨1 공고명 줄 토글 · 서약서 전용 상단 문구
+function setSwearTitle(on) {
+  swearTitleEnabled = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+  renderByeolchum1();
+}
+function setSwearHeaderText(key, v) {
+  const s = String(v == null ? '' : v);
+  if (key === 'title') swearTitleText = s;
+  else if (key === 'project') swearProjectName = s;
+  else if (key === 'client') swearClientName = s;
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
   renderByeolchum1();
 }
