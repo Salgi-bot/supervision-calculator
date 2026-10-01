@@ -2252,6 +2252,7 @@ function _collectSwearAndBidState() {
     // 관리알림(교육훈련·특허) — 종전엔 localStorage 전용이라 브라우저를 바꾸면 소실됐다(2026-08-31 보스 지시로 JSON 포함)
     alertTraining: (typeof getTrainingData === 'function') ? getTrainingData() : [],
     alertPatent:   (typeof getPatentData   === 'function') ? getPatentData()   : [],
+    alertSeedVersion: ALERT_SEED_VERSION,
   };
 }
 
@@ -2279,10 +2280,15 @@ function _restoreSwearAndBidState(data) {
   if (Array.isArray(data.swearBodyTemplates)) swearBodyTemplates = data.swearBodyTemplates;
   if (typeof data.swearBodyActiveId === 'string') swearBodyActiveId = data.swearBodyActiveId;
   // 관리알림 복원 — 키가 없는 구버전 JSON은 현재 localStorage 값을 그대로 둔다
+  // ★ 다른 시드 판에서 저장된 값은 복원하지 않는다(2026-10-01). 시작 시 자동복원이 판 동기화보다 먼저 돌아
+  //   두 번째로 열 때 옛 자동저장이 새 시드를 덮었다. 시드가 정본(2026-09-03 보스 지시)이므로 같은 판일 때만 복원.
   try {
-    if (Array.isArray(data.alertTraining)) saveTrainingData(data.alertTraining);
-    if (Array.isArray(data.alertPatent))   savePatentData(data.alertPatent);
-    if (Array.isArray(data.alertTraining) || Array.isArray(data.alertPatent)) {
+    const _alertSameVer = data.alertSeedVersion === ALERT_SEED_VERSION;
+    const _rt = _alertSameVer && Array.isArray(data.alertTraining);
+    const _rp = _alertSameVer && Array.isArray(data.alertPatent);
+    if (_rt) saveTrainingData(data.alertTraining);
+    if (_rp) savePatentData(data.alertPatent);
+    if (_rt || _rp) {
       if (typeof renderTrainingRows === 'function') renderTrainingRows();
       if (typeof renderPatentRows   === 'function') renderPatentRows();
       if (typeof renderPatentSummary === 'function') renderPatentSummary();
@@ -9674,7 +9680,7 @@ const TRAINING_ALERT_MONTHS = 3;   // 일반 계속교육(49h·70h) 3년 주기
 const MANDATORY_ALERT_MONTHS = 3;  // 필수 계속교육(7h) 배치 1년 주기
 
 // 관리알림 초기값 — localStorage 가 비어 있을 때만 심는다(사용자가 지운 항목을 되살리지 않도록 키 부재일 때 한정)
-const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서", "mandatoryDate": "2026-05-07", "deployStartDate": ""}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간", "mandatoryDate": "2026-01-20", "deployStartDate": ""}, {"name": "김상오", "type": "70시간", "completionDate": "2023-11-07", "note": "★필수 7h 대상 — 배치 기산 2024-12-09(평내체육문화시설 건립사업 감독권한대행 등 건설사업관리, 남양주도시공사, ~2026-02-23, 인정일 442일)로 매 1년 경과 · ★수료 후에는 배치 기산일을 비우거나(평내 종료로 현재 미배치) 다음 배치 시작일로 바꿔야 만료 표시가 풀린다. 이수일만 고치면 만료가 유지된다 · ★교육 진행 예정(보스 2026-09-02 지시) · ※경력증명서 2026-04-01 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 142시간 · [설비] 교육기간 2023-11-07~2023-12-07 / 건설사업관리기술인계속교육특급전문과정(한국건설엔지니어링협회) 142시간", "mandatoryDate": "2023-11-07", "deployStartDate": "2024-12-09"}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기", "mandatoryDate": "2026-03-11", "deployStartDate": ""}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간", "mandatoryDate": "2024-02-22", "deployStartDate": ""}];
+const ALERT_SEED_TRAINING = [{"name": "류원철", "type": "70시간", "completionDate": "2026-05-07", "note": "[총괄·건축] 교육기간 2026-05-07~2026-06-10 / 건설사업관리기술인일반계속특급전문교육(영남건설기술교육원) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=2026-08-31 발급 경력증명서", "mandatoryDate": "2026-05-07", "deployStartDate": ""}, {"name": "장시웅", "type": "70시간", "completionDate": "2026-01-20", "note": "※경력증명서 2026-04-14 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 70시간 · [토목] 교육기간 2026-01-20~2026-02-11 / 건설사업관리기술인일반계속교육특급전문과정(한국건설엔지니어링협회) 70시간", "mandatoryDate": "2026-01-20", "deployStartDate": ""}, {"name": "김상오", "type": "70시간", "completionDate": "2026-09-01", "note": "[설비] 교육기간 2026-09-01~2026-09-29 / 건설사업관리기술인 계속교육(전문교육) 특급·직무분야 기계(한국건설엔지니어링협회, 원격) ① 스마트건설기술 과정 2026-09-01~09-22 35시간(제2026-G21-61971590호) ② 건설사업관리 전문과정(특급3) 2026-09-10~09-29 35시간(제2026-G21-62082508호) · 이수시간 70시간 · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 근거=수료증 2건(2026-10-01 김은주 차장 슬랙 수령, 00 입찰자료/경력증명서 편철) · 필수 7h 이수일=시작일(수료증에 일반·필수 분리 표기 없음, 2026-09-02 보스 지시 방식) · 배치 기산일 공란=미배치(평내체육문화시설 건설사업관리 2024-12-09~2026-02-23 종료), 다음 배치 시 시작일 입력 · 직전 이수=2023-11-07~2023-12-07 계속교육 특급전문 142시간", "mandatoryDate": "2026-09-01", "deployStartDate": ""}, {"name": "노경희", "type": "70시간", "completionDate": "2026-03-11", "note": "[비상주·건축] 승급교육 2026-03-11~03-27(건설기술교육원) · ★건설기술진흥법 시행령 별표3 — 승급교육 이수 시 그 이수일 기준으로 계속교육 주기 재계산 = 정상 · 최초교육(초급) 2026-02-04~02-20 = 70시간 이상 과정 · 증명서 계속교육 시간란 공란은 계속교육 미도래에 따른 정상 표기", "mandatoryDate": "2026-03-11", "deployStartDate": ""}, {"name": "강권식", "type": "70시간", "completionDate": "2024-02-22", "note": "★교육 진행 예정(보스 2026-08-31 지시) · 수료 후 날짜 갱신 필요 · ※경력증명서 2026-04-10 발급본 기준(이후 수료분 미반영 가능) · 날짜칸=교육 시작일(보스 지시 시작일+3년) · 이수시간 증명서 시간란 공란 · [건축] 교육기간 2024-02-22~2024-02-26 / 건설사업관리기술인일반계속특급전문교육(건설산업교육원) 70시간", "mandatoryDate": "2024-02-22", "deployStartDate": ""}];
 const ALERT_SEED_PATENT = [{"patentNo": "제10-2522485호", "content": "피난기능을 구비한 건축용 안전난간", "regDate": "2023-04-12", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2548872호", "content": "공동주택용 현관 입구의 논슬립과 이물질 유입방지장치", "regDate": "2023-06-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2569239호", "content": "내구성이 향상된 아파트 및 오피스텔 건식 내벽", "regDate": "2023-08-17", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2571802호", "content": "잔디보호를 이룰 수 있는 건축단지용 보도블록", "regDate": "2023-08-23", "expiryDate": "", "alertMonths": 24}, {"patentNo": "제10-2950762호", "content": "층간 소음 저감을 위한 복합 구조체를 적용한 공동주택 바닥 시스템", "regDate": "2026-04-06", "expiryDate": "", "alertMonths": 24}];
 // 특허 알림 기본값 — 보스 2026-09-01 지시로 2년. 값이 빠지면 6개월로 되돌아가던 것을 막는다(2026-09-03).
 const PATENT_DEFAULT_ALERT_MONTHS = 24;
@@ -9686,7 +9692,7 @@ const ALERT_LS_SEEDED = 'hb_alert_seeded_20260831';
 // ★ 등록은 코코 경유가 원칙이므로(보스 2026-09-03) 시드가 정본이다. 판이 바뀌면 시드로 맞춘다.
 // ⚠ 「임시 편집 허용」으로 넣은 값은 다음 판 배포 때 사라진다 — 의도된 동작이다.
 // ★★ 시드(ALERT_SEED_*)를 고칠 때는 이 판 번호도 함께 올린다. 안 올리면 배포해도 화면이 안 바뀐다.
-const ALERT_SEED_VERSION = '2026-09-07.1';
+const ALERT_SEED_VERSION = '2026-10-01.1';
 const ALERT_LS_SEED_VER  = 'hb_alert_seed_version';
 
 function _alertSyncSeedVersion() {
@@ -9744,7 +9750,8 @@ function _alertFixMandatoryOnce() {
 // 교육 이수일 이후 등재된 건설사업관리 참여 인정일이 365일을 넘긴 사람만 기산일을 넣는다.
 // 나머지는 공란 유지 = 미배치(시계 정지). 증명서에 없는 배치를 만들어내지 않기 위함.
 const ALERT_LS_DEPLOY_FIX = 'hb_alert_deploystart_fix_20260902';
-const ALERT_DEPLOY_SEED = { '김상오': '2024-12-09' };
+// 2026-10-01 김상오 계속교육 수료(9/29)로 기산일 해제 — 비워 두지 않으면 판 동기화 뒤 새 브라우저에서 2024-12-09가 되살아난다.
+const ALERT_DEPLOY_SEED = {};
 function _alertFixDeployStartOnce() {
   try {
     if (localStorage.getItem(ALERT_LS_DEPLOY_FIX)) return;
