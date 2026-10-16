@@ -765,6 +765,14 @@ tbody tr:hover td { background: var(--ci-light); }
         </label>
       </div>
 
+      <!-- [2026-10-16] 공고문 제출서류 1)이 「표지, 감리자지정 신청서」인 공고 -->
+      <label style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;margin:-6px 0 18px">
+        <input type="checkbox" id="bidIncludeCoverChk" onchange="setBidIncludeCover(this.checked)" style="margin-top:3px">
+        <span style="font-size:13px"><b>파일 ① 맨 앞에 표지 포함</b><br>
+          <span style="font-size:12px;color:#666">공고문 제출서류 1)에 「표지」가 있을 때만 켜세요. 표지 탭의 모양·문구로 출력됩니다.</span>
+        </span>
+      </label>
+
       <div style="display:flex;flex-direction:column;gap:8px;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#f8fafc">
         <div style="font-size:12px;color:#475569;font-weight:700;margin-bottom:2px">각 PDF 파일 제목</div>
         <div style="font-size:11px;color:#64748b;margin-bottom:4px;line-height:1.5">※ 직접 입력한 제목은 JSON 저장 파일에 함께 보관되어 다시 불러와도 유지됩니다. 칸을 <b>비우면</b> 자동 파일명으로 되돌아갑니다.</div>
@@ -812,6 +820,19 @@ tbody tr:hover td { background: var(--ci-light); }
       <button class="btn" onclick="printTab('tab_cover')">인쇄 / PDF 저장</button>
       <button class="btn" onclick="saveTabAsWord('coverPreview', renderCover, '표지', '표지')">📄 Word 저장</button>
     </div>
+    <!-- [2026-10-16] 공고문 붙임형 표지 — 공고문 제출서류에 표지가 있으면 그 양식대로 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;">
+      <span style="color:#475569;font-weight:600;">모양</span>
+      <select id="coverStyleSelect" onchange="setCoverStyle(this.value)" style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+        <option value="app">앱 기본 표지</option>
+        <option value="notice">공고문 붙임형(접수번호 칸)</option>
+      </select>
+      <span style="color:#475569;font-weight:600;margin-left:6px;">테두리 위 문구</span>
+      <input type="text" id="coverLabelTextInput" oninput="setNoticeText('coverLabel',this.value)" placeholder="예: 붙임1-1. 신청서 표지" style="width:180px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+      <span style="color:#475569;font-weight:600;margin-left:6px;">제목</span>
+      <input type="text" id="coverTitleTextInput" oninput="setNoticeText('coverTitle',this.value)" placeholder="주택건설공사 감리자(건축) 지정신청서" style="width:250px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+    </div>
+    <div class="info-note" style="margin-top:6px;">공고문 붙임형 문구·제목은 공고문 표지 양식 그대로 적습니다(비우면 기본값). 통합출력의 「파일 ① 맨 앞에 표지 포함」을 켜면 이 표지가 파일 ①에 들어갑니다.</div>
   </div>
   <div id="coverPreview"></div>
 </div>
@@ -1219,7 +1240,7 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title" style="justify-content:space-between">
       <span><span class="icon">📝</span>별지 제1호 — 감리자 지정 신청서</span>
-      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;flex-wrap:wrap;justify-content:flex-end;">
         <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별지1호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
@@ -1250,6 +1271,7 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji1HeaderOn"  onclick="setByeoljiHeader(1,true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji1HeaderOff" onclick="setByeoljiHeader(1,false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
+        <input type="text" id="byeolji1HeaderTextInput" oninput="setNoticeText('b1',this.value)" placeholder="[별지 제1호서식]" title="공고문 별지1호 상단 라벨 문구 그대로(예: 붙임1-2. [별지 제1호 서식]). 비우면 기본 문구. 「별지번호: 표시」일 때만 출력됩니다." style="width:180px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
         <span style="color:#64748b;margin-left:6px;">도장:</span>
         <div role="group" aria-label="법인 도장 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="stampOn"  onclick="setShowStamp(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
@@ -1277,7 +1299,7 @@ tbody tr:hover td { background: var(--ci-light); }
   <div class="card no-print">
     <div class="card-title" style="justify-content:space-between">
       <span><span class="icon">📊</span>별지 제2호 — 자기평가서 (총괄표)</span>
-      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;">
+      <div style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:400;flex-wrap:wrap;justify-content:flex-end;">
         <span style="color:#64748b;">상단:</span>
         <div role="group" aria-label="별지2호 상단 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji2HeaderAlignLeft"  onclick="setByeolji2Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
@@ -1288,6 +1310,7 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji2HeaderOn"  onclick="setByeoljiHeader(2,true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji2HeaderOff" onclick="setByeoljiHeader(2,false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
         </div>
+        <input type="text" id="byeolji2HeaderTextInput" oninput="setNoticeText('b2',this.value)" placeholder="[별지 제2호서식]" title="공고문 별지2호 상단 라벨 문구 그대로(예: 붙임1-3. [별지 제2호 서식]). 비우면 기본 문구. 「별지번호: 표시」일 때만 출력됩니다." style="width:180px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
         <span style="color:#64748b;margin-left:6px;">■줄:</span>
         <div role="group" aria-label="별지2호 ■ 감리자지정기준 줄 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji2StdOn"  onclick="setByeolji2Std(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
@@ -1586,6 +1609,7 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="swearHeaderAlignLeft"  onclick="setSwearAlign('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="swearHeaderAlignRight" onclick="setSwearAlign('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <input type="text" id="swearHeaderTextInput" oninput="setNoticeText('swear',this.value)" placeholder="[별첨 1]" title="공고문 서약서 상단 라벨 문구 그대로(예: 〔별첨 1〕). 비우면 기본 문구 「[별첨 1]」." style="width:120px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
         <span style="color:#64748b;margin-left:4px;">하단:</span>
         <div role="group" aria-label="별첨1 수신처 정렬" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="swearRecipientAlignLeft"  onclick="setSwearAlign('recipient','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
@@ -2161,6 +2185,18 @@ let swearBodyActiveId = 'default';
 //   빈 문자열(=안 건드림)이면 updateBidExportTitles()의 기존 자동생성 기본값을 그대로 쓴다.
 let bidExportGroup = 'B';                    // 서약서 결합 위치: 'A'(별지1호와) | 'B'(별지2호와, 기본)
 let bidTitles = { t1: '', t2: '', t3: '' };  // 사용자가 직접 입력한 PDF 파일명 3칸
+// ── [2026-10-16 보스 지시 「공고문대로 서류를 작성토록 하자」·「수정해」] 서식 상단 문구·표지 ──
+//   수원 권선1 공고문은 서식마다 「붙임1-2. [별지 제1호 서식]」처럼 붙임 번호가 붙은 라벨을 쓰고, 제출서류 1)이
+//   「표지, 감리자지정 신청서」라 표지까지 1)번 파일에 들어가야 했다. 라벨 문구가 고정이고 통합출력에 표지가 없어
+//   PDF 후처리로 넣었는데 다시 구우면 빠지는 구조였다 → 문구·표지를 JSON에 담아 앱이 직접 낸다.
+//   빈 값·false·'app' = 종전 출력 그대로(하위호환).
+let byeolji1HeaderText = '';    // 별지1호 라벨줄 문구 — 빈 값이면 「[별지 제1호서식]」
+let byeolji2HeaderText = '';    // 별지2호(총괄표) 라벨줄 문구 — 빈 값이면 「[별지 제2호서식]」
+let swearHeaderText    = '';    // 서약서 라벨 문구 — 빈 값이면 「[별첨 1]」
+let bidIncludeCover    = false; // 통합출력 파일 ① 맨 앞에 표지 포함
+let coverStyle         = 'app'; // 표지 모양: 'app'(종전 앱 표지) | 'notice'(공고문 붙임형 — 접수번호 칸·지정신청서·날짜·회사명)
+let coverLabelText     = '';    // 공고문형 표지 테두리 위 문구(예: 「붙임1-1. 신청서 표지」)
+let coverTitleText     = '';    // 공고문형 표지 제목 — 빈 값이면 「주택건설공사 감리자(건축) 지정신청서」
 
 // ── [2026-09-04 보스 승인] 응모서류 JSON 로드 시 서식 토글 초기화 ──────────────
 //   종전엔 복원이 전부 「키가 있으면 적용, 없으면 유지」라서 JSON에 빠진 항목은 직전 건 값이
@@ -2221,6 +2257,15 @@ function _resetFormToggles() {
   swearTitleText          = '';
   swearProjectName        = '';
   swearClientName         = '';
+  // [2026-10-16] 서식 상단 문구·표지 — 직전 건 문구가 다른 공고에 따라붙지 않게
+  byeolji1HeaderText = '';
+  byeolji2HeaderText = '';
+  swearHeaderText    = '';
+  bidIncludeCover    = false;
+  coverStyle         = 'app';
+  coverLabelText     = '';
+  coverTitleText     = '';
+  _syncNoticeInputs();
 }
 
 // ── 서약서(별첨1) + 입찰서류 통합출력 상태: 저장/복원 단일 정본 ──
@@ -2249,6 +2294,13 @@ function _collectSwearAndBidState() {
     swearBodyActiveId: swearBodyActiveId,
     bidExportGroup: (document.querySelector('input[name="bidExportGroup"]:checked')?.value === 'A') ? 'A' : 'B',
     bidTitles: { t1: bidTitles.t1 || '', t2: bidTitles.t2 || '', t3: bidTitles.t3 || '' },
+    byeolji1HeaderText: byeolji1HeaderText,
+    byeolji2HeaderText: byeolji2HeaderText,
+    swearHeaderText: swearHeaderText,
+    bidIncludeCover: bidIncludeCover,
+    coverStyle: coverStyle,
+    coverLabelText: coverLabelText,
+    coverTitleText: coverTitleText,
     // 관리알림(교육훈련·특허) — 종전엔 localStorage 전용이라 브라우저를 바꾸면 소실됐다(2026-08-31 보스 지시로 JSON 포함)
     alertTraining: (typeof getTrainingData === 'function') ? getTrainingData() : [],
     alertPatent:   (typeof getPatentData   === 'function') ? getPatentData()   : [],
@@ -2310,6 +2362,45 @@ function _restoreSwearAndBidState(data) {
       t3: typeof data.bidTitles.t3 === 'string' ? data.bidTitles.t3 : '',
     };
   }
+  // [2026-10-16] 서식 상단 문구·표지
+  if (typeof data.byeolji1HeaderText === 'string') byeolji1HeaderText = data.byeolji1HeaderText;
+  if (typeof data.byeolji2HeaderText === 'string') byeolji2HeaderText = data.byeolji2HeaderText;
+  if (typeof data.swearHeaderText === 'string') swearHeaderText = data.swearHeaderText;
+  if (typeof data.bidIncludeCover === 'boolean') bidIncludeCover = data.bidIncludeCover;
+  if (data.coverStyle === 'app' || data.coverStyle === 'notice') coverStyle = data.coverStyle;
+  if (typeof data.coverLabelText === 'string') coverLabelText = data.coverLabelText;
+  if (typeof data.coverTitleText === 'string') coverTitleText = data.coverTitleText;
+  _syncNoticeInputs();
+}
+
+// [2026-10-16] 서식 상단 문구·표지 입력칸을 상태와 맞춘다 — 사용자가 치고 있는 칸은 건드리지 않는다.
+function _syncNoticeInputs() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el && el !== document.activeElement) el.value = v; };
+  set('byeolji1HeaderTextInput', byeolji1HeaderText);
+  set('byeolji2HeaderTextInput', byeolji2HeaderText);
+  set('swearHeaderTextInput', swearHeaderText);
+  set('coverLabelTextInput', coverLabelText);
+  set('coverTitleTextInput', coverTitleText);
+  const cs = document.getElementById('coverStyleSelect'); if (cs) cs.value = coverStyle;
+  const cb = document.getElementById('bidIncludeCoverChk'); if (cb) cb.checked = bidIncludeCover;
+}
+function setNoticeText(key, val) {
+  val = String(val == null ? '' : val);
+  if (key === 'b1')              { byeolji1HeaderText = val; renderByeolji1(); }
+  else if (key === 'b2')         { byeolji2HeaderText = val; renderByeolji2Cover(); }
+  else if (key === 'swear')      { swearHeaderText = val; renderByeolchum1(); }
+  else if (key === 'coverLabel') { coverLabelText = val; renderCover(); }
+  else if (key === 'coverTitle') { coverTitleText = val; renderCover(); }
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+}
+function setCoverStyle(v) {
+  coverStyle = (v === 'notice') ? 'notice' : 'app';
+  renderCover();
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
+}
+function setBidIncludeCover(on) {
+  bidIncludeCover = !!on;
+  if (typeof triggerAutoSave === 'function') triggerAutoSave();
 }
 
 // 서약서 상태 복원 후 tab8 화면 동기화.
@@ -2347,6 +2438,14 @@ function _resetSwearAndBidState() {
   swearBodyActiveId = 'default';
   bidExportGroup = 'B';
   bidTitles = { t1: '', t2: '', t3: '' };
+  byeolji1HeaderText = '';
+  byeolji2HeaderText = '';
+  swearHeaderText    = '';
+  bidIncludeCover    = false;
+  coverStyle         = 'app';
+  coverLabelText     = '';
+  coverTitleText     = '';
+  _syncNoticeInputs();
   const _sn = document.getElementById('swearNoticeNumberInput'); if (_sn) _sn.value = '';
   const _rb = document.querySelector('input[name="bidExportGroup"][value="B"]'); if (_rb) _rb.checked = true;
   // 파일명 칸은 비워 두면 updateBidExportTitles()가 자동생성 기본값으로 되돌린다.
@@ -5213,6 +5312,28 @@ function toggleAnnouncementRaw() {
 function renderCover() {
   const pj = getProjectData();
   const co = getCompanyData();
+  _syncNoticeInputs();
+  // [2026-10-16] 공고문 붙임형 표지(수원 권선1 「붙임1-1. 신청서 표지」 양식) — 좌표·글꼴은 그날 제출본과 동일.
+  //   .a4-page 가 아닌 별도 상자(296mm)라 공통 인쇄 CSS·1쪽 채우기 대상에서 빠진다(다른 서식에 영향 없음).
+  if (coverStyle === 'notice') {
+    const m = String(pj.submitDate || '').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    const dStr = m ? `${m[1]}. ${+m[2]}. ${+m[3]}.` : `${new Date().getFullYear()}.    .    .`;
+    const title = coverTitleText || '주택건설공사 감리자(건축) 지정신청서';
+    const C = 'position:absolute;left:47pt;width:498pt;text-align:center;white-space:nowrap;font-weight:500;';
+    document.getElementById('coverPreview').innerHTML = `
+    <div class="cover-notice" style="position:relative;width:210mm;height:296mm;box-sizing:border-box;margin:0 auto;background:#fff;color:#000;line-height:normal;overflow:hidden;font-family:'Apple SD Gothic Neo','Nanum Gothic','Malgun Gothic',sans-serif;">
+      ${coverLabelText ? `<div style="position:absolute;left:45pt;top:66pt;font-size:12pt;white-space:nowrap;">${escHtml(coverLabelText)}</div>` : ''}
+      <div style="position:absolute;left:47pt;top:90pt;width:498pt;height:675pt;border:1pt solid #000;box-sizing:border-box;"></div>
+      <div style="position:absolute;left:66pt;top:113pt;width:72pt;height:72pt;border:1.5pt solid #000;box-sizing:border-box;outline:0.5pt solid #000;outline-offset:1.5pt;">
+        <div style="height:17pt;border-bottom:1pt solid #000;background:#cfe0f3;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:'AppleMyungjo','Batang','바탕',serif;font-size:13pt;line-height:17pt;text-align:center;">접수번호</div>
+      </div>
+      <div style="${C}top:236pt;font-size:24pt;letter-spacing:0.5pt;word-spacing:4pt;">${escHtml(title)}</div>
+      <div style="${C}top:277pt;font-size:14pt;">(사업명 : ${escHtml(pj.name || '')})</div>
+      <div style="${C}top:443pt;font-size:16pt;">${dStr}</div>
+      <div style="${C}top:689pt;font-size:16pt;font-weight:600;">${escHtml(co.name || '')}</div>
+    </div>`;
+    return;
+  }
   const dateStr = getSubmitDateStr();
   document.getElementById('coverPreview').innerHTML = `
     <div class="a4-page" style="padding:50px 60px;font-family:'Batang','바탕',serif;color:#000;display:flex;flex-direction:column;min-height:1050px;position:relative;">
@@ -5337,7 +5458,9 @@ function renderByeolji1() {
   const b1sAlign = (byeolji1StdAlign === 'left' || byeolji1StdAlign === 'right') ? byeolji1StdAlign : b1hAlign;
   document.getElementById('byeolji1Preview').innerHTML = `
     <div class="a4-preview" id="byeolji1Doc" style="padding:38px 30px 12px 30px;min-height:297mm;display:flex;flex-direction:column">
-      ${showByeolji1Header ? `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>` : ''}
+      ${showByeolji1Header ? (byeolji1HeaderText
+        ? `<div style="text-align:${b1hAlign};font-size:10pt;color:#000;margin-bottom:3px">${escHtml(byeolji1HeaderText)}</div>`
+        : `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>`) : ''}
       ${showByeolji1Std ? `<div style="text-align:${b1sAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>` : ''}
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:2px;line-height:1.1">(앞 쪽)</div>
@@ -5861,7 +5984,9 @@ function renderByeolji2Cover() {
   const b2sAlign = (byeolji2StdAlign === 'right') ? 'right' : 'left';
   document.getElementById('byeolji2Preview').innerHTML = `
   <div class="a4-preview" id="byeolji2Doc" style="padding:38px 30px 12px 30px;min-height:0">
-    ${showByeolji2Header ? `<div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>` : ''}
+    ${showByeolji2Header ? (byeolji2HeaderText
+      ? `<div style="text-align:${b2hAlign};font-size:10pt;color:#000;margin:0 0 3px 0;line-height:1.4">${escHtml(byeolji2HeaderText)}</div>`
+      : `<div style="text-align:${b2hAlign};font-size:7.5pt;color:#555;margin:0 0 3px 0;line-height:1.4">[별지 제2호서식]</div>`) : ''}
     ${showByeolji2Title  ? `<div style="font-weight:700;font-size:8pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2hAlign};">Ⅰ. 총괄표</div>` : ''}
     ${showByeolji2Std ? `<div style="font-size:7.5pt;margin:0 0 3px 0;line-height:1.4;text-align:${b2sAlign};">■ 주택건설공사 감리자지정기준 [별지 제2호서식]</div>` : ''}
     <h2 style="text-align:center;font-size:13pt;letter-spacing:5px;margin:1px 0 2px;font-weight:800;line-height:1.1">자 기 평 가 서</h2>
@@ -8022,6 +8147,7 @@ function printAllForSubmit() {
   renderByeolchum1();
   renderDeploySettings();
   renderDeployTable();
+  if (bidIncludeCover) renderCover();   // [2026-10-16] 표지 포함 시 빈 표지가 인쇄되지 않게
   // ★ 출력 직전 실격 검증 — 걸리면 사유를 보이고, 그래도 진행할지 묻는다
   const issues = validateSubmitPack();
   if (issues.length && !confirm('제출 전 점검에서 아래가 걸렸습니다.\n\n' + issues.map(function (s, i) { return (i + 1) + '. ' + s; }).join('\n\n') + '\n\n그래도 출력하시겠습니까?')) return;
@@ -8030,6 +8156,7 @@ function printAllForSubmit() {
 
 function openBidExportModal() {
   updateBidExportTitles();
+  _syncNoticeInputs();
   _bidExportState = null;
   const st = document.getElementById('bidExportStatus');
   if (st) st.textContent = '';
@@ -8082,15 +8209,18 @@ function startBidExport() {
   const t1 = (document.getElementById('bidTitle1').value || '').trim() || '입찰서류_1';
   const t2 = (document.getElementById('bidTitle2').value || '').trim() || '입찰서류_2';
   const t3 = (document.getElementById('bidTitle3').value || '').trim() || '입찰서류_3';
-  // tab4=별지1호, tab5=별지2호, tab6=배치계획표, tab8=서약서
+  // tab4=별지1호, tab5=별지2호, tab6=배치계획표, tab8=서약서, tab_cover=표지
+  // [2026-10-16] 공고문 제출서류 1)이 「표지, 감리자지정 신청서」인 공고 = 파일 ① 맨 앞에 표지
+  const cov = bidIncludeCover ? ['tab_cover'] : [];
+  if (bidIncludeCover) renderCover();
   const groups = (grp === 'A')
     ? [
-        { title: t1, tabs: ['tab4','tab8'] },
+        { title: t1, tabs: [...cov, 'tab4','tab8'] },
         { title: t2, tabs: ['tab5'] },
         { title: t3, tabs: ['tab6'] }
       ]
     : [
-        { title: t1, tabs: ['tab4'] },
+        { title: t1, tabs: [...cov, 'tab4'] },
         { title: t2, tabs: ['tab5','tab8'] },
         { title: t3, tabs: ['tab6'] }
       ];
@@ -8517,7 +8647,8 @@ function renderByeolchum1() {
     : (addrLine + compLine + contactLines + ceoLine);
   // 별첨 표기 — 종전 「【별첨 1】」은 공고문 7건 어느 것과도 달랐다(전부 대괄호 계열).
   //   홍은동만 「〔별첨 1〕」이라 예외가 있으나 다수인 「[별첨 1]」로 맞춘다. [2026-08-13]
-  const _byeolchumTag = '[별첨 1]';
+  // [2026-10-16] 공고문 문구가 다르면 swearHeaderText 로 그대로(예: 〔별첨 1〕·붙임 번호 포함). 빈 값 = 종전 고정값.
+  const _byeolchumTag = swearHeaderText ? escHtml(swearHeaderText) : '[별첨 1]';
   // 수신처 밑줄 — 공고마다 다르다(swearRecipientUnderline). 굵기·정렬은 공고문 공통이라 고정.
   const _recipientHtml = swearRecipientUnderline
     ? `<u>${escHtml(authority)} 귀하</u>`
