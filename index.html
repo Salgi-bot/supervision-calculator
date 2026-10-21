@@ -2706,6 +2706,8 @@ function loadAutoSave() {
     if (data.delegation) {
       ['name','position','idNo','birth','scope','personalAddress','employedSince','purpose'].forEach(k => {
         const el = document.getElementById('dl_' + k);
+        // 옛 기본 위임 사항(응모 단계 문구)이 자동저장돼 있으면 복원하지 않고 새 기본값(사실확인 단계)을 쓴다 — 2026-10-21
+        if (k === 'scope' && data.delegation[k] === '주택건설공사 감리자지정 입찰에 관한 일체의 권한') return;
         if (el && data.delegation[k]) el.value = data.delegation[k];
       });
     }
