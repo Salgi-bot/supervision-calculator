@@ -9382,6 +9382,9 @@ function renderByeolchum2() {
   const _b2ymd = v => String(v || '').replace(/[^\d]/g, '');
   calcs.sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : (a.isCompleted ? -1 : 1))
     || _b2ymd(a.startDate).localeCompare(_b2ymd(b.startDate)) || String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
+  // 환산금액 0(공고일 기준 최근 3년 밖·금액 0) 행은 별첨2에서 자동 제외 — 2026-10-21 보스 「0이 되는 것은 자동으로 제외해줘」(권선1 이랜드 PEER 둔산)
+  const _b2Zero = calcs.filter(c => !(c.calcWon > 0));
+  for (let i = calcs.length - 1; i >= 0; i--) if (!(calcs[i].calcWon > 0)) calcs.splice(i, 1);
   const totalAmount = calcs.reduce((s,c) => s + (c.amount||0), 0);
   // 합계는 표시값(개별 절사 억원)의 합 — 화면에 보이는 숫자와 일치
   const totalConverted = Math.round(calcs.reduce((s,c) => s + floorAt2(c.calcAmount), 0) * 100) / 100;
@@ -9393,12 +9396,10 @@ function renderByeolchum2() {
   //   → 제출 서식(인쇄·PDF·Word) 어디에도 경고가 찍히지 않는다 (서식 오염 = 실격 위험 방지).
   const _b2WarnEl = document.getElementById('byeolchum2Warn');
   if (_b2WarnEl) {
-    // 환산 0(공고일 기준 최근 3년 밖) 행 안내 — 화면 전용. 2026-10-21 권선1 보스 「환산금액 없다면 삭제」(이랜드 PEER 둔산)
-    const _b2Zero = calcs.filter(c => !(c.calcWon > 0));
+    // 자동 제외한 환산 0 행 안내 — 화면 전용(금액 누락 같은 입력 실수도 여기서 드러난다)
     const _b2ZeroHtml = _b2Zero.length
       ? `<div style="background:#fffbeb;border:2px solid #d97706;border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#92400e;font-size:13px;font-weight:700;">
-           ⚠ 환산금액 0인 실적 ${_b2Zero.length}건이 별첨2에 들어 있습니다: ${_b2Zero.map(c => escHtml(c.name)).join(', ')}.
-           공고일 기준 최근 3년 밖이라 점수에 쓰이지 않습니다. 빼려면 수행실적 목록에서 해당 행의 포함 체크를 끄세요. (이 경고는 인쇄·Word에 포함되지 않습니다)
+           ℹ 환산금액 0인 실적 ${_b2Zero.length}건은 별첨2에서 자동으로 뺐습니다: ${_b2Zero.map(c => escHtml(c.name) + (c.recentDays > 0 ? '(금액 0 — 입력 확인)' : '(최근 3년 밖)')).join(', ')}. (이 안내는 인쇄·Word에 포함되지 않습니다)
          </div>`
       : '';
     _b2WarnEl.innerHTML = _b2ZeroHtml + ((annParts.length < 3)
