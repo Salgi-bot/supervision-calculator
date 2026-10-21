@@ -1036,11 +1036,7 @@ tbody tr:hover td { background: var(--ci-light); }
         <input type="text" id="dl_position" value="부사장" onchange="triggerAutoSave()">
       </div>
       <div class="form-group">
-        <label>수임자 주민등록번호 (위임장)</label>
-        <input type="text" id="dl_idNo" placeholder="예) 700101-1******" onchange="triggerAutoSave()">
-      </div>
-      <div class="form-group">
-        <label>수임자 생년월일 (재직증명서)</label>
+        <label>수임자 생년월일 (위임장·재직증명서)</label>
         <input type="text" id="dl_birth" placeholder="예) 1970.01.01" onchange="triggerAutoSave()">
       </div>
       <div class="form-group">
@@ -2496,7 +2492,7 @@ function doAutoSave() {
     newEvalList: newEvalList,
     newEvalCounter: newEvalCounter,
     submitDate: document.getElementById('pj_submitDate')?.value||'',
-    delegation: { name: document.getElementById('dl_name')?.value||'', position: document.getElementById('dl_position')?.value||'', idNo: document.getElementById('dl_idNo')?.value||'', birth: document.getElementById('dl_birth')?.value||'', scope: document.getElementById('dl_scope')?.value||'', personalAddress: document.getElementById('dl_personalAddress')?.value||'', employedSince: document.getElementById('dl_employedSince')?.value||'', purpose: document.getElementById('dl_purpose')?.value||'' },
+    delegation: { name: document.getElementById('dl_name')?.value||'', position: document.getElementById('dl_position')?.value||'', birth: document.getElementById('dl_birth')?.value||'', scope: document.getElementById('dl_scope')?.value||'', personalAddress: document.getElementById('dl_personalAddress')?.value||'', employedSince: document.getElementById('dl_employedSince')?.value||'', purpose: document.getElementById('dl_purpose')?.value||'' },
     bidAmount: document.getElementById('bidAmount')?.value||'',
     bidPrice: document.getElementById('bidPrice')?.value||'',
     b2NumState: b2NumState,
@@ -2704,7 +2700,7 @@ function loadAutoSave() {
       if (el) el.value = data.submitDate;
     }
     if (data.delegation) {
-      ['name','position','idNo','birth','scope','personalAddress','employedSince','purpose'].forEach(k => {
+      ['name','position','birth','scope','personalAddress','employedSince','purpose'].forEach(k => {
         const el = document.getElementById('dl_' + k);
         // 옛 기본 위임 사항(응모 단계 문구)이 자동저장돼 있으면 복원하지 않고 새 기본값(사실확인 단계)을 쓴다 — 2026-10-21
         if (k === 'scope' && data.delegation[k] === '주택건설공사 감리자지정 입찰에 관한 일체의 권한') return;
@@ -9051,8 +9047,7 @@ function renderDelegation() {
   const dateStr = getSubmitDateStr();
   const dlName = document.getElementById('dl_name')?.value || '';
   const dlPosition = document.getElementById('dl_position')?.value || '';
-  const dlIdNo = document.getElementById('dl_idNo')?.value || '';
-  const dlBirth = document.getElementById('dl_birth')?.value || '';   // 재직증명서는 주민등록번호 대신 생년월일(2026-10-21 보스)
+  const dlBirth = document.getElementById('dl_birth')?.value || '';   // 위임장·재직증명서 모두 주민등록번호 대신 생년월일(2026-10-21 보스 「다 생년월일로」)
   const dlScope = document.getElementById('dl_scope')?.value || '';
   const dlPersonalAddress = document.getElementById('dl_personalAddress')?.value || '';
   const dlEmployedSince = document.getElementById('dl_employedSince')?.value || '';
@@ -9074,6 +9069,7 @@ function renderDelegation() {
   const sigBlock = `<div style="text-align:right;margin-right:30px;line-height:2;font-size:13px;">
     <div>주&emsp;&emsp;소 : ${escHtml(co.address||'')}</div>
     <div>업&emsp;체&emsp;명 : ${escHtml(co.name||'')}</div>
+    ${co.bizNo ? `<div>사업자등록번호 : ${escHtml(co.bizNo)}</div>` : ''}
     <div>대 표 이 사 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)</div>
   </div>`;
 
@@ -9090,8 +9086,8 @@ function renderDelegation() {
       <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
         <tr><td ${thC} style="width:22%">수임자 성명</td>
             <td ${tdC}>${escHtml(dlName)}</td>
-            <td ${thC} style="width:22%">주민등록번호</td>
-            <td ${tdC}>${escHtml(dlIdNo)}</td></tr>
+            <td ${thC} style="width:22%">생&ensp;년&ensp;월&ensp;일</td>
+            <td ${tdC}>${escHtml(dlBirth)}</td></tr>
         <tr><td ${thC}>직&emsp;&emsp;위</td>
             <td colspan="3" ${tdC}>${escHtml(dlPosition)}</td></tr>
         <tr><td ${thC}>위 임 사 항</td>
