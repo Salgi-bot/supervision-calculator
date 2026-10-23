@@ -23,6 +23,13 @@ if git diff --cached --quiet; then
   exit 0
 fi
 
+# ── 버전 번호 게이트 (index.html 이 바뀌었는데 번호 그대로면 배포 중단) ──
+if ! bash "$REPO/check_version.sh"; then
+  git reset -q "$FILE"
+  echo "버전 번호 미변경 — 배포 중단"
+  exit 1
+fi
+
 # ── 골든 테스트 게이트 (실패 시 배포 중단) ──────────────
 command -v node >/dev/null 2>&1 || { echo "node 없음 — PATH 확인 후 재실행"; exit 1; }
 if ! node "$REPO/test_calc.mjs" > /tmp/test_calc_last.log 2>&1; then
@@ -38,7 +45,7 @@ git tag "$BACKUP_TAG" || { echo "백업 태그 생성 실패 ($BACKUP_TAG 중복
 
 # ── 커밋 & 푸시 ──────────────────────────────────────────
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
-VERSION=$(grep -o 'v[0-9]\.[0-9]*' "$FILE" 2>/dev/null | head -1)
+VERSION=$(grep -o 'class="badge">v[0-9][0-9.]*' "$FILE" 2>/dev/null | head -1 | sed 's/.*>//')  # 화면 배지 번호(종전엔 첫 매치 = <title>의 옛 v2.0)
 
 if git commit -m "deploy: $TIMESTAMP ${VERSION:+($VERSION)}"; then
   if git push origin main 2>&1 | tee -a "$LOG"; then
