@@ -1,0 +1,12 @@
+#!/bin/bash
+# 주택건설공사 앱 — push 전 버전 번호 검사(check_version.sh). 2026-10-23 보스 「수정해」(버전 규칙)
+# 브랜치(PR)·main(deploy.sh) 어느 push든 index.html 이 배포본과 다르면 번호를 올렸는지 본다.
+# 설치(1회, 본 저장소에서): ln -s ../../githooks/pre-push .git/hooks/pre-push
+TOP=$(git rev-parse --show-toplevel)
+[ -f "$TOP/check_version.sh" ] || exit 0   # 검사 스크립트 없는 옛 브랜치는 통과
+Z=0000000000000000000000000000000000000000
+while read -r lref lsha rref rsha; do
+  [ "$lsha" = "$Z" ] && continue          # 브랜치 삭제 push
+  bash "$TOP/check_version.sh" "$lsha" || { echo "push 중단: 버전 번호 검사 실패 ($lref)"; exit 1; }
+done
+exit 0
