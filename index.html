@@ -2240,6 +2240,7 @@ let byeolji1BackNote   = null;  // 유의사항 문단 배열(「1. 2. 3.」 문
 let byeolji1BackFooter = true;  // 쪽 아래 「210㎜×297㎜[백상지(80g/㎡)]」 표기 — false = 안 찍음
 let byeolji1BackPage   = null;  // 공고문에서 뒤쪽이 있던 쪽 번호(화면 상태 줄 표시용, JSON 키 _byeolji1BackPage)
 let _byeolji1BackLoadWarn = ''; // 불러온 뒤쪽 칸 형식이 틀려 버린 경우의 사유(화면 상태 줄 경고용)
+let _byeolji1BackFit = null;    // 마지막 렌더의 A4 맞춤 결과 { rowH, overflow } — 문구가 바뀌면 null(다음 렌더 때 다시 잰다)
 // [2026-10-23 보스 승인] 별첨2·3·4 공통 상단 문구 — 「[별첨 n]」 옆에 출력. 공고마다 표기가 달라(「(우선순위 3개업체)」·제목 끝 표기·없음)
 //   종전 고정문구 「※우선순위 3개 업체에 한함」(공고문 4건 어디에도 없음)을 입력칸으로 바꿨다. 빈 값 = 출력 안 함. 옛 JSON(키 없음) = 기본값.
 const BYEOLCHUM_HEADER_DEFAULT = '(우선순위 3개업체)';
@@ -2441,6 +2442,8 @@ function _resetByeolji1BackState() {
   byeolji1BackFooter = true;
   byeolji1BackPage   = null;
   _byeolji1BackLoadWarn = '';
+  _byeolji1BackFit = null;
+  updateByeolji1BackStatus();   // 별지1호 탭을 연 채 불러오기·초기화해도 상태 줄이 바로 맞게(미리보기는 탭 전환·갱신 때 다시 그린다)
 }
 function _restoreByeolji1BackState(data) {
   if (!data) return;
@@ -2476,6 +2479,8 @@ function _restoreByeolji1BackState(data) {
     byeolji1BackNote = null;
     console.warn('[별지1호 뒤쪽] 불러온 공고문 문구를 쓰지 않음 —', warn.join(' · '));
   }
+  _byeolji1BackFit = null;
+  updateByeolji1BackStatus();
 }
 
 // [2026-10-16] 서식 상단 문구·표지 입력칸을 상태와 맞춘다 — 사용자가 치고 있는 칸은 건드리지 않는다.
@@ -5777,7 +5782,6 @@ function byeolji1BackHtml(rowH) {
 //   인쇄 배치(.a4-preview 인쇄 CSS = 폭 210mm·테두리 없음·높이 자동, 화면 배율 1.3 상쇄)를 화면 밖 상자에 그대로 만들어
 //   높이를 재고, A4(1,122.5px, @page 여백 0)를 넘을 때만 기본 높이 행(글이 길어 더 큰 행은 못 줄임)을 넘친 만큼 나눠 줄인다.
 //   들어가면 기본 55px 그대로 = 종전 출력과 같다. 글자 크기·여백은 건드리지 않는다. 결과는 화면 상태 줄에 쓴다.
-let _byeolji1BackFit = { rowH: BYEOLJI1_BACK_ROW_H, overflow: 0 };
 function _fitByeolji1BackRowH() {
   const LIMIT = 297 * 96 / 25.4 - 2;   // A4 높이(px) − 반올림 여유 2px
   let h = BYEOLJI1_BACK_ROW_H, over = 0;
@@ -5815,10 +5819,11 @@ function updateByeolji1BackStatus() {
   let html = applied
     ? `뒤쪽 문구: <b>공고문 문구 적용${byeolji1BackPage ? `(${byeolji1BackPage}쪽)` : ''}</b>`
     : '뒤쪽 문구: 기본 문구';
-  if (showByeolji1Back && _byeolji1BackFit.rowH < BYEOLJI1_BACK_ROW_H)
-    html += ` · 1쪽 맞춤 행 높이 ${BYEOLJI1_BACK_ROW_H}→${_byeolji1BackFit.rowH}px`;
-  if (showByeolji1Back && _byeolji1BackFit.overflow > 0)
-    html += ` · <span style="color:#dc2626;font-weight:700">⚠ A4 1쪽 넘침(${Math.ceil(_byeolji1BackFit.overflow)}px)</span>`;
+  const fit = showByeolji1Back ? _byeolji1BackFit : null;   // 뒤쪽을 그린 렌더의 결과만(문구가 바뀐 뒤 아직 안 그렸으면 null)
+  if (fit && fit.rowH < BYEOLJI1_BACK_ROW_H)
+    html += ` · 1쪽 맞춤 행 높이 ${BYEOLJI1_BACK_ROW_H}→${fit.rowH}px`;
+  if (fit && fit.overflow > 0)
+    html += ` · <span style="color:#dc2626;font-weight:700">⚠ A4 1쪽 넘침(${Math.ceil(fit.overflow)}px)</span>`;
   if (_byeolji1BackLoadWarn)
     html += ` · <span style="color:#dc2626;font-weight:700">⚠ 불러온 뒤쪽 문구 형식 오류(${escHtml(_byeolji1BackLoadWarn)}) — 기본 문구로 출력</span>`;
   el.innerHTML = html;
