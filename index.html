@@ -2237,7 +2237,7 @@ let coverTitleText     = '';    // 공고문형 표지 제목 — 빈 값이면 
 //   JSON 칸으로 받아 그대로 찍는다. null·키 없음 = 종전 고정 문구(BYEOLJI1_BACK_*) 그대로(하위호환·출력 동일).
 let byeolji1BackRows   = null;  // [[항목, 설명] × 16] — ①~⑪ 감리자(회사), ⑫~⑯ 감리원. null = 기본 문구
 let byeolji1BackNote   = null;  // 유의사항 문단 배열(「1. 2. 3.」 문단은 들여씀). null = 기본 문구
-let byeolji1BackFooter = true;  // 쪽 아래 「210㎜×297㎜[백상지(80g/㎡)]」 표기 — false = 안 찍음
+let byeolji1BackFooter = true;  // 쪽 아래 규격 표기 — true = 기본 「210㎜×297㎜[백상지(80g/㎡)]」, 문자열 = 공고문 표기 그대로(예 「210mm×297mm[…]」), false = 안 찍음
 let byeolji1BackPage   = null;  // 공고문에서 뒤쪽이 있던 쪽 번호(화면 상태 줄 표시용, JSON 키 _byeolji1BackPage)
 let _byeolji1BackLoadWarn = ''; // 불러온 뒤쪽 칸 형식이 틀려 버린 경우의 사유(화면 상태 줄 경고용)
 let _byeolji1BackFit = null;    // 마지막 렌더의 A4 맞춤 결과 { rowH, overflow } — 문구가 바뀌면 null(다음 렌더 때 다시 잰다)
@@ -2467,7 +2467,7 @@ function _restoreByeolji1BackState(data) {
       if (v != null) warn.push('유의사항 칸이 문단 배열 형식이 아님');
     }
   }
-  if (typeof data.byeolji1BackFooter === 'boolean') byeolji1BackFooter = data.byeolji1BackFooter;
+  if (typeof data.byeolji1BackFooter === 'boolean' || (typeof data.byeolji1BackFooter === 'string' && data.byeolji1BackFooter.trim())) byeolji1BackFooter = data.byeolji1BackFooter;
   if ('_byeolji1BackPage' in data) {
     const p = data._byeolji1BackPage;
     byeolji1BackPage = (Number.isInteger(p) && p > 0) ? p : null;
@@ -5774,7 +5774,7 @@ function byeolji1BackHtml(rowH) {
         </div>
       </div>
       <div style="flex:1 1 auto"></div>${byeolji1BackFooter !== false ? `
-      <div style="border-top:1px solid #000;text-align:right;font-size:7pt;color:#666;padding-top:2px;margin-top:4px;line-height:1.1">210㎜×297㎜[백상지(80g/㎡)]</div>` : ''}
+      <div style="border-top:1px solid #000;text-align:right;font-size:7pt;color:#666;padding-top:2px;margin-top:4px;line-height:1.1">${typeof byeolji1BackFooter === 'string' ? escHtml(byeolji1BackFooter.trim()) : '210㎜×297㎜[백상지(80g/㎡)]'}</div>` : ''}
     </div>`;
 }
 
