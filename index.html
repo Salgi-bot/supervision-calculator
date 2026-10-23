@@ -682,6 +682,28 @@ tbody tr:hover td { background: var(--ci-light); }
     transform-origin: top left;
   }
 }
+/* ── 별첨2(간략)·별첨3·별첨4 인쇄 모양 (2026-10-23 보스 승인 시안 A안) ──
+   _applyPrintFit 이 인쇄 대상 별첨 쪽에 .ax-fit 을 붙이고(브라우저 인쇄 = beforeprint, 창 없는 굽기 = __printFit.apply)
+   인쇄가 끝나면 뗀다. @media print 가 아니라 클래스로 거는 이유: 브라우저 인쇄의 beforeprint 는 아직 화면 배치에서
+   돌기 때문에, 클래스가 붙는 순간 화면에서도 인쇄와 같은 A4 배치(배율 1·폭 210mm)가 되어야 그 자리에서 잰
+   행 높이가 인쇄 결과와 맞는다. 다른 서식(.annex-page 아님)에는 아무 영향 없음. */
+.a4-page.annex-page.ax-fit {
+  zoom: 1 !important; width: 210mm !important; max-width: none !important;
+  height: 297mm !important; min-height: 297mm !important; box-sizing: border-box !important;
+  margin: 0 auto !important; border: none !important; border-radius: 0 !important; box-shadow: none !important;
+  padding: 15mm 16mm 12mm 16mm !important;
+  font-family: 'NanumGothic','나눔고딕','Malgun Gothic','맑은 고딕',sans-serif !important;
+}
+.a4-page.annex-page.ax-fit td { font-size: 10pt !important; padding: 2px 5px !important; line-height: 1.35 !important; vertical-align: middle !important; }
+.a4-page.annex-page.ax-fit th { font-size: 10pt !important; padding: 3px 4px !important; line-height: 1.3 !important; }
+.a4-page.annex-page.ax-fit thead tr { height: 9mm !important; }
+.a4-page.annex-page.ax-fit td.ax-name { padding-left: 6px !important; }                 /* 용역명·사업명(왼쪽 정렬) */
+.a4-page.annex-page.ax-fit td.ax-tight { padding: 2px !important; }                     /* 별첨2 착수일·완료일 */
+.a4-page.annex-page.ax-fit td.ax-gubun { font-size: 9pt !important; line-height: 1.5 !important; padding: 2px !important; }  /* 별첨3 구분 */
+.a4-page.annex-page.ax-fit td.ax-gubun4 { line-height: 1.6 !important; }                /* 별첨4 나. 구분(신규감리원) */
+/* 한 쪽에 안 들어가 다음 장으로 흐를 때(.ax-flow): 구분·등급·평점 rowspan 칸이 걸린 첫 행에 「행 안 끊기」(전역 tr 규칙)가
+   걸리면 rowspan 전체가 한 덩어리로 취급돼 표가 통째로 다음 장으로 밀리고 첫 장엔 제목만 남는다 → 그 행만 풀어 준다. */
+.a4-page.annex-page.ax-fit.ax-flow tr.ax-rs { break-inside: auto !important; page-break-inside: auto !important; }
 </style>
 </head>
 <body>
@@ -1779,6 +1801,8 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolchum2HeaderAlignLeft"  onclick="setByeolchum2Align('left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="byeolchum2HeaderAlignRight" onclick="setByeolchum2Align('right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;" title="별첨2·3·4 공통 — 「[별첨 n]」 옆에 출력">문구:</span>
+        <input type="text" id="byeolchumHeaderTextInput2" value="(우선순위 3개업체)" oninput="setNoticeText('annex',this.value)" placeholder="(비우면 출력 안 함)" title="공고문 별첨 상단 표기 그대로(예: (우선순위 3개업체)). 별첨2·3·4 공통으로 「[별첨 n]」 옆에 출력됩니다. 공고문에 없으면 비우십시오." style="width:150px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
       </div>
     </div>
     <div class="info-note">수행실적 PDF를 업로드하면 자동 파싱됩니다. 수동 입력도 가능합니다.</div>
@@ -1837,6 +1861,8 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolchum3HeaderAlignLeft"  onclick="setByeolchum3Align('left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="byeolchum3HeaderAlignRight" onclick="setByeolchum3Align('right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
+        <span style="color:#64748b;margin-left:6px;" title="별첨2·3·4 공통 — 「[별첨 n]」 옆에 출력">문구:</span>
+        <input type="text" id="byeolchumHeaderTextInput3" value="(우선순위 3개업체)" oninput="setNoticeText('annex',this.value)" placeholder="(비우면 출력 안 함)" title="공고문 별첨 상단 표기 그대로(예: (우선순위 3개업체)). 별첨2·3·4 공통으로 「[별첨 n]」 옆에 출력됩니다. 공고문에 없으면 비우십시오." style="width:150px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
       </div>
     </div>
     <div class="info-note">감리원별 경력 데이터 기반으로 별첨3·별첨4 양식이 자동 생성됩니다.</div>
@@ -2201,6 +2227,10 @@ let bidIncludeCover    = false; // 통합출력 파일 ① 맨 앞에 표지 포
 let coverStyle         = 'app'; // 표지 모양: 'app'(종전 앱 표지) | 'notice'(공고문 붙임형 — 접수번호 칸·지정신청서·날짜·회사명)
 let coverLabelText     = '';    // 공고문형 표지 테두리 위 문구(예: 「붙임1-1. 신청서 표지」)
 let coverTitleText     = '';    // 공고문형 표지 제목 — 빈 값이면 「주택건설공사 감리자(건축) 지정신청서」
+// [2026-10-23 보스 승인] 별첨2·3·4 공통 상단 문구 — 「[별첨 n]」 옆에 출력. 공고마다 표기가 달라(「(우선순위 3개업체)」·제목 끝 표기·없음)
+//   종전 고정문구 「※우선순위 3개 업체에 한함」(공고문 4건 어디에도 없음)을 입력칸으로 바꿨다. 빈 값 = 출력 안 함. 옛 JSON(키 없음) = 기본값.
+const BYEOLCHUM_HEADER_DEFAULT = '(우선순위 3개업체)';
+let byeolchumHeaderText = BYEOLCHUM_HEADER_DEFAULT;
 
 // ── [2026-09-04 보스 승인] 응모서류 JSON 로드 시 서식 토글 초기화 ──────────────
 //   종전엔 복원이 전부 「키가 있으면 적용, 없으면 유지」라서 JSON에 빠진 항목은 직전 건 값이
@@ -2265,6 +2295,7 @@ function _resetFormToggles() {
   byeolji1HeaderText = '';
   byeolji2HeaderText = '';
   swearHeaderText    = '';
+  byeolchumHeaderText = BYEOLCHUM_HEADER_DEFAULT;
   bidIncludeCover    = false;
   coverStyle         = 'app';
   coverLabelText     = '';
@@ -2301,6 +2332,7 @@ function _collectSwearAndBidState() {
     byeolji1HeaderText: byeolji1HeaderText,
     byeolji2HeaderText: byeolji2HeaderText,
     swearHeaderText: swearHeaderText,
+    byeolchumHeaderText: byeolchumHeaderText,
     bidIncludeCover: bidIncludeCover,
     coverStyle: coverStyle,
     coverLabelText: coverLabelText,
@@ -2370,6 +2402,7 @@ function _restoreSwearAndBidState(data) {
   if (typeof data.byeolji1HeaderText === 'string') byeolji1HeaderText = data.byeolji1HeaderText;
   if (typeof data.byeolji2HeaderText === 'string') byeolji2HeaderText = data.byeolji2HeaderText;
   if (typeof data.swearHeaderText === 'string') swearHeaderText = data.swearHeaderText;
+  if (typeof data.byeolchumHeaderText === 'string') byeolchumHeaderText = data.byeolchumHeaderText;   // 빈 값(미출력)도 그대로 복원
   if (typeof data.bidIncludeCover === 'boolean') bidIncludeCover = data.bidIncludeCover;
   if (data.coverStyle === 'app' || data.coverStyle === 'notice') coverStyle = data.coverStyle;
   if (typeof data.coverLabelText === 'string') coverLabelText = data.coverLabelText;
@@ -2383,6 +2416,8 @@ function _syncNoticeInputs() {
   set('byeolji1HeaderTextInput', byeolji1HeaderText);
   set('byeolji2HeaderTextInput', byeolji2HeaderText);
   set('swearHeaderTextInput', swearHeaderText);
+  set('byeolchumHeaderTextInput2', byeolchumHeaderText);
+  set('byeolchumHeaderTextInput3', byeolchumHeaderText);
   set('coverLabelTextInput', coverLabelText);
   set('coverTitleTextInput', coverTitleText);
   const cs = document.getElementById('coverStyleSelect'); if (cs) cs.value = coverStyle;
@@ -2393,6 +2428,7 @@ function setNoticeText(key, val) {
   if (key === 'b1')              { byeolji1HeaderText = val; renderByeolji1(); }
   else if (key === 'b2')         { byeolji2HeaderText = val; renderByeolji2Cover(); }
   else if (key === 'swear')      { swearHeaderText = val; renderByeolchum1(); }
+  else if (key === 'annex')      { byeolchumHeaderText = val; _syncNoticeInputs(); renderByeolchum2(); renderByeolchum3(); }
   else if (key === 'coverLabel') { coverLabelText = val; renderCover(); }
   else if (key === 'coverTitle') { coverTitleText = val; renderCover(); }
   if (typeof triggerAutoSave === 'function') triggerAutoSave();
@@ -2445,6 +2481,7 @@ function _resetSwearAndBidState() {
   byeolji1HeaderText = '';
   byeolji2HeaderText = '';
   swearHeaderText    = '';
+  byeolchumHeaderText = BYEOLCHUM_HEADER_DEFAULT;
   bidIncludeCover    = false;
   coverStyle         = 'app';
   coverLabelText     = '';
@@ -9366,6 +9403,36 @@ async function handlePerfPdf(file) {
   }
 }
 
+// ══════════════════════════════════════════════════════
+//  별첨2(간략)·별첨3·별첨4 공통 — [2026-10-23 보스 승인 시안 A안]
+//  인쇄 모양(A4 297mm·여백 15/16/12/16mm·나눔고딕·글자 10pt·머리줄 9mm)은 CSS `.annex-page.ax-fit` 이,
+//  행 높이 채우기·상자 위치는 _applyPrintFit 의 별첨 분기가 맡는다. 화면 미리보기·Word 는 종전 모양 유지.
+// ══════════════════════════════════════════════════════
+// 「[별첨 n]」 옆 상단 문구(byeolchumHeaderText) — 빈 값이면 아무것도 붙이지 않는다.
+function _annexHeaderSuffix() {
+  const t = String(byeolchumHeaderText == null ? '' : byeolchumHeaderText).trim();
+  return t ? `&ensp;<span style="text-decoration:underline;font-size:12pt;">${escHtml(t)}</span>` : '';
+}
+// 열 너비(mm) 배열 → <colgroup>. 0 = 남는 폭(자동).
+function _annexColgroup(ws) {
+  return '<colgroup>' + ws.map(w => w ? `<col style="width:${w}mm">` : '<col>').join('') + '</colgroup>';
+}
+// 별첨4 「해당사항 없음」 상자를 표 본문(소계 줄 제외) 한가운데에 놓는다.
+//   위치를 % 로 넣어 화면(zoom 1.3)·인쇄 어느 배치에서 재도 같은 자리. 숨은 탭(폭 0)은 재지 않고 기본 50% 그대로.
+function _placeAnnexBoxes(root) {
+  if (!root) return;
+  root.querySelectorAll('.ax-boxwrap').forEach(w => {
+    const bx = w.querySelector('.ax-nabox'), tb = w.querySelector('table'), bd = tb && tb.tBodies[0];
+    if (!bx || !bd) return;
+    const rows = Array.from(bd.rows).filter(tr => !tr.classList.contains('ax-sub'));
+    const wr = w.getBoundingClientRect();
+    if (!rows.length || !wr.width || !wr.height) return;
+    const r = bd.getBoundingClientRect(), lr = rows[rows.length - 1].getBoundingClientRect();
+    bx.style.left = (((r.left + r.right) / 2 - wr.left) / wr.width * 100) + '%';
+    bx.style.top  = (((r.top + lr.bottom) / 2 - wr.top) / wr.height * 100) + '%';
+  });
+}
+
 function renderByeolchum2() {
   const mode = document.getElementById('perfOutputMode')?.value || 'simple';
   // 모집공고일(공고일) 파싱 — 수행실적 3년 기준은 입찰공고일 기준
@@ -9408,38 +9475,40 @@ function renderByeolchum2() {
   const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5"';
   const tdS = 'style="border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt"';
   const b2cAlign = (byeolchum2HeaderAlign === 'right') ? 'right' : 'left';
-  // 간략 버전
+  // 간략 버전 — [2026-10-23 보스 승인 시안 A안] 인쇄 모양은 CSS .annex-page.ax-fit + _applyPrintFit(별첨 전용)이 맡는다.
+  //   style 속성은 한 번만(종전 `${tdS} style=".."` 이중 속성은 두 번째가 무시돼 왼쪽 정렬·열 너비가 안 먹었다).
+  //   ⛔ thS/tdS 는 상세·계산근거 버전도 쓰므로 건드리지 않고 간략 전용 문자열을 따로 둔다.
   if(mode==='simple'||mode==='both') {
-    html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-      <div style="font-size:12pt;margin-bottom:4px;text-align:${b2cAlign};">[별첨 2]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
+    const th2 = 'border:1px solid #000;padding:5px 4px;text-align:center;font-size:8pt;font-weight:700;background:#f5f5f5';
+    const td2 = 'border:1px solid #000;padding:4px;text-align:center;font-size:8.5pt';
+    html += `<div class="a4-page annex-page" data-annex="b2" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+      <div style="font-size:12pt;margin-bottom:4px;text-align:${b2cAlign};">[별첨 2]${_annexHeaderSuffix()}</div>
       <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리자 감리업무수행 실적</div>
-      <table style="border-collapse:collapse;width:100%;">
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed;">
+        ${_annexColgroup([9, 0, 21.5, 21.5, 14, 14, 16.5, 12, 15])}
         <thead>
-          <tr><th rowspan="2" ${thS}>연번</th><th rowspan="2" ${thS} style="min-width:120px">용 역 명</th>
-          <th colspan="2" ${thS}>감 리 기 간</th><th colspan="2" ${thS}>수주금액(억원)</th>
-          <th colspan="2" ${thS}>적용요율(%)</th><th rowspan="2" ${thS}>환산금액<br>(억원)</th></tr>
-          <tr><th ${thS}>착공일</th><th ${thS}>준공(예정)일</th><th ${thS}>주택건설<br>공사</th><th ${thS}>건축공사</th>
-          <th ${thS}>환산<br>비율</th><th ${thS}>공사종<br>류요율</th></tr>
+          <tr><th rowspan="2" style="${th2}">연번</th><th rowspan="2" style="${th2}">용 역 명</th>
+          <th colspan="2" style="${th2}">감 리 기 간</th><th colspan="2" style="${th2}">수주금액(억원)</th>
+          <th colspan="2" style="${th2}">적용요율(%)</th><th rowspan="2" style="${th2}">환산금액<br>(억원)</th></tr>
+          <tr><th style="${th2}">착수일</th><th style="${th2}">완료(예정)일</th><th style="${th2}">주택건설<br>공사</th><th style="${th2}">건축공사</th>
+          <th style="${th2}">환산<br>비율</th><th style="${th2}">공사종<br>류요율</th></tr>
         </thead><tbody>`;
     calcs.forEach((c,i) => {
       const isHousing = c.type === '주택건설';
-      html += `<tr><td ${tdS}>${i+1}</td><td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.name)}</td>
-        <td ${tdS}>${c.startDate}</td><td ${tdS}>${c.endDate}</td>
-        <td ${tdS}>${isHousing ? c.amount.toFixed(2) : '-'}</td><td ${tdS}>${isHousing ? '-' : c.amount.toFixed(2)}</td>
-        <td ${tdS}>${(c.ratio*100).toFixed(2)}%</td><td ${tdS}>${(c.typeRate*100).toFixed(0)}%</td>
-        <td ${tdS}>${floorAt2(c.calcAmount).toFixed(2)}</td></tr>`;
+      html += `<tr><td style="${td2}">${i+1}</td><td class="ax-name" style="${td2};text-align:left;padding-left:6px">${escHtml(c.name)}</td>
+        <td class="ax-tight" style="${td2}">${c.startDate}</td><td class="ax-tight" style="${td2}">${c.endDate}</td>
+        <td style="${td2}">${isHousing ? c.amount.toFixed(2) : '-'}</td><td style="${td2}">${isHousing ? '-' : c.amount.toFixed(2)}</td>
+        <td style="${td2}">${(c.ratio*100).toFixed(2)}%</td><td style="${td2}">${(c.typeRate*100).toFixed(0)}%</td>
+        <td style="${td2}">${floorAt2(c.calcAmount).toFixed(2)}</td></tr>`;
     });
-    html += `<tr style="font-weight:bold"><td colspan="2" ${tdS}>합 계</td><td colspan="2" ${tdS}></td>
-      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
-      <td ${tdS}>${floorAt2(calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
-      <td ${tdS}></td><td ${tdS}></td>
-      <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
-      <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
-        ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
-        ※ 수주금액 : 금액은 억원 단위로 표기하고 억원 단위 미만은 소수점아래로 표기(예시: 234,500,000원은 2.345)<br>
-        ※ 해당일수 : 총감리기간 - 중지기간<br>
-        ※ 적용일수 : 최근3년간 해당일수 - 최근3년간 해당중지일수<br>
-        ※ 적용기간요율 : 적용일수 ÷ 해당일수
+    html += `<tr style="font-weight:bold"><td colspan="2" style="${td2}">합 계</td><td colspan="2" style="${td2}"></td>
+      <td style="${td2}">${floorAt2(calcs.filter(c=>c.type==='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
+      <td style="${td2}">${floorAt2(calcs.filter(c=>c.type!=='주택건설').reduce((s,c)=>s+c.amount,0)).toFixed(2)}</td>
+      <td style="${td2}"></td><td style="${td2}"></td>
+      <td style="${td2}">${totalConverted.toFixed(2)}</td></tr></tbody></table>
+      <div style="font-size:9pt;margin-top:12px;line-height:1.8;color:#333;">
+        ※ 공사종류 요율은 주택건설공사 “100”% 그외는 “80”%로 기재<br>
+        ※ 환산비율 : 전체감리기간중 최근 3년간에 실제 수행한 기간에 대한 비율(3년 이내 수행 일수/총공사기간 일수)
       </div></div>`;
   }
   // 상세 버전
@@ -9592,14 +9661,25 @@ function getB2Score(roleId) {
   return Number(e.toFixed(1));
 }
 
+// 별첨4 가. 표 첫 행 평점 = 자기평가서 「신규감리원 배치」 신청자 점수(b2_c_new). [2026-10-23]
+//   별지2호 탭을 그리지 않았어도 같은 값이 나오도록 DOM 대신 저장값을 읽고, 없으면 자기평가서 입력칸 기본값
+//   (renderByeolji2Cover 의 inp('c_new',2))을 쓴다. 표시 규칙도 그 입력칸과 같게(숫자면 소수 1자리, 아니면 그대로).
+function getNewSupervisorScore() {
+  const ns = getB2Mode() === '미만' ? b2NumState미만 : b2NumState;
+  const dv = (ns && ns.c_new !== undefined) ? ns.c_new : 2;
+  const num = Number(dv);
+  return (String(dv) !== '' && !isNaN(num) && !/[가-힣·]/.test(String(dv))) ? num.toFixed(1) : String(dv);
+}
+
 // ══════════════════════════════════════════════════════
 //  별첨3 감리원경력 + 별첨4 신규감리원
 // ══════════════════════════════════════════════════════
 function renderByeolchum3() {
   syncPersonInfo();
   const co = getCompanyData();
-  const thS = 'style="border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5;color:#000"';
-  const tdS = 'style="border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt;color:#000"';
+  // [2026-10-23] style 속성은 한 번만 붙이도록 따옴표 없는 문자열로 바꿨다(종전 `${tdS} style=".."` 이중 속성은 두 번째가 무시됐다).
+  const thS = 'border:1px solid #000;padding:5px 4px;text-align:center;font-size:9pt;font-weight:700;background:#f5f5f5;color:#000';
+  const tdS = 'border:1px solid #000;padding:4px 6px;text-align:center;font-size:8.5pt;color:#000';
   let html = '';
   const b3Align = (byeolchum3HeaderAlign === 'right') ? 'right' : 'left';
   const _b3mode = b2ViewMode !== null ? b2ViewMode : (document.getElementById('pj_sizeClass')?.value === '300미만' ? '미만' : '이상');
@@ -9626,33 +9706,36 @@ function renderByeolchum3() {
     const score = calcPersonScore(role.id);
     const placementLabel = role.placement === '총괄' ? '총괄감리원' : role.placement === '비상주' ? '비상주감리원' : '분야별감리원';
     const fieldLabel = role.field;
-    html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-      <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 3]&emsp;<span style="color:red;font-size:10pt;">※우선순위 3개 업체에 한함</span></div>
-      <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○감리원 업무수행 실적</div>
-      <table style="border-collapse:collapse;width:100%;">
+    // [2026-10-23 보스 승인 시안 A안] 열 너비 colgroup·사업명 왼쪽 정렬·숫자/등급 줄바꿈 금지.
+    //   구분 칸은 시안대로 가로쓰기 9pt(종전 이중 style 의 세로쓰기·굵게는 한 번도 출력된 적이 없고 시안에도 없다).
+    html += `<div class="a4-page annex-page" data-annex="b3" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+      <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 3]${_annexHeaderSuffix()}</div>
+      <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○ 감리원 업무수행 실적</div>
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed;">
+        ${_annexColgroup([20, 0, 24, 15, 14, 18, 12, 12])}
         <thead>
-          <tr><th rowspan="2" ${thS} style="width:60px">구<br>분</th>
-          <th colspan="2" ${thS}>경력사항</th>
-          <th rowspan="2" ${thS} style="width:55px">경 력<br>일 수</th>
-          <th rowspan="2" ${thS} style="width:50px">환산비</th>
-          <th rowspan="2" ${thS} style="width:60px">평가환산<br>일수</th>
-          <th rowspan="2" ${thS} style="width:45px">등급</th>
-          <th rowspan="2" ${thS} style="width:40px">평점</th></tr>
-          <tr><th ${thS}>사 업 명</th><th ${thS} style="width:100px">기 간</th></tr>
+          <tr><th rowspan="2" style="${thS}">구<br>분</th>
+          <th colspan="2" style="${thS}">경력사항</th>
+          <th rowspan="2" style="${thS}">경 력<br>일 수</th>
+          <th rowspan="2" style="${thS}">환산비</th>
+          <th rowspan="2" style="${thS}">평가환산<br>일수</th>
+          <th rowspan="2" style="${thS}">등급</th>
+          <th rowspan="2" style="${thS}">평점</th></tr>
+          <tr><th style="${thS}">사 업 명</th><th style="${thS}">기 간</th></tr>
         </thead><tbody>`;
     const rowCount = Math.max(careers.length, 1);
     careers.forEach((c, ci) => {
       const rate = getRate(c.conType, c.workType, c.resident);
       const convDays = Math.floor((c.days||0)*rate);
-      html += `<tr>
-        ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="writing-mode:vertical-lr;letter-spacing:3px;font-weight:700;font-size:9pt;line-height:1.4;padding:8px 4px">${escHtml(placementLabel)}<br>＜${escHtml(fieldLabel)}＞<br>${escHtml(p.info.name)}</td>` : ''}
-        <td ${tdS} style="text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
-        <td ${tdS} style="font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
-        <td ${tdS}>${c.days||0}</td>
-        <td ${tdS}>${rate.toFixed(3)}</td>
-        <td ${tdS}>${convDays}</td>
-        ${ci===0 ? `<td rowspan="${rowCount}" ${tdS} style="font-weight:700">${escHtml(p.info.appliedGrade||p.info.grade||'')}</td>
-        <td rowspan="${rowCount}" ${tdS} style="font-weight:700">${(()=>{
+      html += `<tr${ci===0 ? ' class="ax-rs"' : ''}>
+        ${ci===0 ? `<td rowspan="${rowCount}" class="ax-gubun" style="${tdS};font-size:9pt;line-height:1.5;padding:2px">${escHtml(placementLabel)}<br>＜${escHtml(fieldLabel)}＞<br>${escHtml(p.info.name)}</td>` : ''}
+        <td class="ax-name" style="${tdS};text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
+        <td style="${tdS};font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
+        <td style="${tdS};white-space:nowrap">${c.days||0}</td>
+        <td style="${tdS};white-space:nowrap">${rate.toFixed(3)}</td>
+        <td style="${tdS};white-space:nowrap">${convDays}</td>
+        ${ci===0 ? `<td rowspan="${rowCount}" style="${tdS};white-space:nowrap">${escHtml(p.info.appliedGrade||p.info.grade||'')}</td>
+        <td rowspan="${rowCount}" style="${tdS};white-space:nowrap">${(()=>{
           const b=getB2Score(role.id);
           if(b!==null) return b;
           // fallback: 별지2호 만점값 정책 (세대수에 따라 분기)
@@ -9670,83 +9753,106 @@ function renderByeolchum3() {
         })()}</td>` : ''}
       </tr>`;
     });
-    html += `<tr style="font-weight:bold">
-      <td colspan="3" ${tdS}>소&emsp;&emsp;계</td>
-      <td ${tdS}>${totalConvDays.toLocaleString()}일</td>
-      <td ${tdS}></td><td ${tdS}>${convYears}년</td><td ${tdS}></td><td ${tdS}></td>
+    // 소계: 원양식 자리 — 경력일수 칸은 비우고 평가환산일수 칸에 「○일 / ○년」(값은 종전 그대로)
+    html += `<tr class="ax-sub" style="font-weight:bold">
+      <td colspan="3" style="${tdS}">소&emsp;&emsp;계</td>
+      <td style="${tdS}"></td><td style="${tdS}"></td>
+      <td style="${tdS};white-space:nowrap">${totalConvDays.toLocaleString()}일<br>${convYears}년</td>
+      <td style="${tdS}"></td><td style="${tdS}"></td>
     </tr></tbody></table></div>`;
   });
-  // 별첨4 신규감리원
-  const newRoles = newEvalList;
-  const hasNew = newRoles.some(r => personnel[r.id] && personnel[r.id].info.name);
-  html += `<div class="a4-page" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
-    <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 4]</div>
-    <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○신규감리원</div>`;
-  if(!hasNew) {
-    html += `
+  // 별첨4 신규감리원 — [2026-10-23 보스 승인] 권선1 제출본 방식.
+  //   가. 빈 행 4개(10.6mm) + 첫 행 평점 = 자기평가서 「신규감리원 배치」 점수
+  //   나. 구분 rowspan 「신규감리원」 + 빈 행 8개(12mm) + 소계(12mm)
+  //   표에 실데이터가 없으면 본문 가운데 「해당사항 없음」 상자, 있으면 그 행을 쓰고 모자란 줄만 빈 행(상자 없음).
+  //   열 너비는 시안처럼 자동 배치(종전 th 너비는 이중 style 로 한 번도 적용된 적이 없다).
+  //   ※ 가. 의 취득일·해당시점·해당시점 이후 칸은 입력 근거가 없어 비운다(감리원 정보의 발급일은 경력증명서 발급일).
+  const newPeople = newEvalList.filter(r => { const nm = personnel[r.id] && personnel[r.id].info.name; return nm && nm !== '-'; });
+  const cNew = escHtml(getNewSupervisorScore());
+  const naBox = '<div class="ax-nabox" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid #000;background:#fff;padding:3px 12px;font-size:10pt;white-space:nowrap">해당사항 없음</div>';
+  const emptyTd = `<td style="${tdS}">&nbsp;</td>`;
+  let rowsA = '';
+  newPeople.forEach((r, i) => {
+    const inf = personnel[r.id].info;
+    rowsA += `<tr style="height:10.6mm"><td style="${tdS};white-space:nowrap">${escHtml(inf.name)}</td><td style="${tdS}">${escHtml(inf.field || r.field || '')}</td>
+      <td style="${tdS};white-space:nowrap">${escHtml(inf.grade || '')}</td><td style="${tdS}">${escHtml(inf.cert || '')}</td>${emptyTd}${emptyTd}${emptyTd}
+      <td style="${tdS};white-space:nowrap">${i === 0 ? (cNew || '&nbsp;') : '&nbsp;'}</td></tr>`;
+  });
+  for (let j = newPeople.length; j < 4; j++) {
+    rowsA += `<tr style="height:10.6mm">${emptyTd.repeat(7)}<td style="${tdS};white-space:nowrap">${j === 0 ? (cNew || '&nbsp;') : '&nbsp;'}</td></tr>`;
+  }
+  let rowsB = '', usedB = 0, sumB = 0;
+  newPeople.forEach(r => {
+    const p = personnel[r.id], cs = p.careers || [];
+    cs.forEach((c, ci) => {
+      const rate = getRate(c.conType, c.workType, c.resident), conv = Math.floor((c.days||0)*rate);
+      sumB += conv; usedB++;
+      rowsB += `<tr${ci === 0 ? ' class="ax-rs"' : ''} style="height:12mm">
+        ${ci === 0 ? `<td rowspan="${cs.length}" class="ax-gubun" style="${tdS};font-size:9pt;line-height:1.5;padding:2px">신규감리원<br>＜${escHtml(p.info.field || r.field || '')}＞<br>${escHtml(p.info.name)}</td>` : ''}
+        <td class="ax-name" style="${tdS};text-align:left;padding-left:6px">${escHtml(c.site||c.siteName||'')}</td>
+        <td style="${tdS};font-size:8pt">${c.startDate||''}<br>~${c.endDate||''}</td>
+        <td style="${tdS};white-space:nowrap">${c.days||0}</td>
+        <td style="${tdS};white-space:nowrap">${rate.toFixed(3)}</td>
+        <td style="${tdS};white-space:nowrap">${conv}</td>${emptyTd}</tr>`;
+    });
+  });
+  const padB = Math.max(0, 8 - usedB);
+  for (let j = 0; j < padB; j++) {
+    rowsB += `<tr${j === 0 ? ' class="ax-rs"' : ''} style="height:12mm">${j === 0 ? `<td rowspan="${padB}" class="ax-gubun4" style="${tdS};font-weight:700;line-height:1.6">${usedB ? '&nbsp;' : '신<br>규<br>감<br>리<br>원'}</td>` : ''}${emptyTd.repeat(6)}</tr>`;
+  }
+  const subB = usedB ? `${sumB.toLocaleString()}일<br>${(Math.floor(sumB/365*10)/10).toFixed(1)}년` : '일<br>년';
+  html += `<div class="a4-page annex-page" data-annex="b4" style="padding:40px 30px;font-family:'Batang','바탕',serif;color:#000;">
+    <div style="font-size:12pt;margin-bottom:2px;text-align:${b3Align};">[별첨 4]${_annexHeaderSuffix()}</div>
+    <div style="font-size:13pt;font-weight:bold;margin-bottom:12px;">○ 신규감리원의 배치</div>
     <div style="margin-bottom:10px;font-weight:700">가. 신규감리원의 자격사항</div>
+    <div class="ax-boxwrap" style="position:relative">
     <table style="border-collapse:collapse;width:100%;margin-bottom:20px;">
       <thead>
         <tr>
-          <th rowspan="2" ${thS} style="width:60px">감리원<br>성 명</th>
-          <th rowspan="2" ${thS} style="width:45px">분 야</th>
-          <th colspan="3" ${thS}>등 급 자 격</th>
-          <th colspan="2" ${thS}>신규감리원 자격</th>
-          <th rowspan="2" ${thS} style="width:40px">평 점</th>
+          <th rowspan="2" style="${thS}">감리원<br>성 명</th>
+          <th rowspan="2" style="${thS}">분 야</th>
+          <th colspan="3" style="${thS}">등 급 자 격</th>
+          <th colspan="2" style="${thS}">신규감리원 자격</th>
+          <th rowspan="2" style="${thS}">평 점</th>
         </tr>
         <tr>
-          <th ${thS} style="width:55px">현재등급</th>
-          <th ${thS}>자격명<br>(학력명)</th>
-          <th ${thS} style="width:65px">취득일</th>
-          <th ${thS}>해당시점<br>(감리사보)</th>
-          <th ${thS}>해당시점 이후<br>경력및실적</th>
+          <th style="${thS}">현재등급</th>
+          <th style="${thS}">자격명<br>(학력명)</th>
+          <th style="${thS}">취득일</th>
+          <th style="${thS}">해당시점<br>(감리사보)</th>
+          <th style="${thS}">해당시점 이후<br>경력및실적</th>
         </tr>
       </thead>
-      <tbody>
-        <tr><td colspan="8" ${tdS} style="text-align:center;padding:18px;color:#000">신규감리원 해당사항 없음</td></tr>
-      </tbody>
-    </table>
+      <tbody>${rowsA}</tbody>
+    </table>${newPeople.length ? '' : naBox}</div>
     <div style="margin-bottom:10px;font-weight:700">나. 신규감리원의 경력 및 실적(신규감리원 자격 해당시점 이후)</div>
+    <div class="ax-boxwrap" style="position:relative">
     <table style="border-collapse:collapse;width:100%;">
       <thead>
         <tr>
-          <th rowspan="2" ${thS} style="width:55px">구 분</th>
-          <th colspan="2" ${thS}>경 력 사 항</th>
-          <th rowspan="2" ${thS} style="width:55px">경 력<br>일 수</th>
-          <th rowspan="2" ${thS} style="width:45px">환산비</th>
-          <th rowspan="2" ${thS} style="width:60px">평가환산<br>일수</th>
-          <th rowspan="2" ${thS} style="width:50px">비 고</th>
+          <th rowspan="2" style="${thS}">구 분</th>
+          <th colspan="2" style="${thS}">경 력 사 항</th>
+          <th rowspan="2" style="${thS}">경 력<br>일 수</th>
+          <th rowspan="2" style="${thS}">환산비</th>
+          <th rowspan="2" style="${thS}">평가환산<br>일수</th>
+          <th rowspan="2" style="${thS}">비 고</th>
         </tr>
-        <tr><th ${thS}>사 업 명</th><th ${thS} style="width:100px">기 간</th></tr>
+        <tr><th style="${thS}">사 업 명</th><th style="${thS}">기 간</th></tr>
       </thead>
-      <tbody>
-        <tr><td colspan="7" ${tdS} style="text-align:center;padding:18px;color:#000">신규감리원 해당사항 없음</td></tr>
-        <tr style="font-weight:bold">
-          <td colspan="3" ${tdS}>소&emsp;&emsp;계</td>
-          <td ${tdS}></td><td ${tdS}></td>
-          <td ${tdS} style="font-size:8pt">일<br>년</td>
-          <td ${tdS}></td>
+      <tbody>${rowsB}
+        <tr class="ax-sub" style="font-weight:bold;height:12mm">
+          <td colspan="3" style="${tdS}">소&emsp;&emsp;계</td>
+          <td style="${tdS}"></td><td style="${tdS}"></td>
+          <td style="${tdS};font-size:8pt;white-space:nowrap">${subB}</td>
+          <td style="${tdS}"></td>
         </tr>
       </tbody>
-    </table>`;
-  } else {
-    newRoles.forEach(role => {
-      const p = personnel[role.id];
-      if(!p.info.name) return;
-      html += `<div style="margin-bottom:20px;font-weight:700">가. 자격사항</div>
-        <table style="border-collapse:collapse;width:100%;margin-bottom:20px;">
-          <tr><th ${thS}>성명</th><td ${tdS}>${escHtml(p.info.name)}</td><th ${thS}>생년월일</th><td ${tdS}>${escHtml(p.info.birthdate)}</td></tr>
-          <tr><th ${thS}>등급</th><td ${tdS}>${escHtml(p.info.grade)}</td><th ${thS}>자격번호</th><td ${tdS}>${escHtml(p.info.regNo)}</td></tr>
-        </table>
-        <div style="margin-bottom:20px;font-weight:700">나. 경력 및 실적</div>`;
-      const careers = p.careers || [];
-      if(careers.length === 0) {
-        html += `<div style="padding:20px;text-align:center;">해당사항 없음</div>`;
-      }
-    });
-  }
-  html += '</div>';
-  document.getElementById('byeolchum3Preview').innerHTML = html;
+    </table>${usedB ? '' : naBox}</div>
+  </div>`;
+  const _b3Prev = document.getElementById('byeolchum3Preview');
+  _b3Prev.innerHTML = html;
+  _placeAnnexBoxes(_b3Prev);                                    // 탭이 보이면 바로
+  requestAnimationFrame(() => _placeAnnexBoxes(_b3Prev));       // 숨은 탭을 인쇄 준비로 펼친 뒤에도 한 번 더
   updateByeolchum3AlignButtons();
 }
 // 별첨3 정렬 토글
@@ -10792,6 +10898,9 @@ async function openLawSearch(query) {
         return;
       }
 
+      // 별첨2(간략)·별첨3·별첨4 — 전용 채우기 (2026-10-23 보스 승인 시안 A안). 아래 「기타 페이지」 분기는 타지 않는다.
+      if (page.classList.contains('annex-page')) { _fitAnnexPage(page); return; }
+
       // 기타 페이지: 모든 tbody 행에 균등 분배
       var gap = page.offsetHeight - page.scrollHeight;
       if (gap < 4) return;
@@ -10806,9 +10915,57 @@ async function openLawSearch(query) {
     });
   }
 
+  // 별첨 쪽 채우기 — A4 297mm 쪽 안에서
+  //   별첨2: 행 높이 = 남는 높이를 행 수로 나눔, 10.5~14mm 사이(남는 공간은 표 아래)
+  //   별첨3: 모든 쪽 행 14mm 통일(빈 행 추가 없음). 14mm 로 안 들어가면 10.5mm 하한까지 줄인다
+  //   별첨4: 행 높이는 렌더에서 고정(10.6·12mm) → 「해당사항 없음」 상자 위치만 다시 잡는다
+  //   10.5mm 로도 넘치면 그 쪽만 고정 높이를 풀어 종전처럼 다음 장으로 흐르게 한다(고정 높이에 넘친 채로 두면 다음 별첨과 겹친다).
+  //   쪽 높이·여백·글자 크기는 CSS .annex-page.ax-fit 이 맡는다.
+  function _fitAnnexPage(page) {
+    if (!page.offsetHeight) return;   // 숨은 탭(이번 인쇄 대상 아님)
+    var MM = 96 / 25.4;
+    var kind = page.getAttribute('data-annex');
+    // 클래스·쪽 높이는 렌더가 넣지 않는 값 → 되돌릴 때는 항상 떼기만 하면 된다(두 번 불려도 같은 결과)
+    page.style.removeProperty('height'); page.style.removeProperty('min-height');
+    page.classList.add('ax-fit');
+    page.classList.remove('ax-flow');
+    _saved.push({ undo: function () { page.classList.remove('ax-fit', 'ax-flow'); page.style.removeProperty('height'); page.style.removeProperty('min-height'); } });
+    var limit = function () { return page.getBoundingClientRect().bottom - 12 * MM; };   // 아래 여백 12mm 위까지
+    var lastBottom = function () { var c = page.lastElementChild; return c ? c.getBoundingClientRect().bottom : 0; };
+    var tb = page.querySelector('table');
+    var rows = (kind === 'b2' || kind === 'b3') && tb && tb.tBodies[0] ? Array.from(tb.tBodies[0].rows) : [];
+    // 행 높이는 렌더가 넣지 않으므로 되돌릴 값은 항상 '' — 두 번 불려도 같은 결과(먼저 비우고 잰다)
+    rows.forEach(function (r) { r.style.height = ''; _saved.push({ el: r, h: '' }); });
+    var setRows = function (h) { rows.forEach(function (r) { r.style.height = h + 'px'; }); };
+    var sumRows = function () { return rows.reduce(function (a, r) { return a + r.offsetHeight; }, 0); };
+    // 넘치면 지정 높이 그대로인 행(글이 길어 더 큰 행은 못 줄임)만 넘친 만큼 나눠 줄인다 — 10.5mm 하한까지 몇 번 반복
+    var shrink = function (h) {
+      for (var k = 0; k < 6 && lastBottom() > limit() + 0.5 && h > 10.5 * MM + 0.01; k++) {
+        var flex = rows.filter(function (r) { return r.getBoundingClientRect().height <= h + 0.5; }).length;
+        if (!flex) break;
+        h = Math.max(10.5 * MM, h - (lastBottom() - limit()) / flex);
+        setRows(h);
+      }
+    };
+    if (rows.length && kind === 'b2') {
+      var h2 = Math.max(10.5 * MM, Math.min(14 * MM, (sumRows() + limit() - lastBottom()) / rows.length));
+      setRows(h2); shrink(h2);
+    } else if (rows.length && kind === 'b3') {
+      setRows(14 * MM); shrink(14 * MM);
+    }
+    if (lastBottom() > limit() + 0.5) {
+      page.style.setProperty('height', 'auto', 'important');
+      page.style.setProperty('min-height', 'auto', 'important');
+      page.classList.add('ax-flow');
+    }
+    if (typeof _placeAnnexBoxes === 'function') _placeAnnexBoxes(page);
+  }
+
   function _restorePrintFit() {
-    _saved.slice().reverse().forEach(function (s) { s.el.style.height = s.h; });
+    _saved.slice().reverse().forEach(function (s) { if (s.undo) s.undo(); else s.el.style.height = s.h; });
     _saved = [];
+    // 별첨4 상자: 화면 배치로 돌아왔으니 다시 잡는다(위치는 % 라 대개 같지만 글자 크기가 달라 행 높이 비율이 바뀐다)
+    if (typeof _placeAnnexBoxes === 'function') _placeAnnexBoxes(document);
   }
 
   // 창 없는 PDF 생성기는 window.print 를 가로채므로 beforeprint 가 발생하지 않는다.
