@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.4</title>
+<title>주택건설공사 v2.4.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.4 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.4.1 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -9687,6 +9687,7 @@ function renderByeolchum2() {
       <td ${tdS}>${totalConverted.toFixed(2)}</td></tr></tbody></table>
       <div style="font-size:8pt;margin-top:12px;line-height:1.8;color:#333;">
         ※ 수행실적 : 건별로 전수 작성, 적용요율에서 공사종류 요율은 주택건설공사 "100"% 그외는 "80"%로 기재<br>
+        ※ 환산비율 : 전체감리기간중 최근 3년간에 실제 수행한 기간에 대한 비율(3년 이내 수행일수/총공사기간 일수)<br>
         ※ 수주금액 : 금액은 억원 단위로 표기하고 억원 단위 미만은 소수점아래로 표기(예시: 234,500,000원은 2.345)<br>
         ※ 해당일수 : 총감리기간 - 중지기간<br>
         ※ 적용일수 : 최근3년간 해당일수 - 최근3년간 해당중지일수<br>
