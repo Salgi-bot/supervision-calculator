@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.4.1</title>
+<title>주택건설공사 v2.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.4.1 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.5 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -6059,19 +6059,30 @@ function buildByeolji2Html(roleId) {
 
 function calcB2() {
   const v = id => { const el = document.getElementById('b2_'+id); return el ? (parseFloat(el.value)||0) : 0; };
-  const set = (id, val) => { const el = document.getElementById('b2_'+id); if(el) el.textContent = val.toFixed(1); };
-  const cSum = v('c_fin')+v('c_perf')+v('c_admin')+v('c_td1')+v('c_td2')+v('c_td3')+v('c_new')+v('c_chg')+v('c_b1')+v('c_b2')+v('c_b3');
-  set('c_sum', cSum);
-  const chSum = v('ch_g')+v('ch_e')+v('ch_i')+v('ch_p')+v('ch_qb')+v('ch_ad')+v('ch_r');
-  set('ch_sum', chSum);
-  const fSum = v('fa_g')+v('fa_e')+v('fa_qb')+v('fa_ad')+v('fa_r')+v('fc_g')+v('fc_e')+v('fc_qb')+v('fc_ad')+v('fc_r')+v('fm_g')+v('fm_e')+v('fm_qb')+v('fm_ad')+v('fm_r');
-  set('f_sum', fSum);
-  const nSum = v('n_g')+v('n_e')+v('n_ad')+v('n_r');
-  set('n_sum', nSum);
-  const monSum = chSum+fSum+nSum;
-  set('mon_sum', monSum);
-  const b2Total = cSum + monSum;
-  set('total', b2Total);
+  // [2026-10-26 v2.5] 소계는 배점 이내(공고문 「가점 및 감점은 별도 합산 후 40점 이내」 등).
+  //   합계가 배점을 넘으면 「배점(합계)」로 병기 — 예) 40(40.2)·100(100.2). 세부평가서 표기(전주 방식)와 같다.
+  //   계·총계 = 아래 소계의 인정 점수 합, 원합계가 더 크면 같은 방식으로 병기
+  const r1 = x => Math.round(x * 10) / 10;
+  const set = (id, kept, raw) => {
+    const el = document.getElementById('b2_'+id);
+    if (!el) return;
+    el.style.whiteSpace = 'nowrap';
+    if (raw > kept) {
+      // 칸 폭이 좁아(총계 칸 「100(100.2)」가 잘림, 실측) 괄호 원합계만 작게 — textContent 는 「100(100.2)」 그대로
+      el.innerHTML = `${kept % 1 ? kept.toFixed(1) : kept}<span style="font-size:0.72em;letter-spacing:-0.03em">(${raw.toFixed(1)})</span>`;
+    } else {
+      el.textContent = raw.toFixed(1);
+    }
+  };
+  const cap = (id, sum, max) => { const raw = r1(sum), kept = Math.min(raw, max); set(id, kept, raw); return [kept, raw]; };
+  const [cKept, cRaw] = cap('c_sum', v('c_fin')+v('c_perf')+v('c_admin')+v('c_td1')+v('c_td2')+v('c_td3')+v('c_new')+v('c_chg')+v('c_b1')+v('c_b2')+v('c_b3'), 40);
+  const [chKept, chRaw] = cap('ch_sum', v('ch_g')+v('ch_e')+v('ch_i')+v('ch_p')+v('ch_qb')+v('ch_ad')+v('ch_r'), 27);
+  const [fKept, fRaw] = cap('f_sum', v('fa_g')+v('fa_e')+v('fa_qb')+v('fa_ad')+v('fa_r')+v('fc_g')+v('fc_e')+v('fc_qb')+v('fc_ad')+v('fc_r')+v('fm_g')+v('fm_e')+v('fm_qb')+v('fm_ad')+v('fm_r'), 27);
+  const [nKept, nRaw] = cap('n_sum', v('n_g')+v('n_e')+v('n_ad')+v('n_r'), 6);
+  const monKept = r1(chKept + fKept + nKept);
+  set('mon_sum', monKept, r1(chRaw + fRaw + nRaw));
+  const b2Total = r1(cKept + monKept);
+  set('total', b2Total, r1(cRaw + chRaw + fRaw + nRaw));
   if (b2Total < 100 && !calcB2._warned) {
     calcB2._warned = true;
     let p = document.getElementById('b2WarnPopup');
