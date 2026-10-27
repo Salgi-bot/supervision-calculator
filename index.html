@@ -1314,7 +1314,7 @@ tbody tr:hover td { background: var(--ci-light); }
         <span id="byeolji1BackStatus" class="no-print" title="공고문 뒤쪽 문구는 JSON 칸(byeolji1BackRows·byeolji1BackNote·byeolji1BackFooter)으로 들어옵니다. 칸이 없으면 고시 서식 기본 문구로 찍습니다." style="color:#475569;font-size:12px;margin-left:6px;">뒤쪽 문구: 기본 문구</span>
       </div>
     </div>
-    <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.<br>뒤쪽(사실확인서류 ①~⑯)은 <b>예비순위 1~3순위 업체</b>가 사실확인서류 제출 단계에서 함께 내는 장입니다. 신청서 접수 단계에서는 「뒤쪽: 숨김」으로 두고 앞쪽만 출력하십시오.</div>
+    <div class="info-note">프로젝트 정보 탭의 데이터가 자동 반영됩니다. 탭 전환 시 자동 갱신됩니다.<br>뒤쪽(사실확인서류 ①~⑯)은 <b>예비순위 1~3순위 업체</b>가 사실확인서류 제출 단계에서 함께 내는 장입니다. [2026-10-27 v2.6] 신청서 접수 단계에서도 뒤쪽을 함께 출력합니다(기본 「표시」, 보스 지시). 공고문 서식에 뒤쪽이 없을 때만 「숨김」으로 바꾸십시오.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-primary" onclick="renderByeolji1()">미리보기 갱신</button>
       <button class="btn" onclick="printByeolji(1)">인쇄 / PDF 저장</button>
@@ -2544,6 +2544,8 @@ function _syncSwearUIAfterLoad() {
 //   "공고문과 다른 서약서 제출"이 된다. 위 collect/restore 와 같은 자리에 두어 키 추가 시 함께 보이게 한다.
 function _resetSwearAndBidState() {
   swearBodyHtml = '';
+  ganttFullMonth = true;      // [2026-10-27 v2.6]
+  showByeolji1Back = true;    // [2026-10-27 v2.6] 기본 표시
   swearHeaderAlign = 'left';
   swearRecipientAlign = 'left';
   swearNoticeEnabled = false;
@@ -2894,7 +2896,8 @@ function loadAutoSave() {
     if (data.byeolchum3HeaderAlign)  byeolchum3HeaderAlign  = data.byeolchum3HeaderAlign;
     if (typeof data.showStamp === 'boolean') showStamp = data.showStamp;
     if (typeof data.showByeolji1Header === 'boolean') showByeolji1Header = data.showByeolji1Header;
-    if (typeof data.showByeolji1Back   === 'boolean') showByeolji1Back   = data.showByeolji1Back;
+    // [2026-10-27 v2.6] ganttFullMonth 키가 있는 자동저장(v2.6 이후)만 뒷장 값을 따른다 — v2.5 이하는 기본 숨김 시절 값이라 버림(사사 지적)
+    if ('ganttFullMonth' in data && typeof data.showByeolji1Back === 'boolean') showByeolji1Back = data.showByeolji1Back;
     if (typeof data.showByeolji2Header === 'boolean') showByeolji2Header = data.showByeolji2Header;
     if (typeof data.showByeolji1Std === 'boolean') showByeolji1Std = data.showByeolji1Std;
     if (typeof data.showByeolji2Std === 'boolean') showByeolji2Std = data.showByeolji2Std;
