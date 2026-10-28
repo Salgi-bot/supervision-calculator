@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.6</title>
+<title>주택건설공사 v2.7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.6 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.7 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -2213,6 +2213,9 @@ let swearProjectName  = '';         // 서약서 전용 사업명 — 빈 값이
 let swearClientName   = '';         // 서약서 전용 사업주체 — 빈 값이면 pj.client
 let showStamp = true;             // 법인 도장 이미지 표시 여부
 let stampSize = 62;               // 법인 도장 직경(px)
+// [2026-10-28 v2.7] 서식에 찍는 도장 그림(stamp.png = 사용인감) 크기 — 실물 사용인감 지름 17mm(보스 실측). 그림은 가장자리 1px 빼고 인영이 꽉 차(152/153px)
+//   칸 17.1mm = 인영 17.0mm. 종전 64·64·65px(= 인영 16.8mm)로 서식마다 따로 박혀 실물보다 작았음(보스 「실제 도장보다 살짝 작은데」)
+const STAMP_MM = 17.1;
 // ── 별첨1 서약서 본문 템플릿 (최대 10개, default 삭제 불가) ──
 const SYSTEM_DEFAULT_SWEAR_BODY = `본인이 상기 주택건설공사의 감리자 지정을 신청함에 있어, **__자기평가서__**는 「주택법」, 주택건설공사감리자지정기준 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성·제출되었음을 확인하며 제출된 신청자 평점 중 **"허위·거짓 등"**의 방법에 의하여 작성된 경우에는 실격처리하고 각 협회에 이 사실을 통보하며 **__참여감리원(평가대상 및 비평가대상감리원)__**은 배치기간 및 해당공종이 타 현장과 중복되게 신청하지 않았으며, 제출한 자료는 사실과 틀림이 없음을 확인하오며, 만일 감리자 지정에 영향을 주는 사항이 본인의 고의나 과실로 사실과 다르게 작성된 경우에는 관련규정에 의거 입찰참가 제한, 벌점부여 및 부정행위감리자 지정 등의 행정처분 등 불이익을 받을 수 있음을 확인하오며 이에 따른 민·형사상 모든 책임을 감수하겠으며, 향후 감리자로 지정될 경우 관계법령에 따라 성실히 감리업무를 수행할 것을 서약합니다.`;
 const SWEAR_TEMPLATE_MAX = 10;
@@ -5686,7 +5689,7 @@ function renderByeolji1() {
       </div>
       <div style="position:relative;text-align:right;font-size:10pt;margin:2px 20px 0 0">
         입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
-        ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:64px;height:64px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+        ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:${STAMP_MM}mm;height:${STAMP_MM}mm;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
       </div>
       <div style="font-size:13pt;font-weight:800;margin:6px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
         ${escHtml(pj.authority || '')} 귀하
@@ -6315,7 +6318,7 @@ function renderByeolji2Cover() {
     <div style="text-align:right;font-size:10pt;margin:12px 20px 2px 0;line-height:1.3">${getSubmitDateStr()}</div>
     <div style="position:relative;text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
       입찰자(대표자) &emsp;&emsp;${escHtml(co.name)} &ensp;${escHtml(co.ceo)} &emsp;(서명 또는 인)
-      ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:64px;height:64px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+      ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:${STAMP_MM}mm;height:${STAMP_MM}mm;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px;line-height:1.3">
       <span></span>
@@ -8857,7 +8860,7 @@ function renderByeolchum1() {
   const faxLine = `<div>FAX&emsp;번&emsp;호 : ${escHtml(co.fax||'')}</div>`;
   const contactLines = swearContactEnabled ? (phoneLine + faxLine) : '';
   const ceoLine = `<div style="position:relative;">대&emsp;표&emsp;자 : ${escHtml(co.ceo||'')}&emsp;&emsp;(인)
-            ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:65px;height:65px;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
+            ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:${STAMP_MM}mm;height:${STAMP_MM}mm;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
           </div>`;
   const signLines = (swearSignOrder === 'swap')
     ? (compLine + addrLine + contactLines + ceoLine)
