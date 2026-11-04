@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.9</title>
+<title>주택건설공사 v2.9.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.9 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.9.1 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -8298,11 +8298,25 @@ function validateSubmitPack() {
     //   ★단 공고문 「비평가대상 감리원 중 마지막 1명은 부분배치 가능」에 따라 마지막 행은 검사에서 뺀다.
     //     (2026-08-19 반포MV — 마지막 1명을 토목 11개월 부분배치로 둔 정상 배치를 실격위험으로 오탐하던 것을 보스 지시로 수정.
     //      이 검사가 잡아야 할 것은 세종 L8처럼 「토목을 마지막이 아닌 자리에 넣고 후반기를 빠뜨린」 경우다.)
+    //   [2026-11-04 v2.9.1 보스 「고쳐」] 후반기 토목을 마지막 행에 구간 그대로 둔 정상 배치를 「안 덮음」으로 오탐하던 것 수정.
+    //   전제는 그대로 = 마지막이 아닌 토목 행이 있을 때만 본다(마지막 1명만 토목 부분배치인 배치는 종전처럼 검사 안 함).
+    //   토목 구간마다 둘 중 하나면 덮인 것으로 본다(그 밖은 종전처럼 경고 — 부분배치로 빈 구간은 사람이 확인):
+    //     (가) 마지막이 아닌 토목 행 하나가 통째로 담음(종전 판정)
+    //     (나) 마지막 토목 행의 배치 구간이 그 토목 구간과 시작·끝이 정확히 같음(후반기를 마지막 행에 구간 그대로 둔 정상 배치)
+    //   ★「마지막 행이 걸치기만 해도 면제」류의 넓은 면제는 두지 않는다 — 11/4 사사 감사 세 번 연속(1·2·3판)으로
+    //     두 번째 부분배치·건축 부분배치와 겹친 부분배치 2명·다른 토목 부분배치를 숨기는 구멍이 나왔다. 가장 보수적인 (가)·(나)만 남김(4판).
+    //   ★(나)를 「통째로 담음」으로 두면 마지막 행이 토목 공사기간 밖으로 늘어나도 통과한다(5판 감사 지적) → 「정확히 같음」(6판).
     const civilSegs = [...segsOf(ds.civil), ...segsOf(ds.civil2)];
     const _lastRowIdx = rows.length - 1;
     const _civilRowsChecked = rows.filter((r, i) => fieldOf(r).includes('토목') && i !== _lastRowIdx);
     const nonEvalCivil = _civilRowsChecked.flatMap(segsOf);
-    if (civilSegs.length && _civilRowsChecked.length && !covered(nonEvalCivil, civilSegs)) {
+    const _lastRow = rows[_lastRowIdx];
+    const _lastCivilSegs = (_lastRow && fieldOf(_lastRow).includes('토목')) ? segsOf(_lastRow) : [];
+    const _civilOk = civilSegs.every(seg =>
+      covered(nonEvalCivil, [seg])                                                              // (가)
+      || _lastCivilSegs.some(([s, e]) => s === seg[0] && e === seg[1])                          // (나)
+    );
+    if (civilSegs.length && _civilRowsChecked.length && !_civilOk) {
       issues.push('［실격위험］비평가 토목감리원이 토목공사 전 구간을 덮지 않습니다. 후반기 토목 구간이 빠졌는지 확인하십시오.');
     }
     // ② 비평가 배치가 해당 분야 공사기간을 벗어나지 않는가
@@ -8316,7 +8330,15 @@ function validateSubmitPack() {
       }
     });
     // ③ 부분배치는 전체 중 1명까지
+    //   [2026-11-04 v2.9.1] 토목도 센다(공고문 예 「비평가대상 감리원 전체 중 1명은 부분배치 가능」 — 분야 구분 없음). 토목 행은 각 배치 구간이 평가대상 토목 구간(전·후반) 하나를
+    //   통째로 담지 못하면 부분배치로 본다. 종전엔 건축·설비만 세어 「토목 부분배치 + 다른 부분배치 = 2명」을 이 검사가 못 잡았고,
+    //   ①의 「마지막 행 제외」가 우연히 대신 경고하고 있었다(①을 바로잡으면서 드러남 — 11/4 사사 감사 지적).
     const partial = rows.filter(r => {
+      if (fieldOf(r).includes('토목')) {
+        const my = segsOf(r);
+        if (!civilSegs.length || !my.length) return false;
+        return !my.every(([s, e]) => civilSegs.some(([S, E]) => s <= S && e >= E));
+      }
       const sc = scope[fieldOf(r)];
       if (!sc || !sc.length) return false;
       const my = segsOf(r);
@@ -8324,6 +8346,11 @@ function validateSubmitPack() {
     });
     if (partial.length > 1) {
       issues.push('［실격위험］부분배치가 ' + partial.length + '명입니다. 비평가대상 감리원 전체 중 1명만 부분배치할 수 있습니다.');
+    } else if (partial.length === 1 && rows.indexOf(partial[0]) !== rows.length - 1) {
+      // [2026-11-04 v2.9.1] 공고마다 문구가 다르다 — 「비평가대상 감리원 전체 중 1명은 부분배치 가능」(예 이천 중리)이면 정상,
+      //   「비평가대상 감리원 중 마지막 1명은 부분배치 가능」이면 실격. 앱은 공고문 문구를 모르므로 실격위험이 아니라 대조 안내로 띄운다
+      //   (검산 스크립트는 이 문구를 안내 4종 밖으로 보아 실격위험으로 센다 → 사람이 공고문과 대조해 닫는다).
+      issues.push('［확인］비평가 ' + (rows.indexOf(partial[0]) + 1) + '행이 부분배치인데 마지막 행이 아닙니다. 공고문이 「마지막 1명은 부분배치 가능」이면 실격, 「전체 중 1명은 부분배치 가능」이면 정상 — 공고문 문구와 대조하십시오.');
     }
     // ④ 비상주 15% 이내 · 총배치 ≥ 법정 인·월수
     //   ★반드시 앱 정본 계산기(computeDeployConvData)를 쓴다. 여기서 따로 합산하면
