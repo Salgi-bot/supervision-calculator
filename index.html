@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.7.1</title>
+<title>주택건설공사 v2.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.7.1 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.8 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -2246,6 +2246,7 @@ let coverTitleText     = '';    // 공고문형 표지 제목 — 빈 값이면 
 let byeolji1BackRows   = null;  // [[항목, 설명] × 16] — ①~⑪ 감리자(회사), ⑫~⑯ 감리원. null = 기본 문구
 let byeolji1BackNote   = null;  // 유의사항 문단 배열(「1. 2. 3.」 문단은 들여씀). null = 기본 문구
 let byeolji1BackFooter = true;  // 쪽 아래 규격 표기 — true = 기본 「210㎜×297㎜[백상지(80g/㎡)]」, 문자열 = 공고문 표기 그대로(예 「210mm×297mm[…]」), false = 안 찍음
+let byeolji1BackHead   = null;  // [2026-11-04] 쪽 위 머리 표기 — null = 고시 서식 「(뒤 쪽)」, 문자열 = 공고문 표기 그대로(예 이천 중리 「(뒷 면)」)
 let byeolji1BackPage   = null;  // 공고문에서 뒤쪽이 있던 쪽 번호(화면 상태 줄 표시용, JSON 키 _byeolji1BackPage)
 let _byeolji1BackLoadWarn = ''; // 불러온 뒤쪽 칸 형식이 틀려 버린 경우의 사유(화면 상태 줄 경고용)
 let _byeolji1BackFit = null;    // 마지막 렌더의 A4 맞춤 결과 { rowH, overflow } — 문구가 바뀌면 null(다음 렌더 때 다시 잰다)
@@ -2366,6 +2367,7 @@ function _collectSwearAndBidState() {
     byeolji1BackRows: byeolji1BackRows,
     byeolji1BackNote: byeolji1BackNote,
     byeolji1BackFooter: byeolji1BackFooter,
+    byeolji1BackHead: byeolji1BackHead,
     _byeolji1BackPage: byeolji1BackPage,
     // 관리알림(교육훈련·특허) — 종전엔 localStorage 전용이라 브라우저를 바꾸면 소실됐다(2026-08-31 보스 지시로 JSON 포함)
     alertTraining: (typeof getTrainingData === 'function') ? getTrainingData() : [],
@@ -2451,6 +2453,7 @@ function _resetByeolji1BackState() {
   byeolji1BackRows   = null;
   byeolji1BackNote   = null;
   byeolji1BackFooter = true;
+  byeolji1BackHead   = null;
   byeolji1BackPage   = null;
   _byeolji1BackLoadWarn = '';
   _byeolji1BackFit = null;
@@ -2479,6 +2482,9 @@ function _restoreByeolji1BackState(data) {
     }
   }
   if (typeof data.byeolji1BackFooter === 'boolean' || (typeof data.byeolji1BackFooter === 'string' && data.byeolji1BackFooter.trim())) byeolji1BackFooter = data.byeolji1BackFooter;
+  // 머리 표기 — 키가 있을 때만(다른 뒤쪽 칸과 같은 규칙). 빈 문자열·문자열 아님 = 기본 「(뒤 쪽)」
+  if ('byeolji1BackHead' in data)
+    byeolji1BackHead = (typeof data.byeolji1BackHead === 'string' && data.byeolji1BackHead.trim()) ? data.byeolji1BackHead.trim() : null;
   if ('_byeolji1BackPage' in data) {
     const p = data._byeolji1BackPage;
     byeolji1BackPage = (Number.isInteger(p) && p > 0) ? p : null;
@@ -5773,7 +5779,7 @@ function byeolji1BackHtml(rowH) {
 
   return `
     <div class="a4-preview" id="byeolji1BackDoc" style="padding:38px 30px 12px 30px;min-height:297mm;display:flex;flex-direction:column">
-      <div style="text-align:right;font-size:9pt;margin-bottom:5px">(뒤 쪽)</div>
+      <div style="text-align:right;font-size:9pt;margin-bottom:5px">${escHtml(byeolji1BackHead || '(뒤 쪽)')}</div>
       <div style="border-top:2px solid #000;margin-bottom:5px"></div>
       <table style="border-collapse:collapse;width:100%;table-layout:fixed;margin-bottom:0">
         <tbody>
@@ -5835,6 +5841,7 @@ function updateByeolji1BackStatus() {
     ? `뒤쪽 문구: <b>공고문 문구 적용${byeolji1BackPage ? `(${byeolji1BackPage}쪽)` : ''}</b>`
     : '뒤쪽 문구: 기본 문구';
   const fit = showByeolji1Back ? _byeolji1BackFit : null;   // 뒤쪽을 그린 렌더의 결과만(문구가 바뀐 뒤 아직 안 그렸으면 null)
+  if (byeolji1BackHead) html += ` · 머리 「${escHtml(byeolji1BackHead)}」`;
   if (fit && fit.rowH < BYEOLJI1_BACK_ROW_H)
     html += ` · 1쪽 맞춤 행 높이 ${BYEOLJI1_BACK_ROW_H}→${fit.rowH}px`;
   if (fit && fit.overflow > 0)
