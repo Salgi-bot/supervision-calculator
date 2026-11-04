@@ -8298,10 +8298,12 @@ function validateSubmitPack() {
     //   ★단 공고문 「비평가대상 감리원 중 마지막 1명은 부분배치 가능」에 따라 마지막 행은 검사에서 뺀다.
     //     (2026-08-19 반포MV — 마지막 1명을 토목 11개월 부분배치로 둔 정상 배치를 실격위험으로 오탐하던 것을 보스 지시로 수정.
     //      이 검사가 잡아야 할 것은 세종 L8처럼 「토목을 마지막이 아닌 자리에 넣고 후반기를 빠뜨린」 경우다.)
-    //   [2026-11-04 v2.8.1 보스 「고쳐」] 후반기 토목이 마지막 행에 구간 그대로 있는 정상 배치(도안 10/2·부촌 10/28 제출)를
-    //   「안 덮음」으로 오탐하던 것 수정. 전제는 그대로 = 마지막이 아닌 토목 행이 있을 때만 본다(마지막 1명 토목 부분배치는 종전처럼 검사 안 함).
-    //   바뀐 것 하나 = 마지막 행이 토목이면 그 행이 덮거나 겹치는 토목 구간은 덮인 것으로 본다(마지막 1명 부분배치 허용과 같은 취지).
-    //   모의(완료 28건): 경고 2→0 · 일부러 망가뜨린 사례 = 전반 1달 늦춤·후반 빠뜨림은 경고, 마지막 1명 부분배치 2유형은 통과.
+    //   [2026-11-04 v2.8.1 보스 「고쳐」] 후반기 토목을 마지막 행에 구간 그대로 둔 정상 배치를 「안 덮음」으로 오탐하던 것 수정.
+    //   전제는 그대로 = 마지막이 아닌 토목 행이 있을 때만 본다(마지막 1명만 토목 부분배치인 배치는 종전처럼 검사 안 함).
+    //   토목 구간마다 다음 셋 중 하나면 덮인 것으로 본다:
+    //     (가) 마지막이 아닌 토목 행 하나가 통째로 담음(종전 판정)  (나) 마지막 토목 행이 통째로 담음(후반기를 마지막 행에 둔 정상 배치)
+    //     (다) 마지막 토목 행이 걸쳐 있고 그 구간에 마지막이 아닌 토목 행이 하나도 안 걸침(그 구간의 유일한 토목 = 허용된 마지막 1명 부분배치)
+    //   ★(다)에 「안 걸침」 조건이 없으면 마지막 행이 걸친 구간의 다른 토목 행 공백(두 번째 부분배치)까지 면제된다(11/4 사사 지적 — 첫 판 결함).
     const civilSegs = [...segsOf(ds.civil), ...segsOf(ds.civil2)];
     const _lastRowIdx = rows.length - 1;
     const _civilRowsChecked = rows.filter((r, i) => fieldOf(r).includes('토목') && i !== _lastRowIdx);
@@ -8309,7 +8311,11 @@ function validateSubmitPack() {
     const _lastRow = rows[_lastRowIdx];
     const _lastCivilSegs = (_lastRow && fieldOf(_lastRow).includes('토목')) ? segsOf(_lastRow) : [];
     const _overlaps = ([s, e], [S, E]) => s <= E && S <= e;
-    const _civilOk = civilSegs.every(seg => covered(nonEvalCivil, [seg]) || _lastCivilSegs.some(l => _overlaps(seg, l)));
+    const _civilOk = civilSegs.every(seg =>
+      covered(nonEvalCivil, [seg])                                                              // (가)
+      || covered(_lastCivilSegs, [seg])                                                         // (나)
+      || (_lastCivilSegs.some(l => _overlaps(seg, l)) && !nonEvalCivil.some(n => _overlaps(seg, n)))  // (다)
+    );
     if (civilSegs.length && _civilRowsChecked.length && !_civilOk) {
       issues.push('［실격위험］비평가 토목감리원이 토목공사 전 구간을 덮지 않습니다. 후반기 토목 구간이 빠졌는지 확인하십시오.');
     }
