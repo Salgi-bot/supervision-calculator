@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주택건설공사 v2.8</title>
+<title>주택건설공사 v2.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous"></script>
@@ -725,7 +725,7 @@ tbody tr:hover td { background: var(--ci-light); }
     <!-- 앱 버전(화면 표시) — 기능·서식 추가 = 가운데 자리(2.2→2.3), 오류 수정만 = 끝자리(2.2→2.2.1).
          <title> 번호와 같게. 배포·push 시 check_version.sh 가 「index.html 이 바뀌었는데 번호 그대로」를 막는다.
          JSON 저장 형식 version('2.1')과는 별개 — 그쪽은 바꾸지 말 것(옛 응모서류 JSON 불러오기 분기). -->
-    <span class="badge">v2.8 · ㈜아이팝엔지니어링</span>
+    <span class="badge">v2.9 · ㈜아이팝엔지니어링</span>
   </div>
 </header>
 
@@ -1275,7 +1275,7 @@ tbody tr:hover td { background: var(--ci-light); }
           <button type="button" id="byeolji1HeaderAlignLeft"  onclick="setByeolji1Align('header','left')"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">좌측</button>
           <button type="button" id="byeolji1HeaderAlignRight" onclick="setByeolji1Align('header','right')" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">우측</button>
         </div>
-        <span style="color:#64748b;margin-left:6px;" title="공고문 별지1호 상단에 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 줄이 있는지 보고 맞추세요.">기준줄:</span>
+        <span style="color:#64748b;margin-left:6px;" title="공고문 별지1호 상단에 「■ 주택건설공사 감리자지정기준 [별지 제1호서식]」 줄이 있는지 보고 맞추세요.">기준줄:</span>
         <div role="group" aria-label="별지1호 기준줄 표시" style="display:inline-flex;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;">
           <button type="button" id="byeolji1StdOn"  onclick="setByeolji1Std(true)"  style="padding:3px 10px;border:none;background:#fff;cursor:pointer;font-size:12px;">표시</button>
           <button type="button" id="byeolji1StdOff" onclick="setByeolji1Std(false)" style="padding:3px 10px;border:none;border-left:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">숨김</button>
@@ -2245,7 +2245,8 @@ let coverTitleText     = '';    // 공고문형 표지 제목 — 빈 값이면 
 //   JSON 칸으로 받아 그대로 찍는다. null·키 없음 = 종전 고정 문구(BYEOLJI1_BACK_*) 그대로(하위호환·출력 동일).
 let byeolji1BackRows   = null;  // [[항목, 설명] × 16] — ①~⑪ 감리자(회사), ⑫~⑯ 감리원. null = 기본 문구
 let byeolji1BackNote   = null;  // 유의사항 문단 배열(「1. 2. 3.」 문단은 들여씀). null = 기본 문구
-let byeolji1BackFooter = true;  // 쪽 아래 규격 표기 — true = 기본 「210㎜×297㎜[백상지(80g/㎡)]」, 문자열 = 공고문 표기 그대로(예 「210mm×297mm[…]」), false = 안 찍음
+let byeolji1BackFooter = true;  // 쪽 아래 규격 표기 — true = 기본 「210mm×297mm[백상지(80g/㎡)]」, 문자열 = 공고문 표기 그대로(예 「210㎜×297㎜[…]」), false = 안 찍음
+let byeolji1Recipient  = null;  // [2026-11-04] 별지1호(앞쪽) 수신 표기 — null = 지정권자명(pj.authority, 종전 동작), 문자열 = 공고문 표기 그대로(예 남양주 지금·도농1-1 「감리자 지정권자」). 서약서 수신은 그대로 지정권자명
 let byeolji1BackHead   = null;  // [2026-11-04] 쪽 위 머리 표기 — null = 고시 서식 「(뒤 쪽)」, 문자열 = 공고문 표기 그대로(예 이천 중리 「(뒷 면)」)
 let byeolji1BackPage   = null;  // 공고문에서 뒤쪽이 있던 쪽 번호(화면 상태 줄 표시용, JSON 키 _byeolji1BackPage)
 let _byeolji1BackLoadWarn = ''; // 불러온 뒤쪽 칸 형식이 틀려 버린 경우의 사유(화면 상태 줄 경고용)
@@ -2368,6 +2369,7 @@ function _collectSwearAndBidState() {
     byeolji1BackNote: byeolji1BackNote,
     byeolji1BackFooter: byeolji1BackFooter,
     byeolji1BackHead: byeolji1BackHead,
+    byeolji1Recipient: byeolji1Recipient,
     _byeolji1BackPage: byeolji1BackPage,
     // 관리알림(교육훈련·특허) — 종전엔 localStorage 전용이라 브라우저를 바꾸면 소실됐다(2026-08-31 보스 지시로 JSON 포함)
     alertTraining: (typeof getTrainingData === 'function') ? getTrainingData() : [],
@@ -2454,6 +2456,7 @@ function _resetByeolji1BackState() {
   byeolji1BackNote   = null;
   byeolji1BackFooter = true;
   byeolji1BackHead   = null;
+  byeolji1Recipient  = null;
   byeolji1BackPage   = null;
   _byeolji1BackLoadWarn = '';
   _byeolji1BackFit = null;
@@ -2485,6 +2488,9 @@ function _restoreByeolji1BackState(data) {
   // 머리 표기 — 키가 있을 때만(다른 뒤쪽 칸과 같은 규칙). 빈 문자열·문자열 아님 = 기본 「(뒤 쪽)」
   if ('byeolji1BackHead' in data)
     byeolji1BackHead = (typeof data.byeolji1BackHead === 'string' && data.byeolji1BackHead.trim()) ? data.byeolji1BackHead.trim() : null;
+  // 별지1호 수신 표기 — 같은 규칙(키가 있을 때만, 빈 문자열·문자열 아님 = 지정권자명)
+  if ('byeolji1Recipient' in data)
+    byeolji1Recipient = (typeof data.byeolji1Recipient === 'string' && data.byeolji1Recipient.trim()) ? data.byeolji1Recipient.trim() : null;
   if ('_byeolji1BackPage' in data) {
     const p = data._byeolji1BackPage;
     byeolji1BackPage = (Number.isInteger(p) && p > 0) ? p : null;
@@ -2596,7 +2602,7 @@ let showByeolji2Header = true;       // 별지2호 상단 서식 라벨 표시 �
 let showByeolji2Title  = true;       // 별지2호 「Ⅰ. 총괄표」 표시 여부
 // [2026-08-19 보스 지시] 공고문마다 상단 「■ 주택건설공사 감리자지정기준[별지 제N호서식]」 줄의
 //   유무·정렬이 다르다. 반포MV 실측 = 별지1호엔 그 줄이 없고, 별지2호는 그 줄이 우측이다.
-let showByeolji1Std   = true;        // 별지1호 상단 「■ 주택건설공사 감리자지정기준[별지 제1호서식]」 표시 여부
+let showByeolji1Std   = true;        // 별지1호 상단 「■ 주택건설공사 감리자지정기준 [별지 제1호서식]」 표시 여부
 // [2026-09-04 보스 승인] 별지1호 ■기준줄 정렬을 라벨줄과 분리. 종전엔 byeolji1HeaderAlign 하나를
 //   두 줄이 같이 써서 공고문에서 둘이 갈리면 표현할 수 없었다(별지2호는 byeolji2StdAlign 로 이미 분리돼 있었다).
 //   빈 문자열 = 「라벨줄을 따라감」 → 기존 JSON·저장값은 동작이 그대로다(하위호환).
@@ -5599,7 +5605,7 @@ function renderByeolji1() {
       ${showByeolji1Header ? (byeolji1HeaderText
         ? `<div style="text-align:${b1hAlign};font-size:10pt;color:#000;margin-bottom:3px">${escHtml(byeolji1HeaderText)}</div>`
         : `<div style="text-align:${b1hAlign};font-size:8pt;color:#555;margin-bottom:3px">[별지 제1호서식]</div>`) : ''}
-      ${showByeolji1Std ? `<div style="text-align:${b1sAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준[별지 제1호서식]</div>` : ''}
+      ${showByeolji1Std ? `<div style="text-align:${b1sAlign};font-size:8pt;color:#555;margin-bottom:3px">■ 주택건설공사 감리자지정기준 [별지 제1호서식]</div>` : ''}
       <h2 style="text-align:center;font-size:16pt;letter-spacing:8px;margin:6px 0 4px;font-weight:800;line-height:1.1">주택건설공사 감리자지정 신청서</h2>
       <div style="text-align:right;font-size:8pt;color:#555;margin-bottom:2px;line-height:1.1">(앞 쪽)</div>
 
@@ -5687,7 +5693,7 @@ function renderByeolji1() {
       </table>
 
       <div style="text-align:justify;text-justify:inter-word;word-break:keep-all;font-size:9.5pt;line-height:1.7;margin:14px 24px 8px">
-        「주택법」 제43조, 같은 법 시행령 제47조 및 '주택건설공사 감리자지정기준' 제6조에 따라 위 주택건설공사의 감리자 지정을 신청합니다.
+        「주택법」 제43조, 같은 법 시행령 제47조 및 ‘주택건설공사 감리자지정기준’ 제6조에 따라 위 주택건설공사의 감리자 지정을 신청합니다.
       </div>
 
       <div style="text-align:right;font-size:10pt;margin:6px 20px 3px 0">
@@ -5698,16 +5704,16 @@ function renderByeolji1() {
         ${showStamp ? `<img src="stamp.png" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:${STAMP_MM}mm;height:${STAMP_MM}mm;mix-blend-mode:multiply;opacity:0.88;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;">` : ''}
       </div>
       <div style="font-size:13pt;font-weight:800;margin:6px 0 0 0;line-height:1.2;text-align:${b1rAlign};${b1rAlign==='right'?'margin-right:20px;':''}">
-        ${escHtml(pj.authority || '')} 귀하
+        ${escHtml(byeolji1Recipient || pj.authority || '')} 귀하
       </div>
 
       <div style="flex:1 1 auto"></div>
       <div style="background:#f0f0f0;border:1px solid #aaa;padding:3px 6px;margin-top:4px;font-size:7pt;line-height:1.2">
         <div style="font-weight:700;text-align:center;margin-bottom:1px;line-height:1.2">유의사항</div>
-        '주택건설공사 감리자지정기준' 제5조제3항제9호에 따른 '감리원배치계획표 양식'에 당해 용역에 참여하는 감리원을 배치한 '감리원 배치계획표'를 동 신청서와 함께 제출하며 미제출할 경우에는 실격처리됨<br>
+        ‘주택건설공사 감리자지정기준’ 제5조제3항제9호에 따른 ‘감리원배치계획표 양식’에 당해 용역에 참여하는 감리원을 배치한 ‘감리원배치계획표’를 동 신청서와 함께 제출하며 미제출할 경우에는 실격처리됨<br>
         사실확인서류 : 뒷면(1순위부터 3순위업체 해당)
       </div>
-      <div style="text-align:right;font-size:7pt;color:#666;margin-top:2px;line-height:1.1">210㎜×297㎜[백상지(80g/㎡)]</div>
+      <div style="text-align:right;font-size:7pt;color:#666;margin-top:2px;line-height:1.1">210mm×297mm[백상지(80g/㎡)]</div>
     </div>` + (showByeolji1Back ? byeolji1BackHtml(_fitByeolji1BackRowH()) : '');
   updateByeolji1AlignButtons();
   updateByeolji1BackStatus();
@@ -5795,7 +5801,7 @@ function byeolji1BackHtml(rowH) {
         </div>
       </div>
       <div style="flex:1 1 auto"></div>${byeolji1BackFooter !== false ? `
-      <div style="border-top:1px solid #000;text-align:right;font-size:7pt;color:#666;padding-top:2px;margin-top:4px;line-height:1.1">${typeof byeolji1BackFooter === 'string' ? escHtml(byeolji1BackFooter.trim()) : '210㎜×297㎜[백상지(80g/㎡)]'}</div>` : ''}
+      <div style="border-top:1px solid #000;text-align:right;font-size:7pt;color:#666;padding-top:2px;margin-top:4px;line-height:1.1">${typeof byeolji1BackFooter === 'string' ? escHtml(byeolji1BackFooter.trim()) : '210mm×297mm[백상지(80g/㎡)]'}</div>` : ''}
     </div>`;
 }
 
@@ -5842,6 +5848,7 @@ function updateByeolji1BackStatus() {
     : '뒤쪽 문구: 기본 문구';
   const fit = showByeolji1Back ? _byeolji1BackFit : null;   // 뒤쪽을 그린 렌더의 결과만(문구가 바뀐 뒤 아직 안 그렸으면 null)
   if (byeolji1BackHead) html += ` · 머리 「${escHtml(byeolji1BackHead)}」`;
+  if (byeolji1Recipient) html += ` · 앞쪽 수신 「${escHtml(byeolji1Recipient)} 귀하」`;
   if (fit && fit.rowH < BYEOLJI1_BACK_ROW_H)
     html += ` · 1쪽 맞춤 행 높이 ${BYEOLJI1_BACK_ROW_H}→${fit.rowH}px`;
   if (fit && fit.overflow > 0)
@@ -6320,7 +6327,7 @@ function renderByeolji2Cover() {
       </tbody>
     </table>
     <div style="font-size:7pt;line-height:1.6;margin:8px 0 0">
-      상기 자기평가서는 「주택법」, 「주택건설공사 감리자지정기준」 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성ㆍ제출되었음을 확인하고, 제출된 신청자 평점 중 "허위ㆍ거짓 등"의 방법에 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰제한 등의 불이익을 받을 수 있음을 확인합니다.
+      상기 자기평가서는 「주택법」, ‘주택건설공사 감리자지정기준’ 및 당해 감리자모집공고에서 정한 제반 규정을 숙지하고 동 규정에 적합하게 작성ㆍ제출되었음을 확인하고, 제출된 신청자 평점 중 “허위ㆍ거짓 등”의 방법에 의하여 작성된 경우에는 실격처리되며 관련규정에 따라 입찰제한 등의 불이익을 받을 수 있음을 확인합니다.
     </div>
     <div style="text-align:right;font-size:10pt;margin:12px 20px 2px 0;line-height:1.3">${getSubmitDateStr()}</div>
     <div style="position:relative;text-align:right;font-size:10pt;margin:4px 20px 0 0;line-height:1.3">
@@ -6329,7 +6336,7 @@ function renderByeolji2Cover() {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#666;margin-top:8px;line-height:1.3">
       <span></span>
-      <span>210㎜×297㎜[백상지(80g/㎡)]</span>
+      <span>210mm×297mm[백상지(80g/㎡)]</span>
     </div>
   </div>`;
   setTimeout(calcB2, 50);
@@ -7686,7 +7693,7 @@ function renderDeployTable() {
       })()}%&ensp;/&ensp;15% 이내)</div>
     </div>
     <div style="font-size:8.5pt;color:#333;margin-top:10px;line-height:1.6">
-      ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함
+      ※ 감리자(회사)가 작성한 배치계획표 양식을 제출하여도 되나 상기 서식에 맞추어 작성하여야 함.
     </div>
   </div>`;
 
@@ -8888,7 +8895,7 @@ function renderByeolchum1() {
         ${titleLine}
         ${noticeLine}
         <div style="margin-bottom:0;${_lblW}">□ 사 업 명 : ${escHtml(_swearPjName)}</div>
-        <div style="margin-bottom:0;${_lblW}">□ 사 업 주 체 : ${escHtml(_swearClient)}</div>
+        <div style="margin-bottom:0;${_lblW}">□ 사업주체 : ${escHtml(_swearClient)}</div>
       </div>
       <div class="swear-spacer-top" style="flex:1 1 0;min-height:12px;"></div>
       <div class="swear-body" style="flex:0 0 auto;">
